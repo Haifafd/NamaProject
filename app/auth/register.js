@@ -3,20 +3,20 @@ import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../FirebaseConfig";
 
 import {
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
 export default function Register() {
@@ -25,6 +25,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+
+  const { role } = useLocalSearchParams();
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -47,6 +49,11 @@ export default function Register() {
       return;
     }
 
+    if (!role) {
+      setError("يرجى اختيار دور المستخدم");
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -54,6 +61,9 @@ export default function Register() {
         password,
       );
       const user = userCredential.user;
+
+      console.log("Firestore saving...");
+
       await setDoc(doc(db, "Users", user.uid), {
         name: name,
         email: email,
@@ -61,7 +71,7 @@ export default function Register() {
       });
       router.push("/auth/Login");
     } catch (error) {
-      setError("حدث خطأ أثناء إنشاء الحساب");
+      setError("حدث خطأ أثناء إنشاء الحساب: " + error.message);
     }
   };
 

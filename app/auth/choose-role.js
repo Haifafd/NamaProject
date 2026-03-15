@@ -1,21 +1,21 @@
 import {
-    Animated,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
 export default function ChooseRole() {
-  const [role, setRole] = useState("parent");
+  const router = useRouter();
+  const [role, setRole] = useState(null);
 
   const slider = useRef(new Animated.Value(0)).current;
-
   const circle1 = useRef(new Animated.Value(0)).current;
   const circle2 = useRef(new Animated.Value(0)).current;
 
@@ -123,7 +123,10 @@ export default function ChooseRole() {
 
         <TouchableOpacity
           style={styles.nextButton}
-          onPress={() => router.push(`/auth/register?role=${role}`)}
+          onPress={() => {
+            if (!role) return;
+            router.push({ pathname: "/auth/register", params: { role } });
+          }}
         >
           <Text style={styles.nextText}>الخطوة التالية</Text>
         </TouchableOpacity>
