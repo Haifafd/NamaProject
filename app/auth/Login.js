@@ -36,6 +36,34 @@ export default function Login() {
     }).start();
   };
 
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError("يرجى ملء جميع الحقول");
+      return;
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
+        const user = userCredential.user;
+
+        const userDoc = await getDoc(doc(db, "Users", user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+
+          if (userData.role === "parent") {
+            router.push("/parent/homepageP");
+          } else if (userData.role === "specialist") {
+            router.push("/specialist/homepageS");
+          }
+        }
+      } catch (error) {
+        setError("حدث خطأ: " + error.message);
+      }
+    }
+  };
+
   return (
     <LinearGradient colors={["#e8edf6", "#cfdcf3"]} style={{ flex: 1 }}>
       <View style={styles.backgroundCircle1} />
