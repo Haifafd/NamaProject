@@ -1,13 +1,17 @@
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../FirebaseConfig";
+
 import {
-    Animated,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { BlurView } from "expo-blur";
@@ -18,6 +22,7 @@ import { useRef, useState } from "react";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -40,27 +45,27 @@ export default function Login() {
     if (!email || !password) {
       setError("يرجى ملء جميع الحقول");
       return;
-      try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
-        const user = userCredential.user;
+    }
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const user = userCredential.user;
 
-        const userDoc = await getDoc(doc(db, "Users", user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
+      const userDoc = await getDoc(doc(db, "Users", user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
 
-          if (userData.role === "parent") {
-            router.push("/parent/homepageP");
-          } else if (userData.role === "specialist") {
-            router.push("/specialist/homepageS");
-          }
+        if (userData.role === "parent") {
+          router.push("/parent/homepageP");
+        } else if (userData.role === "specialist") {
+          router.push("/specialist/homepageS");
         }
-      } catch (error) {
-        setError("حدث خطأ: " + error.message);
       }
+    } catch (error) {
+      setError("حدث خطأ: " + error.message);
     }
   };
 
@@ -106,13 +111,16 @@ export default function Login() {
             textAlign="right"
           />
 
-          <Text style={styles.forgot}>نسيت كلمة المرور؟</Text>
+          <TouchableOpacity onPress={() => router.push("/auth/reset-password")}>
+            <Text style={styles.forgot}>نسيت كلمة المرور؟</Text>
+          </TouchableOpacity>
 
           <Animated.View style={{ transform: [{ scale }] }}>
             <TouchableOpacity
               style={styles.loginBtn}
               onPressIn={pressIn}
               onPressOut={pressOut}
+              onPress={handleLogin}
             >
               <Text style={styles.loginText}>تسجيل الدخول</Text>
             </TouchableOpacity>
