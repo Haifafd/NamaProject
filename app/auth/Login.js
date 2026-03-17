@@ -4,7 +4,6 @@ import { auth, db } from "../../FirebaseConfig";
 
 import {
   Animated,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -126,15 +125,6 @@ export default function Login() {
             </TouchableOpacity>
           </Animated.View>
         </BlurView>
-
-        <Text style={styles.socialText}>أو المتابعة باستخدام</Text>
-
-        <TouchableOpacity style={styles.googleBtn}>
-          <Image
-            source={require("../../assets/images/icons/google.png")}
-            style={styles.googleIcon}
-          />
-        </TouchableOpacity>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
