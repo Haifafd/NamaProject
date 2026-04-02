@@ -1,14 +1,14 @@
 import { useState } from "react";
 import {
-    Dimensions,
-    Image,
-    ImageBackground,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  ImageBackground,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
@@ -30,19 +30,19 @@ const TABS = [
   {
     key: "profile",
     label: "حسابي",
-    icon: require("../../assets/profile.png"),
+    icon: require("../../assets/images/icons/profile.png"),
     screen: "Profile",
   },
   {
     key: "activities",
     label: "نشاط",
-    icon: require("../../assets/game.png"),
+    icon: require("../../assets/images/icons/game.png"),
     screen: "Activities",
   },
   {
     key: "home",
     label: "الرئيسية",
-    icon: require("../../assets/home.png"),
+    icon: require("../../assets/images/icons/home.png"),
     screen: "Home",
   },
 ];
@@ -131,7 +131,7 @@ export default function ButterflyColoringScreen({ navigation }) {
 
   return (
     <ImageBackground
-      source={require("../../assets/wallper.png")}
+      source={require("../../assets/images/wallper.png")}
       style={styles.bg}
       resizeMode="cover"
     >
