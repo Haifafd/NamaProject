@@ -2,6 +2,7 @@ import {
     Dimensions,
     SafeAreaView,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -10,19 +11,39 @@ import {
 
 const { width } = Dimensions.get("window");
 
-// --- مكون نظام التقييم (1-5) ---
-const RatingScale = ({ activeScore }) => {
+// --- نظام التقييم الاحترافي (1 هو الأفضل - أخضر) ---
+const ProfessionalRating = ({ activeScore }) => {
+  const getStyle = (num) => {
+    const isActive = activeScore === num;
+    if (!isActive) return { backgroundColor: "#F0F2F5", color: "#ADB5BD" };
+
+    const colors = {
+      1: "#27AE60", // ممتاز
+      2: "#2ECC71",
+      3: "#F1C40F",
+      4: "#E67E22",
+      5: "#E74C3C",
+    };
+    return { backgroundColor: colors[num], color: "#FFF", fontWeight: "bold" };
+  };
+
   return (
-    <View style={styles.ratingWrapper}>
+    <View style={styles.ratingRow}>
       {[5, 4, 3, 2, 1].map((num) => (
         <View
           key={num}
-          style={[styles.ratingDot, activeScore === num && styles.activeDot]}
+          style={[
+            styles.ratingCircle,
+            { backgroundColor: getStyle(num).backgroundColor },
+          ]}
         >
           <Text
             style={[
               styles.ratingNum,
-              activeScore === num && styles.activeNumText,
+              {
+                color: getStyle(num).color,
+                fontWeight: getStyle(num).fontWeight,
+              },
             ]}
           >
             {num}
@@ -33,317 +54,341 @@ const RatingScale = ({ activeScore }) => {
   );
 };
 
-// --- مكون بطاقة المؤشرات الصغيرة ---
-const MetricCard = ({ title, color, score, emoji }) => (
-  <View style={styles.metricCard}>
-    <View style={styles.cardHeaderRow}>
-      <Text style={styles.cardEmoji}>{emoji}</Text>
-      <Text style={styles.metricTitle}>{title}</Text>
+// --- كرت الرسم البياني الخطي ---
+const LineChartTile = ({ title, score, color, data }) => (
+  <View style={[styles.chartCard, styles.shadowCard]}>
+    <Text style={styles.chartTitle}>{title}</Text>
+    <View style={styles.chartBody}>
+      <View style={styles.yAxis}>
+        {["100%", "80%", "60%", "40%"].map((val, i) => (
+          <Text key={i} style={styles.axisTxt}>
+            {val}
+          </Text>
+        ))}
+      </View>
+      <View style={styles.chartArea}>
+        {[1, 2, 3, 4].map((i) => (
+          <View key={i} style={styles.gridLine} />
+        ))}
+        <View style={styles.chartLineLayer}>
+          {data.map((h, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dataPoint,
+                {
+                  bottom: h * 0.45,
+                  left: i * (width * 0.08),
+                  backgroundColor: color,
+                },
+              ]}
+            >
+              <View style={[styles.pointPulse, { backgroundColor: color }]} />
+            </View>
+          ))}
+        </View>
+      </View>
     </View>
-
-    {/* شكل جمالي يمثل الرسم البياني */}
-    <View style={styles.visualGraph}>
-      <View
-        style={[
-          styles.miniBar,
-          { height: "40%", backgroundColor: color + "88" },
-        ]}
-      />
-      <View
-        style={[styles.miniBar, { height: "70%", backgroundColor: color }]}
-      />
-      <View
-        style={[
-          styles.miniBar,
-          { height: "55%", backgroundColor: color + "88" },
-        ]}
-      />
-      <View
-        style={[styles.miniBar, { height: "90%", backgroundColor: color }]}
-      />
+    <View style={styles.xAxis}>
+      {["جلسة 4", "جلسة 3", "جلسة 2", "جلسة 1"].map((val, i) => (
+        <Text key={i} style={styles.axisTxtX}>
+          {val}
+        </Text>
+      ))}
     </View>
-
     <View style={styles.divider} />
-    <Text style={styles.ratingLabel}>مستوى الإنجاز</Text>
-    <RatingScale activeScore={score} />
+    <ProfessionalRating activeScore={score} />
   </View>
 );
 
 export default function App() {
   return (
     <SafeAreaView style={styles.container}>
-      {/* البار العلوي - تصميم أنيق */}
+      <StatusBar barStyle="dark-content" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Text style={{ fontSize: 18 }}>📄</Text>
+        <TouchableOpacity style={styles.headBtn}>
+          <Text style={styles.headIcon}>〉</Text>
         </TouchableOpacity>
-        <Text style={styles.headerMainTitle}>لوحة المتابعة</Text>
-        <TouchableOpacity style={styles.iconButton}>
-          <Text style={{ fontSize: 18 }}>〉</Text>
+
+        <View style={styles.avatarContainer}>
+          <Text style={{ fontSize: 55 }}>👦🏻</Text>
+        </View>
+
+        <TouchableOpacity style={styles.headBtn}>
+          <Text style={{ fontSize: 20 }}>📄</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
+        contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
       >
-        {/* قسم الملف الشخصي بتصميم بطاقة زجاجية */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarBorder}>
-            <View style={styles.avatarInternal}>
-              <Text style={{ fontSize: 45 }}>👦🏻</Text>
-            </View>
-          </View>
-          <Text style={styles.childName}>محمد عبدالله</Text>
-          <View style={styles.tagsRow}>
-            <View style={[styles.tag, { backgroundColor: "#E3F2FD" }]}>
-              <Text style={styles.tagText}>4 سنوات</Text>
-            </View>
-            <View style={[styles.tag, { backgroundColor: "#FFF3E0" }]}>
-              <Text style={styles.tagText}>تشتت انتباه</Text>
-            </View>
+        <View style={styles.profileInfo}>
+          <Text style={styles.nameTxt}>الأسم : محمد عبدالله</Text>
+          <Text style={styles.subTxt}>العمر : 4 سنوات</Text>
+
+          {/* تم تغيير لون نوع الصعوبة من الأحمر إلى الأزرق الاحترافي الهادئ */}
+          <View style={styles.difficultyBadge}>
+            <Text style={styles.difficultyText}>نوع الصعوبة: تشتت انتباه</Text>
           </View>
         </View>
 
-        {/* شبكة المؤشرات */}
         <View style={styles.grid}>
-          <MetricCard
-            title="الذاكرة العاملة"
-            color="#4facfe"
+          <LineChartTile
+            title="مؤشر الذاكرة العاملة"
             score={1}
-            emoji="🧠"
+            color="#3498DB"
+            data={[40, 60, 85, 95]}
           />
-          <MetricCard
-            title="الانتباه والتركيز"
-            color="#43e97b"
+          <LineChartTile
+            title="الأنتباه والثبات على المهمة"
             score={2}
-            emoji="🎯"
+            color="#2ECC71"
+            data={[30, 50, 70, 85]}
           />
-          <MetricCard
-            title="الإدراك البصري"
-            color="#f6d365"
-            score={3}
-            emoji="👁️"
-          />
-          <MetricCard
-            title="حل المشكلات"
-            color="#fa709a"
-            score={2}
-            emoji="🧩"
-          />
-        </View>
 
-        {/* بطاقة الأداء العام الكبيرة */}
-        <View style={styles.mainProgressCard}>
-          <Text style={styles.mainProgressTitle}>متوسط الأداء العام</Text>
-          <View style={styles.outerCircle}>
-            <View style={styles.innerCircle}>
-              <Text style={styles.bigPercent}>92%</Text>
+          <View style={[styles.chartCard, styles.shadowCard]}>
+            <Text style={styles.chartTitle}>مؤشر الإدراك البصري</Text>
+            <View style={styles.barArea}>
+              <View style={styles.yAxis}>
+                {["100%", "80%", "60%", "40%"].map((v, i) => (
+                  <Text key={i} style={styles.axisTxt}>
+                    {v}
+                  </Text>
+                ))}
+              </View>
+              <View style={styles.barsContainer}>
+                {[
+                  { v: 82, l: "نسخ", c: "#3498DB" },
+                  { v: 70, l: "تركيب", c: "#5DADE2" },
+                  { v: 76, l: "لون", c: "#85C1E9" },
+                ].map((b, i) => (
+                  <View key={i} style={styles.barCol}>
+                    <Text style={[styles.barVal, { color: b.c }]}>{b.v}%</Text>
+                    <View
+                      style={[
+                        styles.barBody,
+                        { height: b.v * 0.4, backgroundColor: b.c },
+                      ]}
+                    />
+                    <Text style={styles.barLab}>{b.l}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
+            <View style={styles.divider} />
+            <ProfessionalRating activeScore={3} />
           </View>
-          <View style={{ width: "60%", marginTop: 10 }}>
-            <RatingScale activeScore={1} />
+
+          <View style={[styles.chartCard, styles.shadowCard]}>
+            <Text style={styles.chartTitle}>متوسط الأداء العام</Text>
+            <View style={styles.circleContainer}>
+              <View style={styles.circleBorder}>
+                <Text style={styles.circleText}>92%</Text>
+              </View>
+            </View>
+            <View style={styles.divider} />
+            <ProfessionalRating activeScore={1} />
           </View>
         </View>
 
-        {/* زر التقييم السفلي */}
-        <TouchableOpacity activeOpacity={0.8} style={styles.footerAction}>
-          <View style={styles.footerIconBox}>
-            <Text style={{ fontSize: 20 }}>📝</Text>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={[styles.footerBtn, styles.shadowCard]}
+        >
+          <View style={styles.btnIconCircle}>
+            <Text style={{ fontSize: 22 }}>📝</Text>
           </View>
-          <Text style={styles.footerActionText}>استمارة تقييم ولي الأمر</Text>
-          <Text style={{ color: "#AAA", marginLeft: 10 }}>〉</Text>
+          <Text style={styles.btnLabel}>
+            استمارة تقييم الطفل من قبل ولي الأمر
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// --- التنسيقات الجمالية المحسنة ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FBFF" },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  headerMainTitle: { fontSize: 18, fontWeight: "bold", color: "#2D3436" },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#FFF",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-    shadowOpacity: 0.1,
-  },
-
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
-
-  profileCard: {
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    borderRadius: 25,
-    padding: 20,
-    marginBottom: 25,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-  },
-  avatarBorder: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    padding: 3,
-    backgroundColor: "#4facfe",
-    marginBottom: 12,
-  },
-  avatarInternal: {
-    flex: 1,
-    backgroundColor: "#FFF",
-    borderRadius: 42,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  childName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#2D3436",
-    marginBottom: 8,
-  },
-  tagsRow: { flexDirection: "row-reverse" },
-  tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  tagText: { fontSize: 12, color: "#555", fontWeight: "600" },
-
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  metricCard: {
-    backgroundColor: "#FFF",
-    width: "48%",
-    borderRadius: 20,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 2,
-    shadowOpacity: 0.03,
-  },
-  cardHeaderRow: {
     flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    padding: 20,
     alignItems: "center",
-    marginBottom: 15,
   },
-  cardEmoji: { fontSize: 16, marginLeft: 8 },
-  metricTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#636E72",
-    flex: 1,
-    textAlign: "right",
-  },
-
-  visualGraph: {
-    flexDirection: "row",
-    height: 40,
-    alignItems: "flex-end",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-  miniBar: { width: 6, marginHorizontal: 3, borderRadius: 3 },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#F1F2F6",
-    width: "100%",
-    marginBottom: 10,
-  },
-  ratingLabel: {
-    fontSize: 9,
-    color: "#B2BEC3",
-    textAlign: "center",
-    marginBottom: 6,
-  },
-
-  mainProgressCard: {
+  headBtn: {
+    width: 45,
+    height: 45,
+    borderRadius: 15,
     backgroundColor: "#FFF",
-    borderRadius: 25,
-    padding: 25,
+    justifyContent: "center",
     alignItems: "center",
     elevation: 3,
-    marginBottom: 20,
   },
-  mainProgressTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#2D3436",
-    marginBottom: 20,
-  },
-  outerCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#F1F2F6",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  innerCircle: {
+  headIcon: { fontSize: 20, fontWeight: "bold", color: "#333" },
+  avatarContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    backgroundColor: "#E1F5FE",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#FFF",
+  },
+
+  scroll: { paddingHorizontal: 16, paddingBottom: 40 },
+  profileInfo: { alignItems: "center", marginVertical: 15 },
+  nameTxt: { fontSize: 22, fontWeight: "800", color: "#2D3436" },
+  subTxt: { fontSize: 14, color: "#636E72", marginTop: 4 },
+
+  // تنسيق جديد لنوع الصعوبة
+  difficultyBadge: {
+    backgroundColor: "#EBF5FF",
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  difficultyText: { fontSize: 13, color: "#3498DB", fontWeight: "700" },
+
+  grid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  chartCard: {
+    width: "48%",
     backgroundColor: "#FFF",
-    borderWidth: 6,
-    borderColor: "#4facfe",
+    borderRadius: 24,
+    padding: 12,
+    marginBottom: 16,
+  },
+  chartTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#2D3436",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+
+  chartBody: { flexDirection: "row-reverse", height: 80 },
+  yAxis: {
+    width: 30,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  axisTxt: { fontSize: 8, color: "#B2BEC3", fontWeight: "bold" },
+  chartArea: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: "#F1F2F6",
+    position: "relative",
+  },
+  gridLine: {
+    height: 1,
+    backgroundColor: "#F8F9FA",
+    width: "100%",
+    marginBottom: 18,
+  },
+  chartLineLayer: { position: "absolute", width: "100%", height: "100%" },
+  dataPoint: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    position: "absolute",
+    zIndex: 2,
+  },
+  pointPulse: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    opacity: 0.2,
+    position: "absolute",
+    top: -3,
+    left: -3,
+  },
+  xAxis: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-around",
+    paddingRight: 35,
+    marginTop: 8,
+  },
+  axisTxtX: { fontSize: 7, color: "#999", fontWeight: "700" },
+
+  barArea: { flexDirection: "row-reverse", height: 80 },
+  barsContainer: {
+    flex: 1,
+    flexDirection: "row-reverse",
+    alignItems: "flex-end",
+    justifyContent: "space-around",
+  },
+  barCol: { alignItems: "center" },
+  barBody: { width: 14, borderRadius: 4 },
+  barVal: { fontSize: 9, fontWeight: "800", marginBottom: 4 },
+  barLab: { fontSize: 7, color: "#636E72", marginTop: 6, fontWeight: "bold" },
+
+  circleContainer: {
+    height: 80,
     justifyContent: "center",
     alignItems: "center",
   },
-  bigPercent: { fontSize: 24, fontWeight: "bold", color: "#4facfe" },
+  circleBorder: {
+    width: 75,
+    height: 75,
+    borderRadius: 37.5,
+    borderWidth: 6,
+    borderColor: "#3498DB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  circleText: { fontSize: 18, fontWeight: "900", color: "#2D3436" },
 
-  ratingWrapper: { flexDirection: "row-reverse", justifyContent: "center" },
-  ratingDot: {
+  divider: { height: 1, backgroundColor: "#F1F2F6", marginVertical: 12 },
+  ratingRow: { flexDirection: "row-reverse", justifyContent: "center" },
+  ratingCircle: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#F1F2F6",
-    marginHorizontal: 3,
+    marginHorizontal: 2,
     justifyContent: "center",
     alignItems: "center",
   },
-  activeDot: { backgroundColor: "#43e97b" },
-  ratingNum: { fontSize: 11, color: "#B2BEC3" },
-  activeNumText: { color: "#FFF", fontWeight: "bold" },
+  ratingNum: { fontSize: 10 },
 
-  footerAction: {
+  footerBtn: {
     flexDirection: "row-reverse",
-    backgroundColor: "#3bb4ff",
-    padding: 15,
-    borderRadius: 20,
+    backgroundColor: "#FFF",
+    padding: 18,
+    borderRadius: 25,
     alignItems: "center",
-    elevation: 4,
+    marginTop: 10,
   },
-  footerIconBox: {
-    width: 40,
-    height: 40,
-    backgroundColor: "rgba(181, 198, 235, 0.1)",
-    borderRadius: 12,
+  btnIconCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 15,
+    backgroundColor: "#E3F2FD",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 15,
   },
-  footerActionText: {
-    color: "#FFF",
-    fontSize: 15,
-    fontWeight: "bold",
+  btnLabel: {
     flex: 1,
     textAlign: "right",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#2D3436",
+  },
+
+  shadowCard: {
+    elevation: 4,
+    shadowColor: "#3498DB",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
 });
