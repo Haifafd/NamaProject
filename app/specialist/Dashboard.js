@@ -10,7 +10,7 @@ export default function Dashboard(props) {
     name: "محمد عبدالله",
     age: 4,
     difficulty: "تشتت انتباه",
-    avatar: require('../../assets/child.png'),
+    avatar: require('../../assets/icons/child.png'),
     overallPerformance: 0.92
   };
 
@@ -37,7 +37,7 @@ export default function Dashboard(props) {
         
         <View style={styles.header}>
           <TouchableOpacity>
-            <Image source={require('../../assets/doc.png')} style={styles.headerIcon} />
+            <Image source={require('../../assets/images/icons/doc.png')} style={styles.headerIcon} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.backBtnContainer}>
@@ -111,14 +111,14 @@ export default function Dashboard(props) {
           </View>
 
           <TouchableOpacity style={styles.actionButton}>
-            <Image source={require('../../assets/edit.png')} style={styles.btnIcon} />
+            <Image source={require('../../assets/images/icons/edit.png')} style={styles.btnIcon} />
             <Text style={styles.actionButtonText}>الخطة العلاجية وإدارة الأنشطة</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       <TouchableOpacity style={styles.chatButton} onPress={() => Alert.alert("الشات")}>
-        <Image source={require('../../assets/chat_bubble.png')} style={styles.chatIcon} />
+        <Image source={require('../../assets/images/icons/chat_bubble.png')} style={styles.chatIcon} />
       </TouchableOpacity>
     </SafeAreaView>
   );

@@ -165,7 +165,7 @@ export default function TherapyPlanScreen({ navigation }) {
           </TouchableOpacity>
         </SectionCard>
 
-        {/* ── Dose Section ── */}
+    
         <SectionCard title="الجرعة العلاجية">
           <View style={styles.doseRow}>
             <Stepper value={sessions} onChange={setSessions} />
@@ -448,6 +448,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
+  },
+  saveBtnText: { fontWeight: "700", fontSize: 16, color: "white" },
+});
   },
   saveBtnText: { fontWeight: "700", fontSize: 16, color: "white" },
 });

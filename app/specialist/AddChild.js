@@ -36,7 +36,7 @@ export default function AddChild({ navigation }) {
           onPress={() => navigation?.goBack()}
         >
           <Image 
-            source={require("../../assets/icon.png")}
+            source={require("../../assets/images/icons/icon.png")}
             style={styles.backIcon} 
             resizeMode="contain"
           />
