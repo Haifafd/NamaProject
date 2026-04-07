@@ -10,7 +10,7 @@ export default function Dashboard(props) {
     name: "محمد عبدالله",
     age: 4,
     difficulty: "تشتت انتباه",
-    avatar: require('../../assets/images/icons/child.png'),
+    avatar: require('../../assets/icons/child.png'),
     overallPerformance: 0.92
   };
 
