@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  TextInput,
   SafeAreaView,
+  ScrollView,
   StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 const PRIMARY = "#1565C0";
@@ -27,9 +26,9 @@ const INITIAL_GOALS = [
 ];
 
 const INITIAL_ACTIVITIES = [
-  { id: "memory",    label: "أنشطة الذاكرة",          count: null, checked: true },
-  { id: "attention", label: "أنشطة التشتت والانتباه",  count: null, checked: true },
-  { id: "focus",     label: "أنشطة التركيز",           count: 5,    checked: true },
+  { id: "memory",    label: "أنشطة الذاكرة",           count: null, checked: true },
+  { id: "attention", label: "أنشطة التشتت والانتباه",   count: null, checked: true },
+  { id: "focus",     label: "أنشطة التركيز",            count: 5,    checked: true },
   { id: "visual",    label: "أنشطة البصرية",           count: null, checked: true },
 ];
 
@@ -127,7 +126,7 @@ export default function TherapyPlanScreen({ navigation }) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Goals Section ── */}
+        {/* Goals Section */}
         <SectionCard title="الأهداف العلاجية">
           {goals.map((goal, index) => (
             <View key={index} style={styles.goalRow}>
@@ -165,7 +164,7 @@ export default function TherapyPlanScreen({ navigation }) {
           </TouchableOpacity>
         </SectionCard>
 
-    
+        {/* Dosage Section */}
         <SectionCard title="الجرعة العلاجية">
           <View style={styles.doseRow}>
             <Stepper value={sessions} onChange={setSessions} />
@@ -192,7 +191,7 @@ export default function TherapyPlanScreen({ navigation }) {
           </TouchableOpacity>
         </SectionCard>
 
-        {/* ── Activities Section ── */}
+        {/* Activities Section */}
         <SectionCard title="الأنشطة المختارة">
           {activities.map((activity, index) => (
             <View key={activity.id}>
@@ -218,7 +217,7 @@ export default function TherapyPlanScreen({ navigation }) {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* ── Bottom Save Button ── */}
+      {/* Bottom Save Button */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.saveBtn, saved && { backgroundColor: GREEN }]}
@@ -233,10 +232,7 @@ export default function TherapyPlanScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  safe: { flex: 1, backgroundColor: BG },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -293,11 +289,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginBottom: 4,
   },
-  goalRow: {
-    flexDirection: "row-reverse",
-    alignItems: "flex-start",
-    gap: 6,
-  },
+  goalRow: { flexDirection: "row-reverse", alignItems: "flex-start", gap: 6 },
   goalBullet: { minWidth: 24, alignItems: "flex-end" },
   goalBulletText: { fontSize: 13, color: MUTED },
   goalText: {
@@ -316,13 +308,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  goalInput: {
-    flex: 1,
-    fontSize: 13,
-    color: TEXT,
-    minHeight: 36,
-    padding: 0,
-  },
+  goalInput: { flex: 1, fontSize: 13, color: TEXT, minHeight: 36, padding: 0 },
   addConfirmBtn: {
     backgroundColor: PRIMARY,
     borderRadius: 8,
@@ -353,13 +339,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 2,
   },
-  doseLabel: {
-    fontSize: 14,
-    color: TEXT,
-    textAlign: "right",
-    flex: 1,
-    marginRight: 12,
-  },
+  doseLabel: { fontSize: 14, color: TEXT, textAlign: "right", flex: 1, marginRight: 12 },
   stepper: {
     flexDirection: "row",
     alignItems: "center",
@@ -380,13 +360,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   stepBtnText: { fontSize: 18, color: PRIMARY, lineHeight: 22 },
-  stepValue: {
-    fontWeight: "700",
-    fontSize: 15,
-    color: PRIMARY,
-    minWidth: 22,
-    textAlign: "center",
-  },
+  stepValue: { fontWeight: "700", fontSize: 15, color: PRIMARY, minWidth: 22, textAlign: "center" },
   durationDisplay: {
     flexDirection: "row",
     alignItems: "center",
@@ -408,12 +382,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   saveSmallText: { fontWeight: "600", fontSize: 13, color: "white" },
-  activityRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 4,
-  },
+  activityRow: { flexDirection: "row-reverse", alignItems: "center", gap: 10, paddingVertical: 4 },
   checkbox: {
     width: 22,
     height: 22,
@@ -443,14 +412,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: BORDER,
   },
-  saveBtn: {
-    backgroundColor: PRIMARY,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  saveBtnText: { fontWeight: "700", fontSize: 16, color: "white" },
-});
-  },
+  saveBtn: { backgroundColor: PRIMARY, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   saveBtnText: { fontWeight: "700", fontSize: 16, color: "white" },
 });
