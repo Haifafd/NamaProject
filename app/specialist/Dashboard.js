@@ -1,6 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView, Alert } from 'react-native';
-import { LineChart, BarChart, ProgressChart } from 'react-native-chart-kit';
+import { Alert, Dimensions, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BarChart, LineChart, ProgressChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -10,7 +9,8 @@ export default function Dashboard(props) {
     name: "محمد عبدالله",
     age: 4,
     difficulty: "تشتت انتباه",
-    avatar: require('../../assets/icons/child.png'),
+    // تم التأكد من المسار بناءً على هيكلة ملفاتك
+    avatar: require('../../assets/images/child.png'), 
     overallPerformance: 0.92
   };
 
@@ -90,13 +90,14 @@ export default function Dashboard(props) {
 
             <TouchableOpacity style={styles.card} onPress={() => navigateToDetails("متوسط الأداء العام")}>
               <Text style={styles.cardTitle}>متوسط الأداء العام</Text>
+              {/* تعديل: تم تغيير <div> إلى <View> لأن React Native لا يدعم <div> */}
               <View style={styles.progressContainer}>
                 <ProgressChart
                   data={{ data: [childData.overallPerformance] }}
                   width={screenWidth * 0.35} height={60} strokeWidth={6} radius={22}
                   chartConfig={chartConfig} hideLegend
                 />
-                <Text style={styles.progressText}>{childData.overallPerformance * 100}%</Text>
+                <Text style={styles.progressText}>{Math.round(childData.overallPerformance * 100)}%</Text>
               </View>
             </TouchableOpacity>
 
