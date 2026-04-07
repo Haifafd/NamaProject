@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   Dimensions,
-  TouchableOpacity,
+  Image,
+  ImageBackground,
   SafeAreaView,
   StatusBar,
-  ImageBackground,
-  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Svg, { Path, G, Text as SvgText } from "react-native-svg";
+import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
 
@@ -215,3 +215,4 @@ const tabStyles = StyleSheet.create({
   label: { fontSize: 11, color: MUTED, fontWeight: "500" },
   labelActive: { color: PRIMARY, fontWeight: "700" },
 });
+
