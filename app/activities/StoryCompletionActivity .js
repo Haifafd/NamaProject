@@ -1,5 +1,5 @@
-
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Alert,
@@ -28,6 +28,8 @@ function calculateCognitiveIndex(accuracy, speedScore, consistency) {
 }
 
 export default function PlantGame() {
+
+  const router = useRouter();
   const [placed, setPlaced] = useState([null, null, null]);
   const [message, setMessage] = useState("");
   const [showPerformance, setShowPerformance] = useState(false);
@@ -199,7 +201,7 @@ export default function PlantGame() {
       />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#2ecc71" />
         </TouchableOpacity>
 
@@ -293,10 +295,13 @@ export default function PlantGame() {
           <Text style={{ color: "white" }}>نشاط</Text>
         </View>
 
-        <View style={styles.footerItem}>
-          <Ionicons name="person-outline" size={22} />
-          <Text>حسابي</Text>
-        </View>
+        <TouchableOpacity 
+                   style={styles.footerItem}
+                  onPress={() => router.push("/parent/homepageP")}
+                >
+                  <Ionicons name="person-outline" size={22} />
+                  <Text>حسابي</Text>
+                </TouchableOpacity>
       </View>
 
       <Modal visible={showPerformance} transparent animationType="fade">

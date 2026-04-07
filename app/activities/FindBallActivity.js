@@ -1,16 +1,16 @@
- 
-import { Ionicons } from "@expo/vector-icons";
+ import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Easing,
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  Easing,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const CUP_COUNT = 3;
@@ -35,6 +35,8 @@ function calculateAttentionIndex(completionRate, randomClickRate, exitRate, avgR
 }
 
 export default function FindBallGame() {
+
+  const router = useRouter();
   const [gameStarted, setGameStarted] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [ballLogicalIndex, setBallLogicalIndex] = useState(1);
@@ -298,7 +300,7 @@ export default function FindBallGame() {
       />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#2ecc71" />
         </TouchableOpacity>
         <View>
@@ -386,10 +388,14 @@ export default function FindBallGame() {
           <Ionicons name="game-controller" size={22} color="white" />
           <Text style={{ color: "white" }}>نشاط</Text>
         </View>
-        <View style={styles.footerItem}>
+        <TouchableOpacity 
+           style={styles.footerItem}
+          onPress={() => router.push("/parent/homepageP")}
+        >
           <Ionicons name="person-outline" size={22} />
           <Text>حسابي</Text>
-        </View>
+        </TouchableOpacity>
+
       </View>
 
       <Modal visible={showPerformance} transparent animationType="fade">
