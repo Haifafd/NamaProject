@@ -9,7 +9,13 @@ import {
   View,
 } from "react-native";
 
-import { useRouter } from "expo-router"; // 🔥 إضافة مهمة
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+
+// 🔥 استيراد Firebase
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../FirebaseConfig";
 
 const { width } = Dimensions.get("window");
 
@@ -57,7 +63,28 @@ const DoctorCard = ({ name, message, time }) => (
 // --- الواجهة الرئيسية ---
 
 export default function App() {
-  const router = useRouter(); // 🔥 إضافة مهمة
+  const router = useRouter();
+
+  // 🔥 جلب بيانات الوالد
+  const auth = getAuth();
+  const [parentData, setParentData] = useState(null);
+
+  useEffect(() => {
+    const fetchParentData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      // 🔥 الحل الأول: نجيب البيانات من Users
+      const ref = doc(db, "Users", user.uid);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        setParentData(snap.data());
+      }
+    };
+
+    fetchParentData();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,11 +94,18 @@ export default function App() {
           <TouchableOpacity>
             <Text style={styles.bellIcon}>🔔</Text>
           </TouchableOpacity>
-          <Text style={styles.welcomeText}>مرحباً، هناء 👋</Text>
+
+          {/* 🔥 اسم الوالد من الداتابيس */}
+          <Text style={styles.welcomeText}>
+            مرحباً، {parentData?.name || "الوالد"} 👋
+          </Text>
         </View>
 
-        {/* كارت التحسن */}
-        <ProgressCard percentage="86" improvement="5% ↑" />
+        {/* 🔥 كارت التحسن من الداتابيس */}
+        <ProgressCard
+          percentage={parentData?.progress || 0}
+          improvement={parentData?.improvement || "0%"}
+        />
 
         {/* كارت الطبيبة */}
         <DoctorCard
@@ -80,7 +114,7 @@ export default function App() {
           message="تحسن ممتاز ماشاء الله..."
         />
 
-        {/* 🔥 زر تقييم الطفل */}
+        {/* زر تقييم الطفل */}
         <TouchableOpacity
           style={[styles.card, { alignItems: "center" }]}
           onPress={() => router.push("/parent/ParentAssessmentForm")}
@@ -100,7 +134,12 @@ export default function App() {
               source={{ uri: "https://via.placeholder.com/40" }}
               style={styles.childAvatar}
             />
-            <Text style={styles.childName}>محمد عبدالله</Text>
+
+            {/* 🔥 اسم الطفل من الداتابيس */}
+            <Text style={styles.childName}>
+              {parentData?.childName || "اسم الطفل"}
+            </Text>
+
             <View style={styles.badge}>
               <Text style={styles.badgeText}>تقدم في المهارات الحركية</Text>
             </View>
