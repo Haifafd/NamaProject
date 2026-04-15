@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 
+import { getDocs } from "firebase/firestore";
+
 import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import { addDoc, collection } from "firebase/firestore";
@@ -310,10 +312,29 @@ export default function AssessmentApp() {
   const auth = getAuth();
 
   useEffect(() => {
+    const fetchSavedAssessment = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const snapshot = await getDocs(
+        collection(db, "ParentAssessments", user.uid, "assessments"),
+      );
+
+      if (!snapshot.empty) {
+        const last = snapshot.docs[snapshot.docs.length - 1].data();
+        setSavedResult(last.result);
+      }
+    };
+
+    fetchSavedAssessment();
+  }, []);
+
+  useEffect(() => {
     if (!auth.currentUser) {
       router.replace("/login");
     }
   }, []);
+  const [savedResult, setSavedResult] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -405,6 +426,33 @@ export default function AssessmentApp() {
     }
   };
 
+  if (savedResult) {
+    return (
+      <View style={styles.successContainer}>
+        <Text style={styles.successText}>نتيجة التقييم السابقة</Text>
+
+        <Text style={{ fontSize: 40, color: "#2ECC71", marginVertical: 10 }}>
+          {savedResult.percentage}%
+        </Text>
+
+        <Text style={{ fontSize: 22, marginBottom: 10 }}>
+          {savedResult.level}
+        </Text>
+
+        <Text style={{ color: "#555" }}>
+          مجموع النقاط: {savedResult.totalPoints} / {savedResult.maxPoints}
+        </Text>
+
+        <TouchableOpacity
+          style={styles.finalButton}
+          onPress={() => router.replace("/parent/homepageP")}
+        >
+          <Text style={styles.buttonText}>رجوع</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (showResult && result) {
     return (
       <View style={styles.successContainer}>
@@ -420,10 +468,7 @@ export default function AssessmentApp() {
         <TouchableOpacity
           style={styles.finalButton}
           onPress={() => {
-            setShowResult(false);
-            setCurrentPage(0);
-            setAnswers({});
-            setNotesText("");
+            router.replace("/parent/homepageP");
           }}
         >
           <Text style={styles.buttonText}>تم</Text>
