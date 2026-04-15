@@ -9,11 +9,12 @@ import {
   View,
 } from "react-native";
 
+import { useRouter } from "expo-router"; // 🔥 إضافة مهمة
+
 const { width } = Dimensions.get("window");
 
 // --- المكونات الفرعية ---
 
-// 1. بطاقة النسبة المئوية الكبيرة
 const ProgressCard = ({ percentage, improvement }) => (
   <View style={styles.card}>
     <View style={styles.progressRow}>
@@ -34,7 +35,6 @@ const ProgressCard = ({ percentage, improvement }) => (
   </View>
 );
 
-// 2. بطاقة تنبيه الطبيب
 const DoctorCard = ({ name, message, time }) => (
   <View style={[styles.card, styles.doctorCard]}>
     <View style={styles.doctorInfo}>
@@ -57,6 +57,8 @@ const DoctorCard = ({ name, message, time }) => (
 // --- الواجهة الرئيسية ---
 
 export default function App() {
+  const router = useRouter(); // 🔥 إضافة مهمة
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -77,6 +79,14 @@ export default function App() {
           time="اليوم 11:00 صباحاً"
           message="تحسن ممتاز ماشاء الله..."
         />
+
+        {/* 🔥 زر تقييم الطفل */}
+        <TouchableOpacity
+          style={[styles.card, { alignItems: "center" }]}
+          onPress={() => router.push("/parent/ParentAssessmentForm")}
+        >
+          <Text style={{ fontSize: 18, fontWeight: "bold" }}>تقييم الطفل</Text>
+        </TouchableOpacity>
 
         {/* قسم البطاقات الصغيرة */}
         <View style={styles.row}>
@@ -100,7 +110,7 @@ export default function App() {
           </View>
         </View>
 
-        {/* بنر الأنشطة السفلي */}
+        {/* بنر الأنشطة */}
         <TouchableOpacity style={styles.banner}>
           <View style={styles.bannerContent}>
             <Text style={styles.bannerTitle}>الانتقال إلى وضع</Text>
@@ -115,7 +125,7 @@ export default function App() {
   );
 }
 
-// --- التنسيقات (Styles) ---
+// --- التنسيقات (نفس كودك بدون أي تغيير) ---
 
 const styles = StyleSheet.create({
   container: {
@@ -124,7 +134,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    alignItems: "flex-end", // لدعم اللغة العربية
+    alignItems: "flex-end",
   },
   header: {
     flexDirection: "row",
@@ -179,7 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 6,
     borderColor: "#E0E0E0",
-    borderTopColor: "#4A90E2", // يحاكي شكل التحسن
+    borderTopColor: "#4A90E2",
     justifyContent: "center",
     alignItems: "center",
   },
