@@ -17,7 +17,8 @@ import {
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === 'web';
-const CARD_SIZE = isWeb ? 110 : width * 0.35; // حجم مناسب للترتيب العمودي
+// حجم البطاقة ليكون 2 في كل صف بشكل مرتب
+const CARD_SIZE = isWeb ? 130 : width * 0.4; 
 
 const ALL_ICONS = ["🍩", "🍄", "⏰", "🐢", "🍎", "⭐", "🎈", "🎨", "🚀", "🌈"];
 
@@ -31,7 +32,6 @@ export default function MemoryGame({ navigation }) {
   const [showFinishedCard, setShowFinishedCard] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
-  // إحصائيات المؤشرات
   const [stats, setStats] = useState({ correctPairs: 0, wrongAttempts: 0, totalReactionTime: 0 });
   const levelStartTime = useRef(Date.now());
 
@@ -41,10 +41,9 @@ export default function MemoryGame({ navigation }) {
     try {
       const { sound } = await Audio.Sound.createAsync(require("../../assets/sounds/clapping.mp3"));
       await sound.playAsync();
-    } catch (e) { console.log("الصوت غير موجود"); }
+    } catch (e) { console.log("الصوت ناقص"); }
   }
 
-  // دالة حساب المؤشرات النهائية
   const calculateFinalStats = () => {
     const totalActions = stats.correctPairs + stats.wrongAttempts;
     const accuracy = stats.correctPairs / (totalActions || 1);
@@ -81,7 +80,6 @@ export default function MemoryGame({ navigation }) {
 
   const handleCardPress = (index) => {
     if (isMemorizing || cards[index].isFlipped || matchedCards.includes(index) || flippedCards.length === 2) return;
-
     const reactionTime = Date.now() - levelStartTime.current;
     const newCards = [...cards];
     newCards[index].isFlipped = true;
@@ -96,7 +94,6 @@ export default function MemoryGame({ navigation }) {
         const updatedMatched = [...matchedCards, first, second];
         setMatchedCards(updatedMatched);
         setFlippedCards([]);
-
         if (updatedMatched.length === cards.length) {
           setTimeout(() => {
             if (level === 3) { playClappingSound(); setShowFinishedCard(true); }
@@ -116,10 +113,10 @@ export default function MemoryGame({ navigation }) {
     }
   };
 
-  const finalStats = calculateFinalStats();
+  const results = calculateFinalStats();
 
   return (
-    <ImageBackground source={require("../../assets/images/wallper.png")} style={styles.bg} resizeMode="repeat">
+    <ImageBackground source={require("../../assets/images/wallper.png")} style={styles.bg} resizeMode="cover">
       <View style={styles.overlay} />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
@@ -127,27 +124,26 @@ export default function MemoryGame({ navigation }) {
         {!showReport && !showFinishedCard ? (
           <>
             <View style={styles.header}>
-              <View style={styles.topRow}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack()}>
-                  <Ionicons name="arrow-back" size={24} color="#10B981" />
-                </TouchableOpacity>
-                <View style={{alignItems: 'flex-end'}}>
-                  <Text style={styles.mainTitle}>لعبة الذاكرة والمطابقة</Text>
-                  <Text style={styles.levelText}>المستوى {level} . مهارة المعرفة</Text>
+                <View style={styles.topRow}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack()}>
+                        <Ionicons name="arrow-back" size={24} color="#10B981" />
+                    </TouchableOpacity>
+                    <View style={{alignItems: 'flex-end'}}>
+                        <Text style={styles.mainTitle}>لعبة الذاكرة والمطابقة</Text>
+                        <Text style={styles.levelText}>المستوى {level} . مهارة المعرفة</Text>
+                    </View>
                 </View>
-              </View>
-              <View style={styles.progressSection}>
-                 <Text style={styles.progressLabel}>مستوى التقدم {progressPercent}%</Text>
-                 <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-                 </View>
-              </View>
+                <View style={styles.progressSection}>
+                    <Text style={styles.progressLabel}>مستوى التقدم {progressPercent}%</Text>
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+                    </View>
+                </View>
             </View>
 
             <View style={styles.gameArea}>
               <Text style={styles.instruction}>{isMemorizing ? "احفظ الأماكن! 👀" : "أين الصور المتطابقة؟ ✨"}</Text>
-              {/* الترتيب العمودي Grid */}
-              <View style={styles.verticalGrid}>
+              <View style={styles.grid}>
                 {cards.map((card, index) => (
                   <TouchableOpacity key={index} style={[styles.card, card.isFlipped && styles.cardActive]} onPress={() => handleCardPress(index)}>
                     <Text style={styles.cardEmoji}>{card.isFlipped ? card.icon : "❓"}</Text>
@@ -158,7 +154,7 @@ export default function MemoryGame({ navigation }) {
           </>
         ) : showFinishedCard ? (
           <View style={styles.centerBox}>
-            <Text style={{fontSize: 100}}>🏆</Text> 
+            <Text style={{fontSize: 100}}>🏆</Text>
             <Text style={styles.congratsTitle}>أحسنت يا بطل!</Text>
             <TouchableOpacity style={styles.mainBtn} onPress={() => { setShowFinishedCard(false); setShowReport(true); }}>
               <Text style={styles.btnText}>عرض مؤشرات الأداء 📊</Text>
@@ -166,20 +162,10 @@ export default function MemoryGame({ navigation }) {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.reportContent}>
-            <Text style={styles.reportTitle}>تحليل مهارات الطفل</Text>
+            <Text style={styles.reportTitle}>نتائج تحليل المهارات</Text>
             <View style={styles.indicesRow}>
-              <View style={styles.indexBox}>
-                <Text style={styles.indexValue}>{finalStats.vmi}%</Text>
-                <Text style={styles.indexLabel}>الإدراك البصري (VMI)</Text>
-              </View>
-              <View style={[styles.indexBox, { borderBottomColor: "#3498DB" }]}>
-                <Text style={[styles.indexValue, { color: "#3498DB" }]}>{finalStats.cpi}%</Text>
-                <Text style={styles.indexLabel}>المعالج المعرفي (CPI)</Text>
-              </View>
-            </View>
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryText}>سرعة الاستجابة: {finalStats.avgTime} ثانية</Text>
-              <Text style={styles.summaryText}>عدد الأخطاء: {stats.wrongAttempts}</Text>
+              <View style={styles.indexBox}><Text style={styles.indexValue}>{results.vmi}%</Text><Text style={styles.indexLabel}>الإدراك البصري</Text></View>
+              <View style={[styles.indexBox, {borderBottomColor: '#3498DB'}]}><Text style={[styles.indexValue, {color: '#3498DB'}]}>{results.cpi}%</Text><Text style={styles.indexLabel}>المعالج المعرفي</Text></View>
             </View>
             <TouchableOpacity style={styles.mainBtn} onPress={() => { setLevel(1); setShowReport(false); setStats({correctPairs:0, wrongAttempts:0, totalReactionTime:0}); }}>
               <Text style={styles.btnText}>إعادة التجربة 🔄</Text>
@@ -187,15 +173,19 @@ export default function MemoryGame({ navigation }) {
           </ScrollView>
         )}
 
+        {/* الشريط الرئيسي السفلي - ثابت دائماً */}
+        <View style={styles.navBar}>
+            <View style={styles.navItem}><Ionicons name="person-outline" size={22} color="#94A3B8" /><Text style={styles.navText}>حسابي</Text></View>
+            <View style={styles.activeNavItem}><Ionicons name="brain" size={22} color="#10B981" /><Text style={[styles.navText, {color: '#10B981'}]}>نشاط</Text></View>
+            <View style={styles.navItem}><Ionicons name="home-outline" size={22} color="#94A3B8" /><Text style={styles.navText}>الرئيسية</Text></View>
+        </View>
+
         <Modal visible={showModal.visible} transparent animationType="fade">
           <View style={styles.modalBackdrop}>
             <View style={[styles.modalContent, { borderTopColor: showModal.success ? "#10B981" : "#FF6B6B", borderTopWidth: 10 }]}>
               <Text style={{fontSize: 80}}>{showModal.success ? "👏" : "☹️"}</Text>
               <Text style={styles.modalTitle}>{showModal.success ? "ممتاز!" : "حاول مرة أخرى"}</Text>
-              <TouchableOpacity 
-                style={[styles.modalBtn, {backgroundColor: showModal.success ? "#10B981" : "#FF6B6B"}]}
-                onPress={() => { setShowModal({visible: false}); if(showModal.success) setLevel(level+1); }}
-              >
+              <TouchableOpacity style={[styles.modalBtn, {backgroundColor: showModal.success ? "#10B981" : "#FF6B6B"}]} onPress={() => { setShowModal({visible: false}); if(showModal.success) setLevel(level+1); }}>
                 <Text style={styles.btnText}>{showModal.success ? "التالي" : "رجوع"}</Text>
               </TouchableOpacity>
             </View>
@@ -219,16 +209,20 @@ const styles = StyleSheet.create({
   progressLabel: { textAlign: 'right', fontSize: 12, marginBottom: 5, color: '#64748B' },
   progressTrack: { height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#10B981' },
-  gameArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  instruction: { fontSize: 22, fontWeight: 'bold', marginBottom: 25 },
-  verticalGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 15, width: isWeb ? '50%' : '90%' },
-  card: { width: CARD_SIZE, height: CARD_SIZE, backgroundColor: '#FFF', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 8, borderBottomWidth: 5, borderBottomColor: '#DDD' },
+  gameArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
+  instruction: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 15, width: '95%' },
+  card: { width: CARD_SIZE, height: CARD_SIZE, backgroundColor: '#FFF', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 5, borderBottomWidth: 5, borderBottomColor: '#DDD' },
   cardActive: { borderBottomColor: '#10B981' },
-  cardEmoji: { fontSize: 40 },
+  cardEmoji: { fontSize: 45 },
+  navBar: { position: 'absolute', bottom: 25, alignSelf: 'center', width: '85%', height: 65, backgroundColor: '#FFF', borderRadius: 35, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', elevation: 15 },
+  navItem: { alignItems: 'center' },
+  activeNavItem: { backgroundColor: '#F0FDF4', padding: 8, borderRadius: 15, alignItems: 'center' },
+  navText: { fontSize: 10, fontWeight: 'bold' },
   centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   congratsTitle: { fontSize: 28, fontWeight: 'bold', color: '#10B981', marginVertical: 20 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: isWeb ? 350 : '80%', backgroundColor: '#FFF', borderRadius: 30, padding: 30, alignItems: 'center' },
+  modalContent: { width: '80%', backgroundColor: '#FFF', borderRadius: 30, padding: 30, alignItems: 'center' },
   modalTitle: { fontSize: 22, fontWeight: 'bold', marginVertical: 15 },
   modalBtn: { width: '100%', padding: 15, borderRadius: 15, alignItems: 'center' },
   btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
@@ -236,9 +230,7 @@ const styles = StyleSheet.create({
   reportContent: { padding: 25, alignItems: 'center', paddingTop: 50 },
   reportTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 30 },
   indicesRow: { flexDirection: 'row', gap: 15, marginBottom: 25 },
-  indexBox: { width: isWeb ? 150 : width * 0.4, padding: 20, backgroundColor: '#FFF', borderRadius: 20, alignItems: 'center', elevation: 5, borderBottomWidth: 6, borderBottomColor: '#10B981' },
+  indexBox: { width: width * 0.4, padding: 20, backgroundColor: '#FFF', borderRadius: 20, alignItems: 'center', elevation: 5, borderBottomWidth: 6, borderBottomColor: '#10B981' },
   indexValue: { fontSize: 28, fontWeight: 'bold', color: '#10B981' },
   indexLabel: { fontSize: 11, color: '#64748B', textAlign: 'center' },
-  summaryBox: { width: '100%', backgroundColor: '#F0FDF4', padding: 20, borderRadius: 20, marginBottom: 20 },
-  summaryText: { textAlign: 'center', fontWeight: 'bold', color: '#10B981' }
 });
