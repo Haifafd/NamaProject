@@ -150,7 +150,10 @@ export default function App() {
         </View>
 
         {/* بنر الأنشطة */}
-        <TouchableOpacity style={styles.banner}>
+        <TouchableOpacity
+          style={styles.banner}
+          onPress={() => router.push("/parent/IntroScreen")}
+        >
           <View style={styles.bannerContent}>
             <Text style={styles.bannerTitle}>الانتقال إلى وضع</Text>
             <Text style={styles.bannerSubTitle}>الأنشطة</Text>
