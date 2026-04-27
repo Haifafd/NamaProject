@@ -1,20 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+import { getDocs } from "firebase/firestore";
+
+import { useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../../FirebaseConfig";
+
 const ALL_QUESTIONS = [
-  // المهارات الإدراكية والأكاديمية
   {
     id: 1,
     text: "ينتبه للمثيرات البصرية (يتابع بعينيه).",
@@ -83,11 +89,11 @@ const ALL_QUESTIONS = [
   },
   {
     id: 12,
-    text: "يتبع تسلسل خطوات بسيط (مثال: خذ الكوب وضعه على الطاولة).",
+    text: "يتبع تسلسل خطوات بسيط.",
     category: "المهارات الإدراكية والأكاديمية",
     type: "scale",
   },
-  // المهارات اللغوية
+
   {
     id: 13,
     text: "يفهم التعليمات البسيطة / خذ الكرة.",
@@ -96,7 +102,7 @@ const ALL_QUESTIONS = [
   },
   {
     id: 14,
-    text: "ينفذ تعليمات من خطوتين / خذ الكرة وحطها بالسلة.",
+    text: "ينفذ تعليمات من خطوتين.",
     category: "المهارات اللغوية",
     type: "scale",
   },
@@ -126,60 +132,55 @@ const ALL_QUESTIONS = [
   },
   {
     id: 19,
-    text: "يسأل أسئلة بسيطة فين؟ من؟ ليه؟",
+    text: "يسأل أسئلة بسيطة.",
     category: "المهارات اللغوية",
     type: "scale",
   },
-  // المهارات الاجتماعية والانفعالية
+
   {
     id: 20,
-    text: "يشارك في اللعب الجماعي البسيط.",
+    text: "يشارك في اللعب الجماعي.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
   {
     id: 21,
-    text: "يبدي مشاعر (فرح-غضب-خوف).",
+    text: "يبدي مشاعر.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
   {
     id: 22,
-    text: "يتقبل التوجيه أو التغيير في الأنشطة.",
+    text: "يتقبل التوجيه.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
   {
     id: 23,
-    text: "يقلد أقرانه في اللعب أو الحركات.",
+    text: "يقلد أقرانه.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
   {
     id: 24,
-    text: "يتبادل الأدوار أو يشارك الأدوات (بمساعده أو بدون).",
+    text: "يتبادل الأدوار.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
   {
     id: 25,
-    text: "يقترب من الكبار لطلب المساعدة أو التفاعل.",
+    text: "يقترب من الكبار.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
   {
     id: 26,
-    text: "يتفاعل مع من حوله بالابتسامة أو التواصل البصري.",
+    text: "يتفاعل بالابتسامة أو التواصل البصري.",
     category: "المهارات الاجتماعية والانفعالية",
     type: "scale",
   },
-  // المهارات الحركية
-  {
-    id: 27,
-    text: "يمشي بثبات وتوازن.",
-    category: "المهارات الحركية",
-    type: "scale",
-  },
+
+  { id: 27, text: "يمشي بثبات.", category: "المهارات الحركية", type: "scale" },
   {
     id: 28,
     text: "يصعد أو ينزل الدرج.",
@@ -192,18 +193,8 @@ const ALL_QUESTIONS = [
     category: "المهارات الحركية",
     type: "scale",
   },
-  {
-    id: 30,
-    text: "يركل كرة باتجاه معين.",
-    category: "المهارات الحركية",
-    type: "scale",
-  },
-  {
-    id: 31,
-    text: "يوازن جسمه على رجل واحدة.",
-    category: "المهارات الحركية",
-    type: "scale",
-  },
+  { id: 30, text: "يركل كرة.", category: "المهارات الحركية", type: "scale" },
+  { id: 31, text: "يوازن جسمه.", category: "المهارات الحركية", type: "scale" },
   {
     id: 32,
     text: "ينقل الأشياء من يد لأخرى.",
@@ -212,95 +203,86 @@ const ALL_QUESTIONS = [
   },
   {
     id: 33,
-    text: "يمسك بالأشياء الصغيرة بين السبابة والابهام.",
+    text: "يمسك بالأشياء الصغيرة.",
     category: "المهارات الحركية",
     type: "scale",
   },
-  {
-    id: 34,
-    text: "يمسك بالقلم أو الألوان.",
-    category: "المهارات الحركية",
-    type: "scale",
-  },
+  { id: 34, text: "يمسك بالقلم.", category: "المهارات الحركية", type: "scale" },
   {
     id: 35,
-    text: "يدخل أشياء في فتحات (علبة/فتحة مناسبة).",
+    text: "يدخل أشياء في فتحات.",
     category: "المهارات الحركية",
     type: "scale",
   },
-  {
-    id: 36,
-    text: "يبني أبراج بالمكعبات.",
-    category: "المهارات الحركية",
-    type: "scale",
-  },
+  { id: 36, text: "يبني أبراج.", category: "المهارات الحركية", type: "scale" },
   {
     id: 37,
-    text: "ينسخ أشكال بسيطة (خط-دائرة).",
+    text: "ينسخ أشكال بسيطة.",
     category: "المهارات الحركية",
     type: "scale",
   },
   {
     id: 38,
-    text: "يلون داخل الحدود أو يتبع مسار بالقلم.",
+    text: "يلون داخل الحدود.",
     category: "المهارات الحركية",
     type: "scale",
   },
-  // الاعتماد على النفس أو الاستقلالية
+
   {
     id: 39,
-    text: "يأكل بنفسه باستخدام اليد او الملعقة.",
+    text: "يأكل بنفسه.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 40,
-    text: "يشرب من الكوب دون مساعدة.",
+    text: "يشرب من الكوب.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 41,
-    text: "يحاول خلع أو ارتداء ملابسه.",
+    text: "يحاول ارتداء ملابسه.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 42,
-    text: "يستخدم الحمام أو يطلبه.",
+    text: "يستخدم الحمام.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 43,
-    text: "يغسل يديه ووجهه بمساعده او بشكل مستقل.",
+    text: "يغسل يديه.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 44,
-    text: "ينظف أنفه أو فمه بعد الأكل بمساعده أو تذكير.",
+    text: "ينظف فمه.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 45,
-    text: "يستخدم الفرشاة او المشط.",
+    text: "يستخدم الفرشاة أو المشط.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 46,
-    text: "يعرف ممتلكاته الشخصية (حذائه-حقيبته).",
+    text: "يعرف ممتلكاته.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
   {
     id: 47,
-    text: "هل يظهر رغبة في أداء المهام بنفسه (يقول: أنا، خليني).",
+    text: "يبدي رغبة في أداء المهام.",
     category: "الاعتماد على النفس أو الاستقلالية",
     type: "scale",
   },
+
   {
     id: "notes",
     text: "اضف ملاحظة",
@@ -326,6 +308,34 @@ const CATEGORY_COLORS = {
 };
 
 export default function AssessmentApp() {
+  const router = useRouter();
+  const auth = getAuth();
+
+  useEffect(() => {
+    const fetchSavedAssessment = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const snapshot = await getDocs(
+        collection(db, "ParentAssessments", user.uid, "assessments"),
+      );
+
+      if (!snapshot.empty) {
+        const last = snapshot.docs[snapshot.docs.length - 1].data();
+        setSavedResult(last.result);
+      }
+    };
+
+    fetchSavedAssessment();
+  }, []);
+
+  useEffect(() => {
+    if (!auth.currentUser) {
+      router.replace("/login");
+    }
+  }, []);
+  const [savedResult, setSavedResult] = useState(null);
+
   const [currentPage, setCurrentPage] = useState(0);
   const [answers, setAnswers] = useState({});
   const [notesText, setNotesText] = useState("");
@@ -336,35 +346,62 @@ export default function AssessmentApp() {
   const questionsPerView = 3;
   const scaleQuestions = ALL_QUESTIONS.filter((q) => q.type === "scale");
   const totalScaleQuestions = scaleQuestions.length;
-  const totalPages = Math.ceil(totalScaleQuestions / questionsPerView) + 1; // +1 للصفحة الأخيرة
+  const totalPages = Math.ceil(totalScaleQuestions / questionsPerView) + 1;
 
   const answeredCount = Object.keys(answers).length;
   const progressPercent = (answeredCount / totalScaleQuestions) * 100;
   const remainingQuestions = totalScaleQuestions - answeredCount;
 
+  const saveAssessmentToFirestore = async (finalResult) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      await addDoc(
+        collection(db, "ParentAssessments", user.uid, "assessments"),
+        {
+          answers,
+          notes: notesText,
+          result: finalResult,
+          createdAt: new Date(),
+        },
+      );
+    } catch (error) {
+      console.log("Firestore Error:", error);
+    }
+  };
+
   const calculateResult = () => {
     let totalPoints = 0;
     let maxPoints = totalScaleQuestions * 3;
+
     scaleQuestions.forEach((q) => {
       totalPoints += answers[q.id] ?? 0;
     });
+
     const percentage = (totalPoints / maxPoints) * 100;
-    let level = "";
-    if (percentage >= 60) level = "مستوى عالي";
-    else if (percentage >= 40) level = "مستوى متوسط";
-    else level = "مستوى منخفض";
-    setResult({
+
+    const finalResult = {
       totalPoints,
       maxPoints,
       percentage: percentage.toFixed(1),
-      level,
-    });
+      level:
+        percentage >= 60
+          ? "مستوى عالي"
+          : percentage >= 40
+            ? "مستوى متوسط"
+            : "مستوى منخفض",
+    };
+
+    setResult(finalResult);
     setShowResult(true);
+    saveAssessmentToFirestore(finalResult);
   };
 
   const handleNext = () => {
     const startIndex = currentPage * questionsPerView;
     const isNotesPage = currentPage === totalPages - 1;
+
     if (!isNotesPage) {
       const currentViewQuestions = scaleQuestions.slice(
         startIndex,
@@ -379,7 +416,9 @@ export default function AssessmentApp() {
         return;
       }
     }
+
     setValidationError(false);
+
     if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     } else {
@@ -387,34 +426,49 @@ export default function AssessmentApp() {
     }
   };
 
+  if (savedResult) {
+    return (
+      <View style={styles.successContainer}>
+        <Text style={styles.successText}>نتيجة التقييم السابقة</Text>
+
+        <Text style={{ fontSize: 40, color: "#2ECC71", marginVertical: 10 }}>
+          {savedResult.percentage}%
+        </Text>
+
+        <Text style={{ fontSize: 22, marginBottom: 10 }}>
+          {savedResult.level}
+        </Text>
+
+        <Text style={{ color: "#555" }}>
+          مجموع النقاط: {savedResult.totalPoints} / {savedResult.maxPoints}
+        </Text>
+
+        <TouchableOpacity
+          style={styles.finalButton}
+          onPress={() => router.replace("/parent/homepageP")}
+        >
+          <Text style={styles.buttonText}>رجوع</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (showResult && result) {
     return (
       <View style={styles.successContainer}>
         <Text style={styles.successText}>نتيجة تقييم الطفل</Text>
-        <Text
-          style={{
-            fontSize: 40,
-            color: "#2ECC71",
-            marginVertical: 10,
-            textAlign: "center",
-          }}
-        >
+        <Text style={{ fontSize: 40, color: "#2ECC71", marginVertical: 10 }}>
           {result.percentage}%
         </Text>
-        <Text style={{ fontSize: 22, textAlign: "center", marginBottom: 10 }}>
-          {result.level}
-        </Text>
-        <Text style={{ textAlign: "center", color: "#555" }}>
+        <Text style={{ fontSize: 22, marginBottom: 10 }}>{result.level}</Text>
+        <Text style={{ color: "#555" }}>
           مجموع النقاط: {result.totalPoints} / {result.maxPoints}
         </Text>
 
         <TouchableOpacity
           style={styles.finalButton}
           onPress={() => {
-            setShowResult(false);
-            setCurrentPage(0);
-            setAnswers({});
-            setNotesText("");
+            router.replace("/parent/homepageP");
           }}
         >
           <Text style={styles.buttonText}>تم</Text>
@@ -432,6 +486,7 @@ export default function AssessmentApp() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => currentPage > 0 && setCurrentPage(currentPage - 1)}
@@ -472,6 +527,7 @@ export default function AssessmentApp() {
               >
                 <Text style={styles.badgeText}>{q.category}</Text>
               </View>
+
               <Text
                 style={[
                   styles.qText,
@@ -482,6 +538,7 @@ export default function AssessmentApp() {
                 {typeof q.id === "number" ? `${q.id}- ` : ""}
                 {q.text}
               </Text>
+
               {q.type === "scale" ? (
                 <View style={styles.optionsContainer}>
                   {SCALE_OPTIONS.map((opt) => (
@@ -519,6 +576,7 @@ export default function AssessmentApp() {
             </View>
           ))}
         </ScrollView>
+
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
           <Text style={styles.buttonText}>{isNotesPage ? "تم" : "التالي"}</Text>
         </TouchableOpacity>
@@ -556,8 +614,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#2ECC71",
     borderRadius: 5,
   },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  questionCard: { marginBottom: 40 },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+
+  questionCard: {
+    marginBottom: 40,
+  },
+
   badge: {
     alignSelf: "flex-end",
     paddingVertical: 6,
@@ -565,13 +630,28 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
   },
-  badgeText: { fontSize: 13, fontWeight: "600" },
-  qText: { textAlign: "right", fontSize: 16, marginBottom: 25, lineHeight: 24 },
+
+  badgeText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  qText: {
+    textAlign: "right",
+    fontSize: 16,
+    marginBottom: 25,
+    lineHeight: 24,
+  },
+
   optionsContainer: {
     flexDirection: "row-reverse",
     justifyContent: "space-around",
   },
-  option: { alignItems: "center" },
+
+  option: {
+    alignItems: "center",
+  },
+
   radio: {
     width: 24,
     height: 24,
@@ -582,14 +662,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  radioSelected: { borderColor: "#85C1E9" },
+
+  radioSelected: {
+    borderColor: "#85C1E9",
+  },
+
   innerRadio: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: "#85C1E9",
   },
-  optLabel: { fontSize: 12, color: "#7F8C8D" },
+
+  optLabel: {
+    fontSize: 12,
+    color: "#7F8C8D",
+  },
+
   notesInput: {
     backgroundColor: "#F4F7F6",
     borderRadius: 15,
@@ -597,6 +686,7 @@ const styles = StyleSheet.create({
     height: 100,
     fontSize: 16,
   },
+
   nextBtn: {
     position: "absolute",
     bottom: 30,
@@ -607,19 +697,27 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
   },
-  buttonText: { color: "#FFF", fontSize: 18, fontWeight: "bold" },
+
+  buttonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+
   successContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
+
   successText: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 30,
     textAlign: "center",
   },
+
   finalButton: {
     marginTop: 40,
     backgroundColor: "#85C1E9",
