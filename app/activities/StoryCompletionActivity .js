@@ -1,4 +1,3 @@
-
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -17,16 +16,12 @@ import {
 
 // --- استيراد Firebase ---
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "./FirebaseConfig";
+import { auth, db } from "../../FirebaseConfig";
 
 const correctOrder = ["seed", "plant", "flower"];
 
 function calculateMemoryIndex(accuracy, hintUsageRate, improvementRate) {
-  return (
-    accuracy * 0.5 +
-    (1 - hintUsageRate) * 0.3 +
-    improvementRate * 0.2
-  );
+  return accuracy * 0.5 + (1 - hintUsageRate) * 0.3 + improvementRate * 0.2;
 }
 
 function calculateCognitiveIndex(accuracy, speedScore, consistency) {
@@ -84,7 +79,6 @@ export default function PlantGame() {
         createdAt: serverTimestamp(),
       };
 
-      
       await addDoc(collection(db, "ActivityResults"), docData);
       console.log("Activity saved successfully!");
     } catch (error) {
@@ -117,7 +111,8 @@ export default function PlantGame() {
           newPlaced[index] = type;
 
           const progressNow =
-            (newPlaced.filter((item, i) => item === correctOrder[i]).length / 3) *
+            (newPlaced.filter((item, i) => item === correctOrder[i]).length /
+              3) *
             100;
 
           if (firstProgressRef.current === null) {
@@ -144,21 +139,32 @@ export default function PlantGame() {
                 ? 1
                 : Math.max(
                     0,
-                    Math.min(1, (lastProgressRef.current - firstProgressRef.current) / 100)
+                    Math.min(
+                      1,
+                      (lastProgressRef.current - firstProgressRef.current) /
+                        100,
+                    ),
                   );
 
-            const speedScore = Math.max(0, Math.min(1, 1 - elapsedSeconds / 45));
+            const speedScore = Math.max(
+              0,
+              Math.min(1, 1 - elapsedSeconds / 45),
+            );
             const consistency = Math.max(
               0,
-              Math.min(1, 1 - hintUsageRate - (attemptsRef.current - 3) / 10)
+              Math.min(1, 1 - hintUsageRate - (attemptsRef.current - 3) / 10),
             );
 
             const wmi = calculateMemoryIndex(
               accuracy,
               hintUsageRate,
-              improvementRate
+              improvementRate,
             );
-            const cpi = calculateCognitiveIndex(accuracy, speedScore, consistency);
+            const cpi = calculateCognitiveIndex(
+              accuracy,
+              speedScore,
+              consistency,
+            );
             const finalScore = ((wmi + cpi) / 2) * 100;
 
             const data = {
@@ -176,7 +182,7 @@ export default function PlantGame() {
             };
 
             setPerformanceData(data);
-            
+
             // حفظ البيانات في Firebase تلقائياً عند الفوز
             saveActivityToFirebase(data);
 
@@ -206,10 +212,9 @@ export default function PlantGame() {
 
     const panResponder = PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: Animated.event(
-        [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false }
-      ),
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
+        useNativeDriver: false,
+      }),
       onPanResponderRelease: (e, gesture) => {
         checkDrop(gesture, type, () => {
           Animated.spring(pan, {
@@ -309,8 +314,8 @@ export default function PlantGame() {
                   placed[i] === "seed"
                     ? require("../../assets/images/seed.png")
                     : placed[i] === "plant"
-                    ? require("../../assets/images/plant.png")
-                    : require("../../assets/images/flower.png")
+                      ? require("../../assets/images/plant.png")
+                      : require("../../assets/images/flower.png")
                 }
                 style={styles.dropImage}
               />
@@ -320,7 +325,7 @@ export default function PlantGame() {
       </View>
 
       <Text style={styles.message}>{message}</Text>
-      
+
       {isSaving && (
         <View style={styles.savingContainer}>
           <ActivityIndicator color="#2ecc71" />
@@ -339,7 +344,7 @@ export default function PlantGame() {
           <Text style={{ color: "white" }}>نشاط</Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.footerItem}
           onPress={() => router.push("/parent/homepageP")}
         >
@@ -360,17 +365,23 @@ export default function PlantGame() {
 
             <View style={styles.statsRow}>
               <Text style={styles.statLabel}>الزمن المستغرق:</Text>
-              <Text style={styles.statValue}>{performanceData.elapsedSeconds} ثانية</Text>
+              <Text style={styles.statValue}>
+                {performanceData.elapsedSeconds} ثانية
+              </Text>
             </View>
 
             <View style={styles.statsRow}>
               <Text style={styles.statLabel}>النتيجة النهائية:</Text>
-              <Text style={[styles.statValue, { color: "#2ecc71" }]}>{performanceData.finalScore}%</Text>
+              <Text style={[styles.statValue, { color: "#2ecc71" }]}>
+                {performanceData.finalScore}%
+              </Text>
             </View>
 
             <View style={styles.statsRow}>
               <Text style={styles.statLabel}>التقييم:</Text>
-              <Text style={styles.statValue}>{getPerformanceText(performanceData.finalScore)}</Text>
+              <Text style={styles.statValue}>
+                {getPerformanceText(performanceData.finalScore)}
+              </Text>
             </View>
 
             <TouchableOpacity
@@ -388,37 +399,136 @@ export default function PlantGame() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  background: { position: "absolute", width: "100%", height: "100%", opacity: 0.1 },
-  header: { flexDirection: "row-reverse", alignItems: "center", padding: 20, paddingTop: 50 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", marginLeft: 15 },
+  background: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0.1,
+  },
+  header: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    padding: 20,
+    paddingTop: 50,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 15,
+  },
   title: { fontSize: 20, fontWeight: "bold", textAlign: "right" },
   level: { fontSize: 14, color: "#666", textAlign: "right" },
   progressSection: { alignItems: "center", marginVertical: 20 },
   percent: { fontSize: 36, fontWeight: "bold", color: "#2ecc71" },
   progressText: { fontSize: 14, color: "#666", marginBottom: 10 },
-  progressBar: { width: "80%", height: 10, backgroundColor: "#f0f0f0", borderRadius: 5, overflow: "hidden" },
+  progressBar: {
+    width: "80%",
+    height: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 5,
+    overflow: "hidden",
+  },
   progressFill: { height: "100%", backgroundColor: "#2ecc71" },
   instructions: { alignItems: "center", marginBottom: 30 },
   mainText: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
   subText: { fontSize: 14, color: "#888" },
-  imagesRow: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: 20, marginBottom: 40 },
+  imagesRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 20,
+    marginBottom: 40,
+  },
   cardImage: { width: 80, height: 80, borderRadius: 10 },
-  dropRow: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: 20 },
-  dropBox: { width: 90, height: 90, borderWidth: 2, borderColor: "#2ecc71", borderStyle: "dashed", borderRadius: 10, justifyContent: "center", alignItems: "center", backgroundColor: "#f9fff9" },
-  boxNumber: { position: "absolute", top: 5, left: 5, fontSize: 12, color: "#2ecc71", fontWeight: "bold" },
+  dropRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 20,
+  },
+  dropBox: {
+    width: 90,
+    height: 90,
+    borderWidth: 2,
+    borderColor: "#2ecc71",
+    borderStyle: "dashed",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f9fff9",
+  },
+  boxNumber: {
+    position: "absolute",
+    top: 5,
+    left: 5,
+    fontSize: 12,
+    color: "#2ecc71",
+    fontWeight: "bold",
+  },
   dropImage: { width: 70, height: 70, borderRadius: 8 },
-  message: { textAlign: "center", fontSize: 20, fontWeight: "bold", marginTop: 20, color: "#2ecc71" },
-  savingContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
-  savingText: { marginLeft: 10, color: '#666' },
-  footer: { position: "absolute", bottom: 0, width: "100%", height: 70, flexDirection: "row", justifyContent: "space-around", alignItems: "center", borderTopWidth: 1, borderTopColor: "#eee", backgroundColor: "#fff" },
+  message: {
+    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 20,
+    color: "#2ecc71",
+  },
+  savingContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  savingText: { marginLeft: 10, color: "#666" },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    height: 70,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#fff",
+  },
   footerItem: { alignItems: "center" },
-  footerItemActive: { alignItems: "center", backgroundColor: "#2ecc71", padding: 10, borderRadius: 15 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
-  modalCard: { width: "85%", backgroundColor: "#fff", borderRadius: 20, padding: 25, alignItems: "center" },
+  footerItemActive: {
+    alignItems: "center",
+    backgroundColor: "#2ecc71",
+    padding: 10,
+    borderRadius: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 25,
+    alignItems: "center",
+  },
   modalTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
-  statsRow: { flexDirection: "row-reverse", justifyContent: "space-between", width: "100%", marginBottom: 15 },
+  statsRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: 15,
+  },
   statLabel: { fontSize: 16, color: "#666" },
   statValue: { fontSize: 16, fontWeight: "bold" },
-  closeBtn: { marginTop: 20, backgroundColor: "#2ecc71", paddingVertical: 12, paddingHorizontal: 40, borderRadius: 25 },
+  closeBtn: {
+    marginTop: 20,
+    backgroundColor: "#2ecc71",
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
   closeBtnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });

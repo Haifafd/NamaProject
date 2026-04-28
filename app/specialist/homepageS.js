@@ -1,25 +1,26 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  StatusBar,
-  ActivityIndicator,
-  RefreshControl,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { getCurrentUser } from "../../Services/UserService";
 import {
-  getMyChildrenWithProgress,
   calculateAverageProgress,
   getChildrenNeedingReview,
+  getMyChildrenWithProgress,
 } from "../../Services/ChildrenService";
+import { getCurrentUser } from "../../Services/UserService";
+import BottomNavBar from "../../components/BottomNavBar";
 
 // ─── ثيم سماوي مبهج ───
 const PRIMARY = "#79ccf8";
@@ -86,19 +87,19 @@ export default function HomepageS() {
   };
 
   const filteredChildren = children.filter((child) =>
-    child.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    child.name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const averageProgress = calculateAverageProgress(children);
   const childrenNeedingReview = getChildrenNeedingReview(children);
 
   const childrenWithReports = children.filter(
-    (c) => c.progress !== null && c.progress !== undefined
+    (c) => c.progress !== null && c.progress !== undefined,
   );
 
   const handleChildPress = (child) => {
     router.push({
-      pathname: "/specialist/Dashboard",
+      pathname: "./Dashboard",
       params: {
         childId: child.id,
         childName: child.name,
@@ -107,20 +108,7 @@ export default function HomepageS() {
   };
 
   const handleAddChild = () => {
-    router.push("/specialist/AddChild");
-  };
-
-  // ── Navigation للصفحات الفاضية ──
-  const handleChatsPress = () => {
-    router.push("/specialist/Chats");
-  };
-
-  const handleSettingsPress = () => {
-    router.push("/specialist/Settings");
-  };
-
-  const handleHomePress = () => {
-    // إنتي بالفعل في الهوم
+    router.push("./AddChild");
   };
 
   if (loading) {
@@ -187,7 +175,9 @@ export default function HomepageS() {
           {/* ─── STATS ─── */}
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { borderRightColor: PRIMARY }]}>
-              <View style={[styles.statIcon, { backgroundColor: PRIMARY_LIGHT }]}>
+              <View
+                style={[styles.statIcon, { backgroundColor: PRIMARY_LIGHT }]}
+              >
                 <Ionicons name="people" size={18} color={PRIMARY_DARK} />
               </View>
 
@@ -235,9 +225,14 @@ export default function HomepageS() {
           {/* ─── معلومات لو ما فيه تقارير ─── */}
           {children.length > 0 && childrenWithReports.length === 0 && (
             <View style={styles.infoCard}>
-              <Ionicons name="information-circle" size={18} color={PRIMARY_DARK} />
+              <Ionicons
+                name="information-circle"
+                size={18}
+                color={PRIMARY_DARK}
+              />
               <Text style={styles.infoText}>
-                لم يتم إنشاء تقارير تطور بعد. ستظهر النتائج هنا بعد إكمال الأطفال للأنشطة.
+                لم يتم إنشاء تقارير تطور بعد. ستظهر النتائج هنا بعد إكمال
+                الأطفال للأنشطة.
               </Text>
             </View>
           )}
@@ -263,30 +258,34 @@ export default function HomepageS() {
           )}
 
           {/* ═══════════════════════════════════════════ */}
-          {/* ─── SECTION HEADER (العربي: عنوان يمين، زر يسار) ─── */}
+          {/* ─── SECTION HEADER (عنوان يمين، زر يسار) ─── */}
           {/* ═══════════════════════════════════════════ */}
           <View style={styles.sectionHeader}>
-            {/* العنوان على اليمين */}
-            <Text style={styles.sectionTitle}>
-              الأطفال {children.length > 0 ? `(${filteredChildren.length})` : ""}
-            </Text>
-
-            {/* زر الإضافة على اليسار */}
             <TouchableOpacity style={styles.addBtn} onPress={handleAddChild}>
               <Ionicons name="add" size={14} color="#fff" />
               <Text style={styles.addText}>إضافة طفل</Text>
             </TouchableOpacity>
+
+            <Text style={styles.sectionTitle}>
+              الأطفال{" "}
+              {children.length > 0 ? `(${filteredChildren.length})` : ""}
+            </Text>
           </View>
 
           {/* ─── CHILDREN GRID / EMPTY ─── */}
           {children.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="people-outline" size={42} color={PRIMARY_DARK} />
+                <Ionicons
+                  name="people-outline"
+                  size={42}
+                  color={PRIMARY_DARK}
+                />
               </View>
               <Text style={styles.emptyTitle}>لم يتم إضافة أطفال بعد</Text>
               <Text style={styles.emptySubtitle}>
-                ابدئي بإضافة أول طفل في حسابك لتصميم خطته العلاجية ومتابعة تطوره.
+                ابدئي بإضافة أول طفل في حسابك لتصميم خطته العلاجية ومتابعة
+                تطوره.
               </Text>
               <TouchableOpacity
                 style={styles.emptyActionBtn}
@@ -329,7 +328,9 @@ export default function HomepageS() {
                           { backgroundColor: lightColor },
                         ]}
                       >
-                        <Text style={[styles.progressBadgeText, { color: color }]}>
+                        <Text
+                          style={[styles.progressBadgeText, { color: color }]}
+                        >
                           {child.progress}%
                         </Text>
                       </View>
@@ -341,7 +342,10 @@ export default function HomepageS() {
                         ]}
                       >
                         <Text
-                          style={[styles.progressBadgeText, { color: PRIMARY_DARK }]}
+                          style={[
+                            styles.progressBadgeText,
+                            { color: PRIMARY_DARK },
+                          ]}
                         >
                           جديد
                         </Text>
@@ -390,48 +394,10 @@ export default function HomepageS() {
           <View style={{ height: 110 }} />
         </ScrollView>
 
-        {/* ═══════════════════════════════════════════════ */}
-        {/* ─── BOTTOM NAV - زر الهوم بالنص يبرز فوق ─── */}
-        {/* ═══════════════════════════════════════════════ */}
-        <View style={styles.navbarWrapper}>
-          {/* الـ Navbar الأبيض */}
-          <View style={styles.navbar}>
-            {/* المحادثات - يمين */}
-            <TouchableOpacity
-              style={styles.navItem}
-              activeOpacity={0.7}
-              onPress={handleChatsPress}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#999" />
-              <Text style={styles.navText}>المحادثات</Text>
-            </TouchableOpacity>
-
-            {/* مساحة فارغة في النص للزر */}
-            <View style={styles.navCenterSpace} />
-
-            {/* الإعدادات - يسار */}
-            <TouchableOpacity
-              style={styles.navItem}
-              activeOpacity={0.7}
-              onPress={handleSettingsPress}
-            >
-              <Ionicons name="settings-outline" size={24} color="#999" />
-              <Text style={styles.navText}>الإعدادات</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* الزر الدائري المرتفع - في النص */}
-          <TouchableOpacity
-            style={styles.floatingHomeBtn}
-            activeOpacity={0.85}
-            onPress={handleHomePress}
-          >
-            <Ionicons name="home" size={28} color="#fff" />
-          </TouchableOpacity>
-
-          {/* نص "الرئيسية" تحت الزر */}
-          <Text style={styles.floatingHomeText}>الرئيسية</Text>
-        </View>
+        {/* ═══════════════════════════════════════════ */}
+        {/* ─── BOTTOM NAVBAR (Component مشترك) ─── */}
+        {/* ═══════════════════════════════════════════ */}
+        <BottomNavBar />
       </SafeAreaView>
     </View>
   );
@@ -619,11 +585,9 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  // ═══════════════════════════════════════════
-  // Section Header (العربي - عنوان يمين، زر يسار)
-  // ═══════════════════════════════════════════
+  // Section Header (row-reverse - عنوان يمين، زر يسار)
   sectionHeader: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -637,7 +601,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   addBtn: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: PRIMARY,
     paddingHorizontal: 12,
@@ -766,78 +730,5 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
     textAlign: "center",
-  },
-
-  // ═══════════════════════════════════════════
-  // Navbar - زر الهوم بالنص يبرز فوق
-  // ═══════════════════════════════════════════
-  navbarWrapper: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
-  navbar: {
-    flexDirection: "row",
-    width: "100%",
-    backgroundColor: CARD,
-    paddingTop: 14,
-    paddingBottom: 18,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -6 },
-    elevation: 15,
-    alignItems: "center",
-    justifyContent: "space-around",
-  },
-  navItem: {
-    alignItems: "center",
-    gap: 5,
-    flex: 1,
-    paddingVertical: 4,
-  },
-  navCenterSpace: {
-    width: 80,
-  },
-  navText: {
-    fontSize: 10,
-    color: "#999",
-    fontWeight: "600",
-  },
-  // الزر الدائري المرتفع - في النص بالضبط
-  floatingHomeBtn: {
-    position: "absolute",
-    bottom: 35,
-    left: "50%",
-    marginLeft: -32,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: PRIMARY,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 5,
-    borderColor: "#fff",
-    shadowColor: PRIMARY_DARK,
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 20,
-    zIndex: 10,
-  },
-  floatingHomeText: {
-    position: "absolute",
-    bottom: 8,
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 10,
-    color: PRIMARY_DARK,
-    fontWeight: "700",
-    zIndex: 11,
   },
 });
