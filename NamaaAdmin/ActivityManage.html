@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نماء - لوحة الأدمن</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1565C0 0%, #4c51bf 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 25px 30px;
+      border-radius: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .header h1 {
+      color: #1565C0;
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      color: #757575;
+      font-size: 14px;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      color: #1A1A1A;
+      margin-bottom: 20px;
+      font-size: 20px;
+      border-bottom: 2px solid #E0E0E0;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #1A1A1A;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #E0E0E0;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #1565C0;
+      box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #757575;
+      margin-top: 5px;
+    }
+
+    .btn {
+      background: #1565C0;
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #0d47a1;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(21, 101, 192, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-danger {
+      background: #f56565;
+      padding: 8px 14px;
+      width: auto;
+      font-size: 13px;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #e53e3e;
+      box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+    }
+
+    .alert {
+      padding: 12px 18px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .alert-success {
+      background: #c6f6d5;
+      color: #22543d;
+      border: 1px solid #9ae6b4;
+    }
+
+    .alert-error {
+      background: #fed7d7;
+      color: #742a2a;
+      border: 1px solid #fc8181;
+    }
+
+    .activity-item {
+      background: #F0F4F8;
+      padding: 15px 18px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-right: 4px solid #1565C0;
+      transition: transform 0.2s;
+    }
+
+    .activity-item:hover {
+      transform: translateX(-3px);
+    }
+
+    .activity-info {
+      flex: 1;
+    }
+
+    .activity-title {
+      font-weight: 600;
+      color: #1A1A1A;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .activity-meta {
+      font-size: 13px;
+      color: #757575;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+
+    .badge-memory { background: #fed7d7; color: #c53030; }
+    .badge-focus { background: #c6f6d5; color: #22543d; }
+    .badge-thinking { background: #bee3f8; color: #2c5282; }
+    .badge-perception { background: #fefcbf; color: #744210; }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: #a0aec0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #1565C0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1565C0;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #757575;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌟 لوحة الأدمن - تطبيق نماء</h1>
+      <p>إدارة الأنشطة العلاجية</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-number" id="statMemory">0</div>
+        <div class="stat-label">الذاكرة</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statFocus">0</div>
+        <div class="stat-label">التركيز والانتباه</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statThinking">0</div>
+        <div class="stat-label">التفكير وحل المشكلات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statPerception">0</div>
+        <div class="stat-label">الإدراك البصري</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>➕ إضافة نشاط جديد</h2>
+
+      <div id="alertBox" class="alert"></div>
+
+      <div class="form-group">
+        <label for="title">عنوان النشاط</label>
+        <input type="text" id="title" placeholder="مثال: Memory Card Game" />
+      </div>
+
+      <div class="form-group">
+        <label for="categoryId">نوع النشاط</label>
+        <select id="categoryId">
+          <option value="">-- اختر النوع --</option>
+          <option value="memoryCategoryID">الذاكرة</option>
+          <option value="focusCategoryID">التركيز والانتباه</option>
+          <option value="thinkingCategoryID">التفكير وحل المشكلات</option>
+          <option value="perceptionCategoryID">الإدراك البصري</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="levels">عدد المستويات (الحد الأقصى 3)</label>
+        <input type="number" id="levels" min="1" max="3" value="3" />
+        <div class="hint">⚠️ كل نشاط فيه 3 مستويات كحد أقصى</div>
+      </div>
+
+      <button class="btn" id="addBtn" onclick="addActivity()">
+        حفظ النشاط
+      </button>
+    </div>
+
+    <div class="card">
+      <h2>📋 الأنشطة الموجودة</h2>
+      <div id="activitiesList">
+        <div class="loading">جاري التحميل...</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      deleteDoc,
+      doc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-LOrPzRH2wd4rS2ftp-ZKI3wg0Migvww",
+      authDomain: "namaa-30e99.firebaseapp.com",
+      projectId: "namaa-30e99",
+      storageBucket: "namaa-30e99.firebasestorage.app",
+      messagingSenderId: "678910410774",
+      appId: "1:678910410774:web:191cb32c8f98503d9ff537",
+      measurementId: "G-YJ7307VKLP",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const categoryMap = {
+      memoryCategoryID: { name: "الذاكرة", badge: "badge-memory", statId: "statMemory" },
+      focusCategoryID: { name: "التركيز والانتباه", badge: "badge-focus", statId: "statFocus" },
+      thinkingCategoryID: { name: "التفكير وحل المشكلات", badge: "badge-thinking", statId: "statThinking" },
+      perceptionCategoryID: { name: "الإدراك البصري", badge: "badge-perception", statId: "statPerception" }
+    };
+
+    function showAlert(message, type) {
+      const alertBox = document.getElementById("alertBox");
+      alertBox.textContent = message;
+      alertBox.className = "alert alert-" + type;
+      alertBox.style.display = "block";
+      setTimeout(() => {
+        alertBox.style.display = "none";
+      }, 3000);
+    }
+
+    window.addActivity = async function () {
+      const title = document.getElementById("title").value.trim();
+      const categoryId = document.getElementById("categoryId").value;
+      const levels = parseInt(document.getElementById("levels").value);
+      const addBtn = document.getElementById("addBtn");
+
+      if (!title) {
+        showAlert("الرجاء إدخال عنوان النشاط", "error");
+        return;
+      }
+      if (!categoryId) {
+        showAlert("الرجاء اختيار نوع النشاط", "error");
+        return;
+      }
+      if (!levels || levels < 1 || levels > 3) {
+        showAlert("عدد المستويات يجب أن يكون بين 1 و 3", "error");
+        return;
+      }
+
+      try {
+        addBtn.disabled = true;
+        addBtn.textContent = "جاري الحفظ...";
+
+        await addDoc(collection(db, "Activities"), {
+          title: title,
+          categoryId: categoryId,
+          levels: levels,
+          createdAt: new Date()
+        });
+
+        document.getElementById("title").value = "";
+        document.getElementById("categoryId").value = "";
+        document.getElementById("levels").value = 3;
+
+        showAlert("✅ تم حفظ النشاط بنجاح", "success");
+      } catch (error) {
+        console.error("Error adding activity:", error);
+        showAlert("❌ حصل خطأ: " + error.message, "error");
+      } finally {
+        addBtn.disabled = false;
+        addBtn.textContent = "حفظ النشاط";
+      }
+    };
+
+    window.deleteActivity = async function (activityId, title) {
+      if (!confirm("هل أنتي متأكدة من حذف النشاط: " + title + "؟")) return;
+
+      try {
+        await deleteDoc(doc(db, "Activities", activityId));
+        showAlert("🗑️ تم حذف النشاط", "success");
+      } catch (error) {
+        console.error("Error deleting:", error);
+        showAlert("❌ حصل خطأ في الحذف: " + error.message, "error");
+      }
+    };
+
+    function listenToActivities() {
+      const activitiesRef = collection(db, "Activities");
+
+      onSnapshot(activitiesRef, (snapshot) => {
+        const list = document.getElementById("activitiesList");
+        const activities = [];
+        const counts = {
+          memoryCategoryID: 0,
+          focusCategoryID: 0,
+          thinkingCategoryID: 0,
+          perceptionCategoryID: 0
+        };
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          activities.push({ id: docSnap.id, ...data });
+          if (counts[data.categoryId] !== undefined) {
+            counts[data.categoryId]++;
+          }
+        });
+
+        Object.keys(counts).forEach((catId) => {
+          const statId = categoryMap[catId].statId;
+          document.getElementById(statId).textContent = counts[catId];
+        });
+
+        if (activities.length === 0) {
+          list.innerHTML = '<div class="empty-state">لا توجد أنشطة بعد. أضف أول نشاط من الأعلى ⬆️</div>';
+          return;
+        }
+
+        list.innerHTML = activities.map((act) => {
+          const cat = categoryMap[act.categoryId] || { name: "غير محدد", badge: "" };
+          const safeTitle = act.title.replace(/'/g, "\\'");
+          return `
+            <div class="activity-item">
+              <div class="activity-info">
+                <div class="activity-title">${act.title}</div>
+                <div class="activity-meta">
+                  <span class="badge ${cat.badge}">${cat.name}</span>
+                  <span>📊 ${act.levels} مستويات</span>
+                </div>
+              </div>
+              <button class="btn btn-danger" onclick="deleteActivity('${act.id}', '${safeTitle}')">
+                🗑️ حذف
+              </button>
+            </div>
+          `;
+        }).join("");
+      }, (error) => {
+        console.error("Error listening:", error);
+        document.getElementById("activitiesList").innerHTML =
+          '<div class="alert alert-error" style="display:block">خطأ في تحميل الأنشطة: ' + error.message + '</div>';
+      });
+    }
+
+    listenToActivities();
+  </script>
+</body>
+</html>
