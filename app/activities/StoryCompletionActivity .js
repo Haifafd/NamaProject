@@ -84,7 +84,7 @@ export default function PlantGame() {
         createdAt: serverTimestamp(),
       };
 
-      // الحفظ في مجموعة ActivityResults كما في هيكل مشروعكم
+      
       await addDoc(collection(db, "ActivityResults"), docData);
       console.log("Activity saved successfully!");
     } catch (error) {
