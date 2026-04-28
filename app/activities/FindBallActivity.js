@@ -1,8 +1,7 @@
- import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   Easing,
   Image,
@@ -12,6 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+// ✅ تغيير 1: استيراد Firebase
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../FirebaseConfig";
 
 const CUP_COUNT = 3;
 
@@ -78,6 +81,28 @@ export default function FindBallGame() {
   const startTimeRef = useRef(Date.now());
   const firstReactionRef = useRef(null);
   const gameFinishedRef = useRef(false);
+
+  // ✅ تغيير 2: دالة الحفظ في Firebase
+  const saveActivityResult = async (data) => {
+    try {
+      const childId = auth.currentUser?.uid;
+      if (!childId) return;
+
+      await addDoc(collection(db, "ActivityResults"), {
+        activityId:  "findBallGameID",
+        categoryId:  "attentionCategoryID",
+        childId:     childId,
+        attempts:    data.attempts,
+        completed:   data.correct > 0,
+        createdAt:   serverTimestamp(),
+        duration:    Math.round((Date.now() - startTimeRef.current) / 1000),
+        level:       1,
+        score:       data.finalScore,
+      });
+    } catch (error) {
+      console.error("خطأ في حفظ النتيجة:", error);
+    }
+  };
 
   const resetToStartState = () => {
     setGameStarted(false);
@@ -240,10 +265,12 @@ export default function FindBallGame() {
       finalScore: Math.round(finalScore),
     });
 
-    Alert.alert("تقييم الأداء", "هل تريد عرض تقييم الأداء؟", [
-      { text: "لا", style: "cancel" },
-      { text: "نعم", onPress: () => setShowPerformance(true) },
-    ]);
+    // ✅ تغيير 3: حفظ في Firebase بدل Alert
+    saveActivityResult({
+      attempts,
+      correct,
+      finalScore: Math.round(finalScore),
+    });
   };
 
   const handleStartGame = async () => {
@@ -388,14 +415,13 @@ export default function FindBallGame() {
           <Ionicons name="game-controller" size={22} color="white" />
           <Text style={{ color: "white" }}>نشاط</Text>
         </View>
-        <TouchableOpacity 
-           style={styles.footerItem}
+        <TouchableOpacity
+          style={styles.footerItem}
           onPress={() => router.push("/parent/homepageP")}
         >
           <Ionicons name="person-outline" size={22} />
           <Text>حسابي</Text>
         </TouchableOpacity>
-
       </View>
 
       <Modal visible={showPerformance} transparent animationType="fade">
@@ -481,78 +507,15 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 20, width: "90%", alignSelf: "center", backgroundColor: "white", borderRadius: 20, flexDirection: "row", justifyContent: "space-around", padding: 15 },
   footerItem: { alignItems: "center" },
   footerItemActive: { backgroundColor: "#2ecc71", padding: 10, borderRadius: 15, alignItems: "center" },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    width: "100%",
-    backgroundColor: "white",
-    borderRadius: 28,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    elevation: 8,
-  },
-  modalTitle: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2ecc71",
-    marginBottom: 20,
-  },
-  statsRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  statLabel: {
-    fontSize: 15,
-    color: "#444",
-    textAlign: "right",
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  finalText: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2ecc71",
-    marginTop: 14,
-    marginBottom: 12,
-  },
-  performanceBar: {
-    height: 12,
-    width: "100%",
-    backgroundColor: "#e5e5e5",
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 18,
-  },
-  performanceFill: {
-    height: "100%",
-    backgroundColor: "#2ecc71",
-    borderRadius: 10,
-  },
-  closeBtn: {
-    backgroundColor: "#2ecc71",
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    width: "40%",
-    alignSelf: "center",
-  },
-  closeBtnText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
+  modalCard: { width: "100%", backgroundColor: "white", borderRadius: 28, paddingVertical: 24, paddingHorizontal: 20, elevation: 8 },
+  modalTitle: { textAlign: "center", fontSize: 22, fontWeight: "bold", color: "#2ecc71", marginBottom: 20 },
+  statsRow: { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  statLabel: { fontSize: 15, color: "#444", textAlign: "right" },
+  statValue: { fontSize: 15, fontWeight: "bold", color: "#222" },
+  finalText: { textAlign: "center", fontSize: 22, fontWeight: "bold", color: "#2ecc71", marginTop: 14, marginBottom: 12 },
+  performanceBar: { height: 12, width: "100%", backgroundColor: "#e5e5e5", borderRadius: 20, overflow: "hidden", marginBottom: 18 },
+  performanceFill: { height: "100%", backgroundColor: "#2ecc71", borderRadius: 10 },
+  closeBtn: { backgroundColor: "#2ecc71", paddingVertical: 12, borderRadius: 14, alignItems: "center", width: "40%", alignSelf: "center" },
+  closeBtnText: { color: "white", fontSize: 18, fontWeight: "bold" },
 });
-
