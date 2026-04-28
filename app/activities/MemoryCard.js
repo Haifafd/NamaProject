@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from 'expo-av';
 import { useCallback, useEffect, useRef, useState } from "react";
+// --- استيرادات الفايربيس ---
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../../FirebaseConfig";
+// ----------------------------------
 import {
   Dimensions,
   ImageBackground,
   Modal,
   Platform,
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -17,8 +20,7 @@ import {
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === 'web';
-// حجم البطاقة ليكون 2 في كل صف بشكل مرتب
-const CARD_SIZE = isWeb ? 130 : width * 0.4; 
+const CARD_SIZE = isWeb ? 130 : (width - 60) / 2; 
 
 const ALL_ICONS = ["🍩", "🍄", "⏰", "🐢", "🍎", "⭐", "🎈", "🎨", "🚀", "🌈"];
 
@@ -30,12 +32,43 @@ export default function MemoryGame({ navigation }) {
   const [isMemorizing, setIsMemorizing] = useState(true);
   const [showModal, setShowModal] = useState({ visible: false, success: true });
   const [showFinishedCard, setShowFinishedCard] = useState(false);
-  const [showReport, setShowReport] = useState(false);
 
   const [stats, setStats] = useState({ correctPairs: 0, wrongAttempts: 0, totalReactionTime: 0 });
   const levelStartTime = useRef(Date.now());
 
-  const progressPercent = level === 1 ? 0 : level === 2 ? 50 : 100;
+  const progressPercent = Math.round(((level - 1) / 3) * 100);
+
+  // --- دالة الحفظ: تعمل في الخلفية دون الحاجة لفتح صفحة المؤشرات ---
+  const saveToFirestore = async () => {
+    try {
+      const totalAttempts = stats.correctPairs + stats.wrongAttempts;
+      const errorRate = stats.wrongAttempts / (totalAttempts || 1);
+      const avgTime = stats.totalReactionTime / (stats.correctPairs || 1);
+      
+      let scaledScore;
+      if (errorRate <= 0.1) scaledScore = 1;      
+      else if (errorRate <= 0.25) scaledScore = 2; 
+      else if (errorRate <= 0.5) scaledScore = 3;  
+      else if (errorRate <= 0.75) scaledScore = 4; 
+      else scaledScore = 5;                        
+
+      await addDoc(collection(db, "ActivityResults"), {
+        activityId: "لعبة الذاكرة والمطابقة",
+        attempts: totalAttempts,
+        categoryId: "Memory",
+        childId: "child_user_01", 
+        completed: true,
+        createdAt: serverTimestamp(),
+        duration: parseFloat((avgTime / 1000).toFixed(1)),
+        level: level,
+        score: scaledScore,
+        errors: stats.wrongAttempts
+      });
+      console.log("تم حفظ البيانات بنجاح في قاعدة البيانات");
+    } catch (e) {
+      console.error("خطأ في الحفظ: ", e);
+    }
+  };
 
   async function playClappingSound() {
     try {
@@ -44,20 +77,8 @@ export default function MemoryGame({ navigation }) {
     } catch (e) { console.log("الصوت ناقص"); }
   }
 
-  const calculateFinalStats = () => {
-    const totalActions = stats.correctPairs + stats.wrongAttempts;
-    const accuracy = stats.correctPairs / (totalActions || 1);
-    const avgTime = stats.totalReactionTime / (stats.correctPairs || 1);
-    const vmi = (accuracy * 70) + (Math.max(0, 1 - avgTime / 15000) * 30);
-    const cpi = (accuracy * 80) + (Math.max(0, 1 - stats.wrongAttempts * 0.1) * 20);
-    return {
-      vmi: Math.min(98, vmi).toFixed(0),
-      cpi: Math.min(96, cpi).toFixed(0),
-      avgTime: (avgTime / 1000).toFixed(1)
-    };
-  };
-
   const initGame = useCallback(() => {
+    setStats({ correctPairs: 0, wrongAttempts: 0, totalReactionTime: 0 });
     const pairsCount = level === 1 ? 2 : level === 2 ? 3 : 4;
     const selectedIcons = ALL_ICONS.slice(0, pairsCount);
     const gameIcons = [...selectedIcons, ...selectedIcons]
@@ -96,7 +117,11 @@ export default function MemoryGame({ navigation }) {
         setFlippedCards([]);
         if (updatedMatched.length === cards.length) {
           setTimeout(() => {
-            if (level === 3) { playClappingSound(); setShowFinishedCard(true); }
+            if (level === 3) { 
+               saveToFirestore(); // الحفظ يتم هنا مباشرة
+               playClappingSound(); 
+               setShowFinishedCard(true); 
+            }
             else { setShowModal({ visible: true, success: true }); }
           }, 600);
         }
@@ -113,15 +138,13 @@ export default function MemoryGame({ navigation }) {
     }
   };
 
-  const results = calculateFinalStats();
-
   return (
     <ImageBackground source={require("../../assets/images/wallper.png")} style={styles.bg} resizeMode="cover">
       <View style={styles.overlay} />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
 
-        {!showReport && !showFinishedCard ? (
+        {!showFinishedCard ? (
           <>
             <View style={styles.header}>
                 <View style={styles.topRow}>
@@ -152,28 +175,17 @@ export default function MemoryGame({ navigation }) {
               </View>
             </View>
           </>
-        ) : showFinishedCard ? (
+        ) : (
           <View style={styles.centerBox}>
-            <Text style={{fontSize: 100}}>🏆</Text>
-            <Text style={styles.congratsTitle}>أحسنت يا بطل!</Text>
-            <TouchableOpacity style={styles.mainBtn} onPress={() => { setShowFinishedCard(false); setShowReport(true); }}>
-              <Text style={styles.btnText}>عرض مؤشرات الأداء 📊</Text>
+            <Text style={{fontSize: 100}}>🎊</Text>
+            <Text style={styles.congratsTitle}>تهانينا يا بطل!</Text>
+            <Text style={styles.congratsSub}>لقد أتممت جميع المراحل بنجاح 🎉</Text>
+            <TouchableOpacity style={styles.mainBtn} onPress={() => navigation?.goBack()}>
+              <Text style={styles.btnText}>العودة للرئيسية</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <ScrollView contentContainerStyle={styles.reportContent}>
-            <Text style={styles.reportTitle}>نتائج تحليل المهارات</Text>
-            <View style={styles.indicesRow}>
-              <View style={styles.indexBox}><Text style={styles.indexValue}>{results.vmi}%</Text><Text style={styles.indexLabel}>الإدراك البصري</Text></View>
-              <View style={[styles.indexBox, {borderBottomColor: '#3498DB'}]}><Text style={[styles.indexValue, {color: '#3498DB'}]}>{results.cpi}%</Text><Text style={styles.indexLabel}>المعالج المعرفي</Text></View>
-            </View>
-            <TouchableOpacity style={styles.mainBtn} onPress={() => { setLevel(1); setShowReport(false); setStats({correctPairs:0, wrongAttempts:0, totalReactionTime:0}); }}>
-              <Text style={styles.btnText}>إعادة التجربة 🔄</Text>
-            </TouchableOpacity>
-          </ScrollView>
         )}
 
-        {/* الشريط الرئيسي السفلي - ثابت دائماً */}
         <View style={styles.navBar}>
             <View style={styles.navItem}><Ionicons name="person-outline" size={22} color="#94A3B8" /><Text style={styles.navText}>حسابي</Text></View>
             <View style={styles.activeNavItem}><Ionicons name="brain" size={22} color="#10B981" /><Text style={[styles.navText, {color: '#10B981'}]}>نشاط</Text></View>
@@ -183,8 +195,8 @@ export default function MemoryGame({ navigation }) {
         <Modal visible={showModal.visible} transparent animationType="fade">
           <View style={styles.modalBackdrop}>
             <View style={[styles.modalContent, { borderTopColor: showModal.success ? "#10B981" : "#FF6B6B", borderTopWidth: 10 }]}>
-              <Text style={{fontSize: 80}}>{showModal.success ? "👏" : "☹️"}</Text>
-              <Text style={styles.modalTitle}>{showModal.success ? "ممتاز!" : "حاول مرة أخرى"}</Text>
+              <Text style={{fontSize: 80}}>{showModal.success ? "👏" : "😥"}</Text>
+              <Text style={styles.modalTitle}>{showModal.success ? "ممتاز!" : "أوووه! حاول مرة أخرى"}</Text>
               <TouchableOpacity style={[styles.modalBtn, {backgroundColor: showModal.success ? "#10B981" : "#FF6B6B"}]} onPress={() => { setShowModal({visible: false}); if(showModal.success) setLevel(level+1); }}>
                 <Text style={styles.btnText}>{showModal.success ? "التالي" : "رجوع"}</Text>
               </TouchableOpacity>
@@ -211,26 +223,21 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: '#10B981' },
   gameArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
   instruction: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 15, width: '95%' },
-  card: { width: CARD_SIZE, height: CARD_SIZE, backgroundColor: '#FFF', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 5, borderBottomWidth: 5, borderBottomColor: '#DDD' },
-  cardActive: { borderBottomColor: '#10B981' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 15, width: '90%' },
+  card: { width: CARD_SIZE, height: CARD_SIZE, backgroundColor: '#FFF', borderRadius: 25, justifyContent: 'center', alignItems: 'center', elevation: 5 },
+  cardActive: { borderWidth: 2, borderColor: '#10B981' },
   cardEmoji: { fontSize: 45 },
   navBar: { position: 'absolute', bottom: 25, alignSelf: 'center', width: '85%', height: 65, backgroundColor: '#FFF', borderRadius: 35, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', elevation: 15 },
   navItem: { alignItems: 'center' },
   activeNavItem: { backgroundColor: '#F0FDF4', padding: 8, borderRadius: 15, alignItems: 'center' },
   navText: { fontSize: 10, fontWeight: 'bold' },
-  centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  congratsTitle: { fontSize: 28, fontWeight: 'bold', color: '#10B981', marginVertical: 20 },
+  centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  congratsTitle: { fontSize: 32, fontWeight: 'bold', color: '#10B981', marginTop: 20 },
+  congratsSub: { fontSize: 18, color: '#64748B', textAlign: 'center', marginTop: 10 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '80%', backgroundColor: '#FFF', borderRadius: 30, padding: 30, alignItems: 'center' },
   modalTitle: { fontSize: 22, fontWeight: 'bold', marginVertical: 15 },
   modalBtn: { width: '100%', padding: 15, borderRadius: 15, alignItems: 'center' },
   btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  mainBtn: { backgroundColor: '#10B981', padding: 15, borderRadius: 15, marginTop: 20 },
-  reportContent: { padding: 25, alignItems: 'center', paddingTop: 50 },
-  reportTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 30 },
-  indicesRow: { flexDirection: 'row', gap: 15, marginBottom: 25 },
-  indexBox: { width: width * 0.4, padding: 20, backgroundColor: '#FFF', borderRadius: 20, alignItems: 'center', elevation: 5, borderBottomWidth: 6, borderBottomColor: '#10B981' },
-  indexValue: { fontSize: 28, fontWeight: 'bold', color: '#10B981' },
-  indexLabel: { fontSize: 11, color: '#64748B', textAlign: 'center' },
+  mainBtn: { backgroundColor: '#10B981', padding: 15, borderRadius: 15, marginTop: 20, width: '80%', alignItems: 'center' },
 });
