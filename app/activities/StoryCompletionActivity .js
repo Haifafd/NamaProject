@@ -1,7 +1,9 @@
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Image,
@@ -12,6 +14,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+// --- استيراد Firebase ---
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "./FirebaseConfig";
 
 const correctOrder = ["seed", "plant", "flower"];
 
@@ -28,11 +34,11 @@ function calculateCognitiveIndex(accuracy, speedScore, consistency) {
 }
 
 export default function PlantGame() {
-
   const router = useRouter();
   const [placed, setPlaced] = useState([null, null, null]);
   const [message, setMessage] = useState("");
   const [showPerformance, setShowPerformance] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // حالة الحفظ في Firebase
   const [performanceData, setPerformanceData] = useState({
     attempts: 0,
     hints: 0,
@@ -59,6 +65,34 @@ export default function PlantGame() {
     if (score >= 65) return "جيد";
     if (score >= 45) return "مقبول";
     return "بحاجة لتحسين";
+  };
+
+  // ── دالة حفظ النتيجة في Firebase ──────────────────────────
+  const saveActivityToFirebase = async (data) => {
+    setIsSaving(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("No user logged in");
+        return;
+      }
+
+      const docData = {
+        childId: user.uid, // معرف الطفل الحالي
+        activityName: "نشاط إكمال القصة (النبات)",
+        performance: data, // جميع بيانات الأداء (النقاط، المحاولات، الزمن)
+        createdAt: serverTimestamp(),
+      };
+
+      // الحفظ في مجموعة ActivityResults كما في هيكل مشروعكم
+      await addDoc(collection(db, "ActivityResults"), docData);
+      console.log("Activity saved successfully!");
+    } catch (error) {
+      console.error("Error saving activity: ", error);
+      Alert.alert("خطأ", "فشل في حفظ نتيجة النشاط.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const checkDrop = (gesture, type, resetPosition) => {
@@ -130,7 +164,7 @@ export default function PlantGame() {
             const data = {
               attempts: attemptsRef.current,
               hints: hintsUsedRef.current,
-              elapsedSeconds,
+              elapsedSeconds: Math.round(elapsedSeconds),
               accuracy: Math.round(accuracy * 100),
               hintUsageRate: Math.round(hintUsageRate * 100),
               improvementRate: Math.round(improvementRate * 100),
@@ -142,6 +176,9 @@ export default function PlantGame() {
             };
 
             setPerformanceData(data);
+            
+            // حفظ البيانات في Firebase تلقائياً عند الفوز
+            saveActivityToFirebase(data);
 
             Alert.alert("تقييم الأداء", "هل تريد عرض تقييم الأداء؟", [
               { text: "لا", style: "cancel" },
@@ -283,6 +320,13 @@ export default function PlantGame() {
       </View>
 
       <Text style={styles.message}>{message}</Text>
+      
+      {isSaving && (
+        <View style={styles.savingContainer}>
+          <ActivityIndicator color="#2ecc71" />
+          <Text style={styles.savingText}>جاري حفظ النتيجة...</Text>
+        </View>
+      )}
 
       <View style={styles.footer}>
         <View style={styles.footerItem}>
@@ -296,12 +340,12 @@ export default function PlantGame() {
         </View>
 
         <TouchableOpacity 
-                   style={styles.footerItem}
-                  onPress={() => router.push("/parent/homepageP")}
-                >
-                  <Ionicons name="person-outline" size={22} />
-                  <Text>حسابي</Text>
-                </TouchableOpacity>
+          style={styles.footerItem}
+          onPress={() => router.push("/parent/homepageP")}
+        >
+          <Ionicons name="person-outline" size={22} />
+          <Text>حسابي</Text>
+        </TouchableOpacity>
       </View>
 
       <Modal visible={showPerformance} transparent animationType="fade">
@@ -310,73 +354,23 @@ export default function PlantGame() {
             <Text style={styles.modalTitle}>📊 Dashboard الأداء</Text>
 
             <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>عدد الألعاب:</Text>
-              <Text style={styles.statValue}>1</Text>
-            </View>
-
-            <View style={styles.statsRow}>
               <Text style={styles.statLabel}>عدد المحاولات:</Text>
               <Text style={styles.statValue}>{performanceData.attempts}</Text>
             </View>
 
             <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>عدد التلميحات:</Text>
-              <Text style={styles.statValue}>{performanceData.hints}</Text>
-            </View>
-
-            <View style={styles.statsRow}>
               <Text style={styles.statLabel}>الزمن المستغرق:</Text>
-              <Text style={styles.statValue}>
-                {performanceData.elapsedSeconds.toFixed(1)} ثانية
-              </Text>
+              <Text style={styles.statValue}>{performanceData.elapsedSeconds} ثانية</Text>
             </View>
 
             <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>نسبة الدقة:</Text>
-              <Text style={styles.statValue}>{performanceData.accuracy}%</Text>
+              <Text style={styles.statLabel}>النتيجة النهائية:</Text>
+              <Text style={[styles.statValue, { color: "#2ecc71" }]}>{performanceData.finalScore}%</Text>
             </View>
 
             <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>نسبة استخدام التلميحات:</Text>
-              <Text style={styles.statValue}>{performanceData.hintUsageRate}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>معدل التحسن:</Text>
-              <Text style={styles.statValue}>{performanceData.improvementRate}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>متوسط السرعة:</Text>
-              <Text style={styles.statValue}>{performanceData.speedScore}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>الثبات:</Text>
-              <Text style={styles.statValue}>{performanceData.consistency}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>مؤشر الذاكرة العاملة WMI:</Text>
-              <Text style={styles.statValue}>{performanceData.wmi}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>مؤشر المعالجة المعرفية CPI:</Text>
-              <Text style={styles.statValue}>{performanceData.cpi}%</Text>
-            </View>
-
-            <Text style={styles.finalText}>
-              {getPerformanceText(performanceData.finalScore)}
-            </Text>
-
-            <View style={styles.performanceBar}>
-              <View
-                style={[
-                  styles.performanceFill,
-                  { width: `${performanceData.finalScore}%` },
-                ]}
-              />
+              <Text style={styles.statLabel}>التقييم:</Text>
+              <Text style={styles.statValue}>{getPerformanceText(performanceData.finalScore)}</Text>
             </View>
 
             <TouchableOpacity
@@ -393,199 +387,38 @@ export default function PlantGame() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  background: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 60,
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  backBtn: {
-    backgroundColor: "#eafaf1",
-    padding: 10,
-    borderRadius: 50,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  level: {
-    color: "#2ecc71",
-    fontSize: 12,
-  },
-  progressSection: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  percent: {
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  progressText: {
-    alignSelf: "flex-end",
-    marginBottom: 5,
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: "#ddd",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#2ecc71",
-    borderRadius: 10,
-  },
-  instructions: {
-    alignItems: "center",
-    marginTop: 20,
-  },
-  mainText: {
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  subText: {
-    color: "gray",
-    marginTop: 5,
-  },
-  imagesRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 20,
-  },
-  cardImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 15,
-  },
-  dropRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 40,
-  },
-  dropBox: {
-    width: 90,
-    height: 90,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "#bbb",
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dropImage: {
-    width: 70,
-    height: 70,
-  },
-  boxNumber: {
-    position: "absolute",
-    top: 5,
-    left: 5,
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#999",
-  },
-  message: {
-    textAlign: "center",
-    marginTop: 10,
-    fontSize: 16,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 20,
-    width: "90%",
-    alignSelf: "center",
-    backgroundColor: "white",
-    borderRadius: 20,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: 15,
-  },
-  footerItem: {
-    alignItems: "center",
-  },
-  footerItemActive: {
-    backgroundColor: "#2ecc71",
-    padding: 10,
-    borderRadius: 15,
-    alignItems: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    width: "100%",
-    backgroundColor: "white",
-    borderRadius: 28,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    elevation: 8,
-  },
-  modalTitle: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2ecc71",
-    marginBottom: 20,
-  },
-  statsRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  statLabel: {
-    fontSize: 16,
-    color: "#444",
-    textAlign: "right",
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  finalText: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2ecc71",
-    marginTop: 16,
-    marginBottom: 14,
-  },
-  performanceBar: {
-    height: 12,
-    width: "100%",
-    backgroundColor: "#e5e5e5",
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 20,
-  },
-  performanceFill: {
-    height: "100%",
-    backgroundColor: "#2ecc71",
-    borderRadius: 20,
-  },
-  closeBtn: {
-    backgroundColor: "#2ecc71",
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    width: "40%",
-    alignSelf: "center",
-  },
-  closeBtnText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  background: { position: "absolute", width: "100%", height: "100%", opacity: 0.1 },
+  header: { flexDirection: "row-reverse", alignItems: "center", padding: 20, paddingTop: 50 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", marginLeft: 15 },
+  title: { fontSize: 20, fontWeight: "bold", textAlign: "right" },
+  level: { fontSize: 14, color: "#666", textAlign: "right" },
+  progressSection: { alignItems: "center", marginVertical: 20 },
+  percent: { fontSize: 36, fontWeight: "bold", color: "#2ecc71" },
+  progressText: { fontSize: 14, color: "#666", marginBottom: 10 },
+  progressBar: { width: "80%", height: 10, backgroundColor: "#f0f0f0", borderRadius: 5, overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: "#2ecc71" },
+  instructions: { alignItems: "center", marginBottom: 30 },
+  mainText: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
+  subText: { fontSize: 14, color: "#888" },
+  imagesRow: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: 20, marginBottom: 40 },
+  cardImage: { width: 80, height: 80, borderRadius: 10 },
+  dropRow: { flexDirection: "row", justifyContent: "space-around", paddingHorizontal: 20 },
+  dropBox: { width: 90, height: 90, borderWidth: 2, borderColor: "#2ecc71", borderStyle: "dashed", borderRadius: 10, justifyContent: "center", alignItems: "center", backgroundColor: "#f9fff9" },
+  boxNumber: { position: "absolute", top: 5, left: 5, fontSize: 12, color: "#2ecc71", fontWeight: "bold" },
+  dropImage: { width: 70, height: 70, borderRadius: 8 },
+  message: { textAlign: "center", fontSize: 20, fontWeight: "bold", marginTop: 20, color: "#2ecc71" },
+  savingContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  savingText: { marginLeft: 10, color: '#666' },
+  footer: { position: "absolute", bottom: 0, width: "100%", height: 70, flexDirection: "row", justifyContent: "space-around", alignItems: "center", borderTopWidth: 1, borderTopColor: "#eee", backgroundColor: "#fff" },
+  footerItem: { alignItems: "center" },
+  footerItemActive: { alignItems: "center", backgroundColor: "#2ecc71", padding: 10, borderRadius: 15 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
+  modalCard: { width: "85%", backgroundColor: "#fff", borderRadius: 20, padding: 25, alignItems: "center" },
+  modalTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
+  statsRow: { flexDirection: "row-reverse", justifyContent: "space-between", width: "100%", marginBottom: 15 },
+  statLabel: { fontSize: 16, color: "#666" },
+  statValue: { fontSize: 16, fontWeight: "bold" },
+  closeBtn: { marginTop: 20, backgroundColor: "#2ecc71", paddingVertical: 12, paddingHorizontal: 40, borderRadius: 25 },
+  closeBtnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
