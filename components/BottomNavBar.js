@@ -2,24 +2,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
-    Animated,
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// ─── الألوان (نفس الثيم) ───
 const PRIMARY = "#79ccf8";
 const PRIMARY_DARK = "#0288D1";
-const PRIMARY_LIGHT = "#E1F5FE";
 const CARD = "#FFFFFF";
 const MUTED = "#999";
 
-// ─── إعدادات الـ Tabs ───
 const TABS = [
   {
     name: "Chats",
@@ -48,16 +45,13 @@ export default function BottomNavBar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // معرفة الصفحة الحالية
   const getCurrentTabIndex = () => {
     if (pathname?.includes("Chats")) return 0;
     if (pathname?.includes("Settings")) return 2;
-    return 1; // الرئيسية افتراضياً
+    return 1;
   };
 
   const currentIndex = getCurrentTabIndex();
-
-  // ─── Animation للدائرة المرتفعة ───
   const circlePosition = useRef(new Animated.Value(currentIndex)).current;
 
   useEffect(() => {
@@ -69,30 +63,26 @@ export default function BottomNavBar() {
     }).start();
   }, [currentIndex]);
 
-  // حساب موقع الدائرة (3 خانات)
   const tabWidth = SCREEN_WIDTH / 3;
   const circleLeft = circlePosition.interpolate({
     inputRange: [0, 1, 2],
     outputRange: [
-      tabWidth * 0 + tabWidth / 2 - 32, // المحادثات (يمين في RTL)
-      tabWidth * 1 + tabWidth / 2 - 32, // الرئيسية (وسط)
-      tabWidth * 2 + tabWidth / 2 - 32, // الإعدادات (يسار في RTL)
+      tabWidth * 0 + tabWidth / 2 - 32,
+      tabWidth * 1 + tabWidth / 2 - 32,
+      tabWidth * 2 + tabWidth / 2 - 32,
     ],
   });
 
-  // ─── معالجة الضغط ───
   const handleTabPress = (tab, index) => {
-    if (index === currentIndex) return; // إنتي بالفعل في هذه الصفحة
+    if (index === currentIndex) return;
     router.push(tab.path);
   };
 
   return (
     <View style={styles.wrapper}>
-      {/* الـ Navbar الأبيض */}
       <View style={styles.navbar}>
         {TABS.map((tab, index) => {
           const isActive = currentIndex === index;
-          const isCenter = index === 1;
 
           return (
             <TouchableOpacity
@@ -100,22 +90,15 @@ export default function BottomNavBar() {
               style={styles.navItem}
               onPress={() => handleTabPress(tab, index)}
               activeOpacity={0.7}
-              disabled={isCenter && isActive}
+              disabled={isActive}
             >
-              {!isCenter || !isActive ? (
+              {!isActive ? (
                 <>
-                  <Ionicons
-                    name={isActive ? tab.iconActive : tab.icon}
-                    size={isActive ? 24 : 22}
-                    color={isActive ? PRIMARY_DARK : MUTED}
-                  />
-                  <Text
-                    style={[styles.navText, isActive && styles.navTextActive]}
-                  >
-                    {tab.label}
-                  </Text>
+                  <Ionicons name={tab.icon} size={22} color={MUTED} />
+                  <Text style={styles.navText}>{tab.label}</Text>
                 </>
               ) : (
+                // Tab النشط - فاضي عشان الدائرة المرتفعة تكون مكانه
                 <View style={{ height: 38 }} />
               )}
             </TouchableOpacity>
@@ -123,15 +106,8 @@ export default function BottomNavBar() {
         })}
       </View>
 
-      {/* الدائرة المرتفعة المتحركة */}
-      <Animated.View
-        style={[
-          styles.floatingCircle,
-          {
-            left: circleLeft,
-          },
-        ]}
-      >
+      {/* الدائرة المرتفعة */}
+      <Animated.View style={[styles.floatingCircle, { left: circleLeft }]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => handleTabPress(TABS[currentIndex], currentIndex)}
@@ -139,13 +115,13 @@ export default function BottomNavBar() {
         >
           <Ionicons
             name={TABS[currentIndex].iconActive}
-            size={28}
+            size={26}
             color="#fff"
           />
         </TouchableOpacity>
       </Animated.View>
 
-      {/* النص تحت الدائرة */}
+      {/* النص تحت الدائرة (واحد فقط) */}
       <Animated.Text
         style={[
           styles.floatingLabel,
@@ -198,12 +174,6 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontWeight: "600",
   },
-  navTextActive: {
-    color: PRIMARY_DARK,
-    fontWeight: "700",
-  },
-
-  // الدائرة المرتفعة المتحركة
   floatingCircle: {
     position: "absolute",
     bottom: 35,

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -19,7 +18,7 @@ import { auth } from "../../FirebaseConfig";
 import { getCurrentUser } from "../../Services/UserService";
 import BottomNavBar from "../../components/BottomNavBar";
 
-// ─── نفس الثيم السماوي ───
+// ─── الثيم السماوي ───
 const PRIMARY = "#79ccf8";
 const PRIMARY_DARK = "#0288D1";
 const PRIMARY_LIGHT = "#E1F5FE";
@@ -43,9 +42,6 @@ export default function Settings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [reportAlerts, setReportAlerts] = useState(true);
 
-  // إعدادات الخصوصية والأمان
-  const [biometricLock, setBiometricLock] = useState(false);
-
   useEffect(() => {
     loadUser();
   }, []);
@@ -61,9 +57,7 @@ export default function Settings() {
     }
   };
 
-  // ─────────────────────────────────────────────
-  // 🚪 تسجيل الخروج
-  // ─────────────────────────────────────────────
+  // ─── تسجيل الخروج ───
   const handleLogout = () => {
     Alert.alert("تسجيل الخروج", "هل أنتي متأكدة من تسجيل الخروج؟", [
       { text: "إلغاء", style: "cancel" },
@@ -82,9 +76,7 @@ export default function Settings() {
     ]);
   };
 
-  // ─────────────────────────────────────────────
-  // 🔧 مكون الإعداد
-  // ─────────────────────────────────────────────
+  // ─── مكون الإعداد ───
   const SettingItem = ({
     icon,
     iconColor = PRIMARY_DARK,
@@ -95,29 +87,20 @@ export default function Settings() {
     isSwitch = false,
     switchValue,
     onSwitchChange,
-    showArrow = true,
-    isDanger = false,
+    isLast = false,
   }) => (
     <TouchableOpacity
-      style={styles.item}
+      style={[styles.item, !isLast && styles.itemBorder]}
       onPress={onPress}
       disabled={isSwitch || !onPress}
       activeOpacity={0.7}
     >
-      <View
-        style={[
-          styles.itemIconBox,
-          { backgroundColor: isDanger ? RED_LIGHT : iconBg },
-        ]}
-      >
-        <Ionicons name={icon} size={20} color={isDanger ? RED : iconColor} />
+      <View style={[styles.itemIconBox, { backgroundColor: iconBg }]}>
+        <Ionicons name={icon} size={18} color={iconColor} />
       </View>
 
       <View style={styles.itemTextContainer}>
-        <Text
-          style={[styles.itemTitle, isDanger && { color: RED }]}
-          numberOfLines={1}
-        >
+        <Text style={styles.itemTitle} numberOfLines={1}>
           {title}
         </Text>
         {subtitle && (
@@ -135,19 +118,9 @@ export default function Settings() {
           value={switchValue}
         />
       ) : (
-        showArrow && <Ionicons name="chevron-back" size={18} color={MUTED} />
+        <Ionicons name="chevron-back" size={18} color={MUTED} />
       )}
     </TouchableOpacity>
-  );
-
-  // ─────────────────────────────────────────────
-  // 📋 عنوان قسم
-  // ─────────────────────────────────────────────
-  const SectionTitle = ({ title, icon }) => (
-    <View style={styles.sectionTitleRow}>
-      <Ionicons name={icon} size={16} color={PRIMARY_DARK} />
-      <Text style={styles.sectionTitle}>{title}</Text>
-    </View>
   );
 
   if (loading) {
@@ -160,77 +133,66 @@ export default function Settings() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
+      <StatusBar barStyle="dark-content" backgroundColor={CARD} />
       <SafeAreaView style={{ flex: 1 }}>
-        {/* ─── HEADER GRADIENT ─── */}
-        <View style={styles.headerGradient}>
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
+        {/* ─── HEADER بسيط ورسمي ─── */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-forward" size={22} color={TEXT} />
+          </TouchableOpacity>
 
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-forward" size={24} color="#fff" />
-            </TouchableOpacity>
+          <Text style={styles.headerTitle}>الإعدادات</Text>
 
-            <Text style={styles.headerTitle}>الإعدادات</Text>
-
-            <View style={{ width: 42 }} />
-          </View>
-
-          {/* بطاقة الملف الشخصي */}
-          <View style={styles.profileCard}>
-            <View style={styles.profileAvatar}>
-              <Ionicons name="person" size={28} color={PRIMARY_DARK} />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{user?.name || "أخصائي"}</Text>
-              <Text style={styles.profileEmail} numberOfLines={1}>
-                {user?.email || "—"}
-              </Text>
-              <View style={styles.profileBadge}>
-                <Ionicons name="shield-checkmark" size={10} color={GREEN} />
-                <Text style={styles.profileBadgeText}>
-                  {user?.role === "specialist" ? "أخصائي" : "مستخدم"}
-                </Text>
-              </View>
-            </View>
-          </View>
+          <View style={{ width: 38 }} />
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+          {/* ─── بطاقة الملف الشخصي ─── */}
+          <View style={styles.profileCard}>
+            <View style={styles.profileAvatar}>
+              <Ionicons name="person" size={28} color={PRIMARY_DARK} />
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {user?.name || "أخصائي"}
+              </Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>
+                {user?.email || "—"}
+              </Text>
+            </View>
+            <View style={styles.profileBadge}>
+              <Text style={styles.profileBadgeText}>
+                {user?.role === "specialist" ? "أخصائي" : "مستخدم"}
+              </Text>
+            </View>
+          </View>
+
           {/* ═══ قسم: الحساب ═══ */}
-          <SectionTitle title="الحساب" icon="person-circle" />
+          <Text style={styles.sectionTitle}>الحساب</Text>
           <View style={styles.sectionCard}>
             <SettingItem
               icon="person-outline"
               title="تعديل الملف الشخصي"
-              subtitle="الاسم، الصورة، البريد"
+              subtitle="الاسم والصورة والبريد"
               onPress={() => router.push("./EditProfile")}
             />
-            <View style={styles.divider} />
             <SettingItem
               icon="lock-closed-outline"
               title="تغيير كلمة المرور"
               subtitle="حماية حسابك"
               onPress={() => router.push("./ChangePassword")}
-            />
-            <View style={styles.divider} />
-            <SettingItem
-              icon="briefcase-outline"
-              title="معلومات مهنية"
-              subtitle="التخصص والمؤهلات"
-              onPress={() => router.push("./ProfessionalInfo")}
+              isLast={true}
             />
           </View>
 
           {/* ═══ قسم: الإشعارات ═══ */}
-          <SectionTitle title="الإشعارات" icon="notifications" />
+          <Text style={styles.sectionTitle}>الإشعارات</Text>
           <View style={styles.sectionCard}>
             <SettingItem
               icon="notifications-outline"
@@ -242,7 +204,6 @@ export default function Settings() {
               switchValue={pushNotifications}
               onSwitchChange={setPushNotifications}
             />
-            <View style={styles.divider} />
             <SettingItem
               icon="mail-outline"
               iconColor={AMBER}
@@ -253,7 +214,6 @@ export default function Settings() {
               switchValue={emailNotifications}
               onSwitchChange={setEmailNotifications}
             />
-            <View style={styles.divider} />
             <SettingItem
               icon="document-text-outline"
               iconColor={AMBER}
@@ -263,23 +223,13 @@ export default function Settings() {
               isSwitch={true}
               switchValue={reportAlerts}
               onSwitchChange={setReportAlerts}
+              isLast={true}
             />
           </View>
 
           {/* ═══ قسم: الخصوصية والأمان ═══ */}
-          <SectionTitle title="الخصوصية والأمان" icon="shield-checkmark" />
+          <Text style={styles.sectionTitle}>الخصوصية والأمان</Text>
           <View style={styles.sectionCard}>
-            <SettingItem
-              icon="finger-print-outline"
-              iconColor={GREEN}
-              iconBg="#E8F5E9"
-              title="القفل البيومتري"
-              subtitle="بصمة أو Face ID"
-              isSwitch={true}
-              switchValue={biometricLock}
-              onSwitchChange={setBiometricLock}
-            />
-            <View style={styles.divider} />
             <SettingItem
               icon="shield-outline"
               iconColor={GREEN}
@@ -287,18 +237,18 @@ export default function Settings() {
               title="سياسة الخصوصية"
               onPress={() => router.push("./Privacy")}
             />
-            <View style={styles.divider} />
             <SettingItem
               icon="document-outline"
               iconColor={GREEN}
               iconBg="#E8F5E9"
               title="الشروط والأحكام"
               onPress={() => router.push("./Terms")}
+              isLast={true}
             />
           </View>
 
-          {/* ═══ قسم: الدعم ═══ */}
-          <SectionTitle title="الدعم والمساعدة" icon="help-circle" />
+          {/* ═══ قسم: الدعم والمساعدة ═══ */}
+          <Text style={styles.sectionTitle}>الدعم والمساعدة</Text>
           <View style={styles.sectionCard}>
             <SettingItem
               icon="chatbubbles-outline"
@@ -306,25 +256,17 @@ export default function Settings() {
               subtitle="نسعد بمساعدتك"
               onPress={() => router.push("./Contact")}
             />
-            <View style={styles.divider} />
             <SettingItem
               icon="help-circle-outline"
               title="الأسئلة الشائعة"
               onPress={() => router.push("./FAQ")}
             />
-            <View style={styles.divider} />
             <SettingItem
               icon="information-circle-outline"
               title="عن تطبيق نماء"
               subtitle="الإصدار 1.0.0"
               onPress={() => router.push("./About")}
-            />
-            <View style={styles.divider} />
-            <SettingItem
-              icon="star-outline"
-              title="قيّم التطبيق"
-              subtitle="ساعدينا في التحسين"
-              onPress={() => {}}
+              isLast={true}
             />
           </View>
 
@@ -340,7 +282,7 @@ export default function Settings() {
 
           {/* ═══ معلومات الإصدار ═══ */}
           <View style={styles.versionContainer}>
-            <Text style={styles.appName}>🌟 تطبيق نماء</Text>
+            <Text style={styles.appName}>تطبيق نماء</Text>
             <Text style={styles.versionText}>الإصدار 1.0.0 © 2026</Text>
           </View>
 
@@ -348,9 +290,7 @@ export default function Settings() {
           <View style={{ height: 110 }} />
         </ScrollView>
 
-        {/* ═══════════════════════════════════════════ */}
-        {/* ─── BOTTOM NAVBAR (Component مشترك) ─── */}
-        {/* ═══════════════════════════════════════════ */}
+        {/* ─── BOTTOM NAVBAR ─── */}
         <BottomNavBar />
       </SafeAreaView>
     </View>
@@ -361,85 +301,63 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   centerLoading: { justifyContent: "center", alignItems: "center" },
 
-  // Header
-  headerGradient: {
-    backgroundColor: PRIMARY,
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 10 : 20,
-    paddingBottom: 70,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: "hidden",
-    position: "relative",
-  },
-  decorCircle1: {
-    position: "absolute",
-    top: -30,
-    right: -30,
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-  decorCircle2: {
-    position: "absolute",
-    bottom: -40,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
-  headerRow: {
+  // ─── Header طبيعي ورسمي ───
+  header: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
-    zIndex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: CARD,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
   },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#fff",
+    color: TEXT,
   },
 
-  // Profile Card
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+
+  // ─── Profile Card ───
   profileCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#fff",
-    marginTop: 20,
+    backgroundColor: CARD,
     padding: 14,
-    borderRadius: 20,
-    gap: 14,
-    zIndex: 1,
-    shadowColor: PRIMARY_DARK,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    borderRadius: 16,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   profileAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: PRIMARY_LIGHT,
     alignItems: "center",
     justifyContent: "center",
   },
   profileInfo: {
     flex: 1,
-    gap: 2,
   },
   profileName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: TEXT,
     textAlign: "right",
@@ -447,56 +365,43 @@ const styles = StyleSheet.create({
   profileEmail: {
     fontSize: 12,
     color: MUTED,
+    marginTop: 2,
     textAlign: "right",
   },
   profileBadge: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    gap: 4,
-    alignSelf: "flex-end",
-    marginTop: 4,
+    backgroundColor: PRIMARY_LIGHT,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   profileBadgeText: {
-    fontSize: 10,
-    color: GREEN,
+    fontSize: 11,
+    color: PRIMARY_DARK,
     fontWeight: "700",
   },
 
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-
-  sectionTitleRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 16,
+  // ─── Section ───
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: MUTED,
+    marginTop: 22,
     marginBottom: 10,
     paddingHorizontal: 4,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: PRIMARY_DARK,
     textAlign: "right",
   },
-
   sectionCard: {
     backgroundColor: CARD,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
 
+  // ─── Item ───
   item: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -504,10 +409,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 12,
   },
+  itemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
   itemIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -526,37 +435,34 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "right",
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#F0F0F0",
-    marginHorizontal: 14,
-  },
 
+  // ─── Logout ───
   logoutButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 24,
     backgroundColor: RED_LIGHT,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
     gap: 8,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: "#FFCDD2",
   },
   logoutText: {
     color: RED,
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: 14,
   },
 
+  // ─── Version ───
   versionContainer: {
     alignItems: "center",
-    marginTop: 20,
-    gap: 4,
+    marginTop: 18,
+    gap: 3,
   },
   appName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: PRIMARY_DARK,
   },
