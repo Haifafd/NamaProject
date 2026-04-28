@@ -26,7 +26,7 @@ import {
   serverTimestamp,
   where
 } from "firebase/firestore";
-import { auth, db } from "./FirebaseConfig";
+import { auth, db } from "../../FirebaseConfig";
 
 // ── تفعيل RTL ─────────────────────────────────────────────
 I18nManager.allowRTL(true);
