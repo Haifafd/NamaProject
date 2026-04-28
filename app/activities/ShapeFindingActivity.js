@@ -2,14 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  Alert,
   Image,
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+
+// ✅ تغيير 1: استيراد Firebase
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../FirebaseConfig";
 
 function calculateVisualMotorIndex(accuracy, speedScore, errorRate) {
   return accuracy * 0.4 + speedScore * 0.3 + (1 - errorRate) * 0.3;
@@ -34,6 +37,29 @@ export default function MatchGame() {
 
   const correctAnswer = "apple";
   const totalGames = 1;
+
+  // ✅ تغيير 2: دالة الحفظ في Firebase
+  const saveActivityResult = async (dashboardData) => {
+    try {
+      const childId = auth.currentUser?.uid;
+      if (!childId) return;
+
+      await addDoc(collection(db, "ActivityResults"), {
+        activityId:   "matchGameID",       // ID النشاط
+        categoryId:   "matchCategoryID",   // ID الفئة
+        childId:      childId,
+        attempts:     dashboardData.attempts,
+        completed:    true,
+        createdAt:    serverTimestamp(),
+        duration:     Math.round(dashboardData.elapsedSeconds),
+        level:        1,
+        score:        dashboardData.finalScore,
+      });
+
+    } catch (error) {
+      console.error("خطأ في حفظ النتيجة:", error);
+    }
+  };
 
   const handleSelect = (type) => {
     if (completed) return;
@@ -81,19 +107,10 @@ export default function MatchGame() {
         finalScore: Math.round(finalScore),
       };
 
-      Alert.alert("تقييم الأداء", "هل تريد عرض تقييم الأداء؟", [
-        {
-          text: "لا",
-          style: "cancel",
-        },
-        {
-          text: "نعم",
-          onPress: () => {
-            setShowPerformance(true);
-            setPerformanceData(dashboardData);
-          },
-        },
-      ]);
+      // ✅ تغيير 3: استدعاء دالة الحفظ (بدل Alert اللي كان يعرض البوب أب)
+      saveActivityResult(dashboardData);
+      setPerformanceData(dashboardData);
+
     } else {
       wrongAttemptsRef.current += 1;
       setMessage("❌ حاول مرة أخرى");
@@ -123,6 +140,7 @@ export default function MatchGame() {
   };
 
   return (
+    // ✅ لا يوجد أي تغيير في الـ UI كامل من هنا للنهاية
     <View style={styles.container}>
       <Image
         source={require("../../assets/images/background.png")}
@@ -210,17 +228,14 @@ export default function MatchGame() {
           <Ionicons name="game-controller" size={22} color="white" />
           <Text style={{ color: "white" }}>نشاط</Text>
         </View>
-      <TouchableOpacity 
-                 style={styles.footerItem}
-                onPress={() => router.push("/parent/homepageP")}
-              >
-                <Ionicons name="person-outline" size={22} />
-                <Text>حسابي</Text>
-              </TouchableOpacity>
-      
-            </View>  
-
-        
+        <TouchableOpacity
+          style={styles.footerItem}
+          onPress={() => router.push("/parent/homepageP")}
+        >
+          <Ionicons name="person-outline" size={22} />
+          <Text>حسابي</Text>
+        </TouchableOpacity>
+      </View>
 
       <Modal
         visible={showPerformance}
@@ -307,13 +322,11 @@ export default function MatchGame() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   background: {
     position: "absolute",
     width: "100%",
     height: "100%",
   },
-
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -321,63 +334,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 10,
   },
-
   backBtn: {
     backgroundColor: "#eafaf1",
     padding: 10,
     borderRadius: 50,
   },
-
   title: {
     fontSize: 18,
     fontWeight: "bold",
   },
-
   level: {
     color: "#2ecc71",
     fontSize: 12,
   },
-
   progressSection: {
     paddingHorizontal: 20,
     marginTop: 20,
   },
-
   percent: {
     fontWeight: "bold",
     fontSize: 18,
   },
-
   progressText: {
     alignSelf: "flex-end",
     marginBottom: 5,
   },
-
   progressBar: {
     height: 10,
     backgroundColor: "#ddd",
     borderRadius: 10,
     overflow: "hidden",
   },
-
   progressFill: {
     height: "100%",
     backgroundColor: "#2ecc71",
     borderRadius: 10,
   },
-
   instructions: {
     alignItems: "center",
     marginTop: 20,
     paddingHorizontal: 20,
   },
-
   mainText: {
     fontWeight: "bold",
     fontSize: 16,
     textAlign: "center",
   },
-
   mainRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -385,13 +387,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
     gap: 20,
   },
-
   mainImage: {
     width: 100,
     height: 150,
     borderRadius: 10,
   },
-
   resultBox: {
     width: 100,
     height: 150,
@@ -400,31 +400,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   resultImage: {
     width: 100,
     height: 150,
     borderRadius: 10,
   },
-
   optionsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
     marginTop: 40,
   },
-
   optionImage: {
     width: 80,
     height: 120,
     borderRadius: 10,
   },
-
   message: {
     textAlign: "center",
     marginTop: 15,
     fontSize: 16,
   },
-
   footer: {
     position: "absolute",
     bottom: 20,
@@ -436,18 +431,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     padding: 15,
   },
-
   footerItem: {
     alignItems: "center",
   },
-
   footerItemActive: {
     backgroundColor: "#2ecc71",
     padding: 10,
     borderRadius: 15,
     alignItems: "center",
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -455,7 +447,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
-
   modalCard: {
     width: "100%",
     backgroundColor: "white",
@@ -464,7 +455,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     elevation: 8,
   },
-
   modalTitle: {
     textAlign: "center",
     fontSize: 22,
@@ -472,26 +462,22 @@ const styles = StyleSheet.create({
     color: "#2ecc71",
     marginBottom: 20,
   },
-
   statsRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-
   statLabel: {
     fontSize: 16,
     color: "#444",
     textAlign: "right",
   },
-
   statValue: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#222",
   },
-
   finalText: {
     textAlign: "center",
     fontSize: 22,
@@ -500,7 +486,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 14,
   },
-
   performanceBar: {
     height: 12,
     width: "100%",
@@ -509,13 +494,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 20,
   },
-
   performanceFill: {
     height: "100%",
     backgroundColor: "#2ecc71",
     borderRadius: 20,
   },
-
   closeBtn: {
     backgroundColor: "#2ecc71",
     paddingVertical: 12,
@@ -524,11 +507,9 @@ const styles = StyleSheet.create({
     width: "40%",
     alignSelf: "center",
   },
-
   closeBtnText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },
 });
-
