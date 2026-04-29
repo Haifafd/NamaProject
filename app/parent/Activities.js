@@ -1,10 +1,5 @@
 import { useRouter } from "expo-router";
-import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity
-} from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export default function Activities() {
   const router = useRouter();
