@@ -1,19 +1,27 @@
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
+
+// استدعاء الفايربيس
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../FirebaseConfig";
+
+// استدعاء التنسيقات
+import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
+
+// --- الاستيراد الجديد للمودال الخارجي ---
+import ResultModal from "./Result";
 
 const { width } = Dimensions.get("window");
 
-// إعدادات الفقاعات بأماكن عشوائية وأحجام متنوعة (زرقاء كما في الصورة)
 const INITIAL_BUBBLES = [
   { id: 1, top: "20%", left: "15%", size: 90, color: "#E1F5FE" },
   { id: 2, top: "25%", left: "55%", size: 100, color: "#B3E5FC" },
@@ -24,94 +32,132 @@ const INITIAL_BUBBLES = [
   { id: 7, top: "80%", left: "60%", size: 85, color: "#E1F5FE" },
 ];
 
-export default function PerfectBubbleGame() {
-  const [bubbles, setBubbles] = useState(INITIAL_BUBBLES);
-  const [gameState, setGameState] = useState("playing"); // playing, won, lost
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
+export default function PerfectBubbleGame({ navigation, route }) {
+  const router = useRouter();
+  const activityId = route?.params?.activityId || "7uE1Wl6s17R2t4pMOA9Z"; 
 
-  // أنيميشن "الطفو" للفقاعات لتبدو حية
+  const [bubbles, setBubbles] = useState(INITIAL_BUBBLES);
+  const [gameState, setGameState] = useState("playing");
+  
+  const startTime = useRef(Date.now());
+  const lastClickTime = useRef(Date.now());
+  const totalReactionTime = useRef(0);
+  const correctClicks = useRef(0);
+  const randomClicks = useRef(0);
+
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
+
+  const totalInitialBubbles = INITIAL_BUBBLES.length;
+  const poppedBubbles = totalInitialBubbles - bubbles.length;
+  const progressPercentage = (poppedBubbles / totalInitialBubbles) * 100;
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
+        Animated.timing(floatAnim, { toValue: 1, duration: 2500, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2500, useNativeDriver: true }),
       ]),
     ).start();
   }, []);
 
+  const saveToDatabase = async (vmi, ai, status) => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await addDoc(collection(db, "ActivityResults"), {
+          childId: user.uid, 
+          activityId: activityId,
+          visualMotorIndex: parseFloat(vmi.toFixed(2)),
+          attentionIndex: parseFloat(ai.toFixed(2)),
+          status: status,
+          createdAt: serverTimestamp(), 
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error saving:", error);
+    }
+  };
+
+  const finishGame = (finalState) => {
+    const endTime = Date.now();
+    const totalDuration = (endTime - startTime.current) / 1000;
+    
+    const accuracy = correctClicks.current / (correctClicks.current + randomClicks.current || 1);
+    const speedScore = Math.max(0, 1 - totalDuration / 20); 
+    const errorRate = randomClicks.current / (correctClicks.current + randomClicks.current || 1);
+    const avgReactionTime = totalReactionTime.current / (correctClicks.current || 1);
+    const completionRate = finalState === "won" ? 1 : progressPercentage / 100;
+
+    const vmi = (accuracy * 0.4) + (speedScore * 0.3) + ((1 - errorRate) * 0.3);
+    const ai = (completionRate * 0.4) + ((1 - errorRate) * 0.3) + (1 - Math.min(avgReactionTime / 3000, 1)) * 0.1;
+
+    saveToDatabase(vmi, ai, finalState);
+    setGameState(finalState);
+  };
+
   const handleBubblePress = (id) => {
-    // يمكنك إضافة صوت الفرقرة هنا
+    if (gameState !== "playing") return;
+    
+    const now = Date.now();
+    totalReactionTime.current += (now - lastClickTime.current);
+    lastClickTime.current = now;
+    correctClicks.current += 1;
+
     const newBubbles = bubbles.filter((b) => b.id !== id);
     setBubbles(newBubbles);
-    if (newBubbles.length === 0) setGameState("won"); // إظهار واجهة "عمل رائع"
+    
+    if (newBubbles.length === 0) finishGame("won");
   };
 
   const handleMissPress = () => {
-    // اهتزاز الشاشة عند الخطأ
+    if (gameState !== "playing") return;
+    randomClicks.current += 1;
+    
     Animated.sequence([
-      Animated.timing(shakeAnimation, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setGameState("lost")); // إظهار واجهة "حاول مرة أخرى"
+      Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
   };
 
   const resetGame = () => {
     setBubbles(INITIAL_BUBBLES);
     setGameState("playing");
+    startTime.current = Date.now();
+    lastClickTime.current = Date.now();
+    totalReactionTime.current = 0;
+    correctClicks.current = 0;
+    randomClicks.current = 0;
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* الجزء العلوي (Header) */}
+    <AppLayout navigation={navigation} activeTab="activities">
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => router.push("/parent/Activities")}
+        >
+          <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
-        <View style={styles.headerTitles}>
-          <Text style={styles.mainTitle}>نشاط الفقاعات</Text>
-          <Text style={styles.subTitle}>مستوى ٣ . مهارة المعرفة</Text>
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>نشاط الفقاعات</Text>
+          <Text style={styles.subtitle}>مستوى ٣ . مهارة التركيز</Text>
         </View>
       </View>
 
-      {/* شريط التقدم الأخضر */}
-      <View style={styles.progressSection}>
-        <Text style={styles.progressValue}>65%</Text>
+      <View style={styles.progressRow}>
         <Text style={styles.progressLabel}>مستوى التقدم</Text>
         <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: "65%" }]} />
+          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
+        <Text style={styles.progressPct}>{Math.round(progressPercentage)}%</Text>
       </View>
 
-      {/* منطقة اللعب */}
       <TouchableWithoutFeedback onPress={handleMissPress}>
-        <Animated.View
-          style={[
-            styles.gameArea,
-            { transform: [{ translateX: shakeAnimation }] },
-          ]}
-        >
-          <Text style={styles.instructionText}>قم بلمس الفقاعات!</Text>
+        <Animated.View style={[styles.gameArea, { transform: [{ translateX: shakeAnimation }] }]}>
+          <Text style={styles.instruction}>أسرع! قم بلمس جميع الفقاعات</Text>
+          
           {bubbles.map((bubble) => (
             <Animated.View
               key={bubble.id}
@@ -124,7 +170,6 @@ export default function PerfectBubbleGame() {
                   height: bubble.size,
                   borderRadius: bubble.size / 2,
                   backgroundColor: bubble.color,
-                  // إضافة حركة الطفو
                   transform: [
                     {
                       translateY: floatAnim.interpolate({
@@ -148,219 +193,34 @@ export default function PerfectBubbleGame() {
         </Animated.View>
       </TouchableWithoutFeedback>
 
-      {/* البار السفلي - الترتيب الدقيق للأيقونات حسب الصورة */}
-      <View style={styles.bottomNav}>
-        {/* الرئيسية - يسار */}
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIconInactive}>🏠</Text>
-          <Text style={styles.navTextInactive}>الرئيسية</Text>
-        </TouchableOpacity>
-
-        {/* نشاط - منتصف */}
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.activeTabBg}>
-            <Text style={styles.navIconActive}>🎮</Text>
-            <Text style={styles.navTextActive}>نشاط</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* حسابي - يمين */}
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIconInactive}>👤</Text>
-          <Text style={styles.navTextInactive}>حسابي</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* واجهات النجاح والفشل (Modals) */}
-      <Modal visible={gameState !== "playing"} transparent animationType="fade">
-        <View style={styles.overlay}>
-          <View style={styles.modalCard}>
-            <TouchableOpacity
-              style={styles.closeModal}
-              onPress={() => setGameState("playing")}
-            >
-              <Text style={{ color: "#BBB", fontSize: 20 }}>✕</Text>
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.statusCircle,
-                {
-                  backgroundColor: gameState === "won" ? "#C5E1A5" : "#FF8A80",
-                },
-              ]}
-            >
-              <Text style={styles.statusCheck}>
-                {gameState === "won" ? "✓" : "✕"}
-              </Text>
-            </View>
-
-            <Text style={styles.modalTitle}>
-              {gameState === "won" ? "عمل رائع !!" : "حاول مرة اخرى!"}
-            </Text>
-            {gameState === "won" && (
-              <Text style={styles.modalSub}>
-                عمل رائع، لقد أكملت النشاط بنجاح
-              </Text>
-            )}
-
-            <TouchableOpacity style={styles.actionBtn} onPress={resetGame}>
-              <Text style={styles.actionBtnText}>
-                {gameState === "won" ? "النشاط التالي ←" : "إعادة النشاط ←"}
-              </Text>
-            </TouchableOpacity>
-
-            {gameState === "won" && (
-              <TouchableOpacity onPress={resetGame} style={{ marginTop: 15 }}>
-                <Text style={{ color: "#AAB" }}>إعادة النشاط ↻</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+      {/* استدعاء المودال الخارجي */}
+      <ResultModal 
+        visible={gameState !== "playing"} 
+        state={gameState} 
+        onReset={resetGame}
+        onNavigateNext={() => {
+          resetGame(); 
+          router.push("/parent/Activities"); 
+        }} 
+      />
+    </AppLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FAFFFA" }, // خلفية بيضاء مريحة
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
-    alignItems: "center",
-  },
-  backBtn: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: "#E8F5E9",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backArrow: { fontSize: 24, color: "#4CAF50" },
-  headerTitles: { alignItems: "flex-end" },
-  mainTitle: { fontSize: 20, fontWeight: "bold", color: "#1B5E20" },
-  subTitle: { fontSize: 13, color: "#81C784", marginTop: 2 },
-
-  progressSection: { paddingHorizontal: 25, marginTop: 10 },
-  progressValue: {
-    position: "absolute",
-    left: 25,
-    top: 0,
-    fontSize: 12,
-    color: "#999",
-    fontWeight: "bold",
-  },
-  progressLabel: {
-    textAlign: "right",
-    fontSize: 13,
-    color: "#2E7D32",
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  progressBg: { height: 10, backgroundColor: "#E0E0E0", borderRadius: 5 },
-  progressFill: { height: "100%", backgroundColor: "#4CAF50", borderRadius: 5 },
-
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, justifyContent: 'space-between' },
+  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: CARD, alignItems: "center", justifyContent: "center", elevation: 3 },
+  backArrow: { fontSize: 28, color: PRIMARY, fontWeight: 'bold' },
+  titleBlock: { alignItems: "flex-end" },
+  title: { fontSize: 20, fontWeight: "700", color: "#2d2d2d" },
+  subtitle: { fontSize: 13, color: PRIMARY, fontWeight: '600' },
+  progressRow: { flexDirection: "row-reverse", alignItems: "center", gap: 8, paddingHorizontal: 20, marginBottom: 10 },
+  progressLabel: { fontSize: 13, color: MUTED, width: 85, textAlign: 'right' },
+  progressBg: { flex: 1, height: 12, borderRadius: 6, backgroundColor: BORDER, overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: PRIMARY, borderRadius: 6 },
+  progressPct: { fontSize: 13, fontWeight: "700", color: PRIMARY, width: 40, textAlign: 'left' },
   gameArea: { flex: 1, position: "relative" },
-  instructionText: {
-    textAlign: "center",
-    marginTop: 30,
-    fontSize: 18,
-    color: "#333",
-    fontWeight: "bold",
-  },
-
-  bubble: {
-    position: "absolute",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.8)",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  bubbleShine: {
-    width: "25%",
-    height: "25%",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 10,
-    position: "absolute",
-    top: "15%",
-    left: "20%",
-  },
-
-  bottomNav: {
-    flexDirection: "row",
-    height: 90,
-    backgroundColor: "#FFF",
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
-    elevation: 25,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-  },
-  navItem: { alignItems: "center", flex: 1 },
-  activeTabBg: {
-    backgroundColor: "#E8F5E9",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  navIconActive: { fontSize: 20, marginRight: 5 },
-  navTextActive: { color: "#4CAF50", fontWeight: "bold", fontSize: 14 },
-  navIconInactive: { fontSize: 24, color: "#DDD", marginBottom: 4 },
-  navTextInactive: { color: "#DDD", fontSize: 12 },
-
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalCard: {
-    width: "85%",
-    backgroundColor: "#FFF",
-    borderRadius: 35,
-    padding: 30,
-    alignItems: "center",
-  },
-  closeModal: { position: "absolute", top: 20, right: 20 },
-  statusCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  statusCheck: { fontSize: 50, color: "#FFF", fontWeight: "bold" },
-  modalTitle: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-  },
-  modalSub: {
-    fontSize: 15,
-    color: "#888",
-    textAlign: "center",
-    marginBottom: 30,
-  },
-  actionBtn: {
-    width: "100%",
-    height: 60,
-    backgroundColor: "#CCFF00",
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-  },
-  actionBtnText: { fontSize: 18, fontWeight: "bold", color: "#1B5E20" },
+  instruction: { textAlign: "right", padding: 20, fontSize: 16, color: MUTED, fontWeight: "600" },
+  bubble: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.8)", elevation: 5 },
+  bubbleShine: { width: "25%", height: "25%", backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 10, position: "absolute", top: "15%", left: "20%" },
 });
