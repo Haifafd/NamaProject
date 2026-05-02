@@ -1,55 +1,100 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
-import { Animated, Dimensions, Modal, PanResponder, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import Svg, { Defs, G, Mask, Path } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
+// استيراد إعدادات Firebase من ملفك
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../FirebaseConfig";
 
-export default function EnhancedDrawingGame() {
+// استيراد مكونات الثيم الخاص بك
+import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
+
+const { width, height } = Dimensions.get('window');
+
+export default function EnhancedDrawingGame({ navigation }) {
   const [level, setLevel] = useState(1);
   const [paths, setPaths] = useState([]);
   const [currentPath, setCurrentPath] = useState([]);
-  const [selectedColor, setSelectedColor] = useState('#10B981');
+  const [selectedColor, setSelectedColor] = useState(PRIMARY);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showFinishedCard, setShowFinishedCard] = useState(false); 
+  const [showFinishedCard, setShowFinishedCard] = useState(false);
   const [showReport, setShowReport] = useState(false);
-  const [showError, setShowError] = useState(false); // رسالة الخطأ إذا لم يلون كفاية
+  const [showError, setShowError] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const stats = useRef({ 
-    startTime: Date.now(), 
-    levelPoints: 0, 
+  const stats = useRef({
+    startTime: Date.now(),
+    levelPoints: 0,
     allLevelsPoints: [],
-    totalTime: 0 
+    totalTime: 0
   });
 
-  const colors = ['#FF4D4D', '#4D8CFF', '#10B981', '#FFA500', '#A855F7', '#000000'];
-
-  // حساب النسبة المئوية للتقدم الحقيقي
+  const colors = ['#FF4D4D', '#4D8CFF', PRIMARY, '#FFA500', '#A855F7', '#000000'];
   const progressPercent = Math.round(((level - 1) / 3) * 100);
 
+  // تحديد مسار الشكل بناءً على المستوى
   const getLevelPath = () => {
-    if (level === 1) return "M80,100 L240,400";
-    if (level === 2) return "M80,100 L240,400 L80,400";
-    return "M80,100 L240,400 M240,100 L80,400";
+    if (level === 1) return "M80,100 L240,400"; // خط مائل
+    if (level === 2) return "M80,100 L240,400 L80,400"; // مثلث ناقص
+    return "M80,100 L240,400 M240,100 L80,400"; // علامة X
+  };
+
+  // حفظ النتائج في Firebase
+  const saveToFirebase = async (metrics) => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await addDoc(collection(db, "ActivityResults"), {
+          childId: user.uid,
+          activityId: "enhanced_drawing",
+          vmiScore: metrics.vmi, // الإدراك البصري
+          cpiScore: metrics.cpi, // المعالجة المعرفية
+          totalTime: parseFloat(metrics.time),
+          status: "completed",
+          createdAt: serverTimestamp(),
+        });
+        console.log("✅ تم حفظ نتائج الرسم بنجاح");
+      }
+    } catch (error) {
+      console.error("❌ خطأ في حفظ النتائج:", error);
+    }
+  };
+
+  const calculateMetrics = () => {
+    const totalPoints = stats.current.allLevelsPoints.reduce((a, b) => a + b, 0);
+    // VMI: مهارة التآزر البصري الحركي
+    let vmi = Math.min(98, Math.round((totalPoints / 1000) * 100));
+    // CPI: مؤشر المعالجة المعرفية (السرعة والدقة)
+    const cpi = Math.max(65, Math.min(95, 100 - (stats.current.totalTime / 15)));
+    return { vmi, cpi, time: stats.current.totalTime.toFixed(1) };
   };
 
   const handleNextLevel = () => {
-    // شرط تلوين 75% (تقريباً 150 نقطة لمسار المستوى الأول ويزيد في المستويات الأخرى)
+    // التحقق من أن الطفل قام برسم قدر كافٍ (نقاط المستوى)
     const requiredPoints = level === 1 ? 120 : level === 2 ? 220 : 320;
-
-    if (stats.current.levelPoints >= requiredPoints) { 
+    
+    if (stats.current.levelPoints >= requiredPoints) {
       stats.current.allLevelsPoints.push(stats.current.levelPoints);
-      
       if (level < 3) {
         triggerLevelSuccess();
       } else {
         stats.current.totalTime = (Date.now() - stats.current.startTime) / 1000;
-        setShowFinishedCard(true); 
+        setShowFinishedCard(true);
       }
     } else {
       setShowError(true);
-      setTimeout(() => setShowError(false), 2000);
+      setTimeout(() => setShowError(false), 2500);
     }
   };
 
@@ -72,7 +117,7 @@ export default function EnhancedDrawingGame() {
     onPanResponderMove: (event) => {
       const { locationX, locationY } = event.nativeEvent;
       setCurrentPath((prev) => [...prev, `${locationX},${locationY}`]);
-      stats.current.levelPoints += 1; 
+      stats.current.levelPoints += 1;
     },
     onPanResponderRelease: () => {
       if (currentPath.length > 0) {
@@ -82,135 +127,162 @@ export default function EnhancedDrawingGame() {
     },
   });
 
-  const calculateMetrics = () => {
-    const totalPoints = stats.current.allLevelsPoints.reduce((a, b) => a + b, 0);
-    let vmi = Math.min(98, Math.round((totalPoints / 1000) * 100)); 
-    const cpi = Math.max(65, Math.min(95, 100 - (stats.current.totalTime / 15)));
-    return { vmi, cpi, time: stats.current.totalTime.toFixed(1) };
+  const handleFinalFinish = () => {
+    const metrics = calculateMetrics();
+    saveToFirebase(metrics); // الحفظ الفعلي عند الضغط على زر عرض التقرير
+    setShowFinishedCard(false);
+    setShowReport(true);
   };
 
-  if (showReport) {
-    const res = calculateMetrics();
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.reportTitle}>تحليل مهارات الطفل</Text>
-        <View style={styles.statsGrid}>
-          <View style={styles.card}><Text style={styles.val}>{res.vmi}%</Text><Text style={styles.lab}>الإدراك (VMI)</Text></View>
-          <View style={[styles.card, {borderBottomColor: '#3498DB'}]}><Text style={[styles.val, {color: '#3498DB'}]}>{res.cpi}%</Text><Text style={styles.lab}>المعالجة (CPI)</Text></View>
-          <View style={styles.card}><Text style={styles.val}>{res.time}ث</Text><Text style={styles.lab}>الزمن الكلي</Text></View>
-        </View>
-        <TouchableOpacity style={styles.mainBtn} onPress={() => { setLevel(1); setShowReport(false); setPaths([]); stats.current.allLevelsPoints = []; stats.current.startTime = Date.now(); stats.current.levelPoints = 0; }}>
-          <Text style={styles.btnText}>إعادة التجربة 🔄</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
+    <AppLayout navigation={navigation} activeTab="activities">
+      {showReport ? (
+        <ScrollView contentContainerStyle={styles.reportContainer}>
+          <Text style={styles.reportTitle}>نتائج تحليل المهارات</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.val}>{calculateMetrics().vmi}%</Text>
+              <Text style={styles.lab}>الإدراك البصري</Text>
+            </View>
+            <View style={[styles.statItem, { borderBottomColor: '#3498DB' }]}>
+              <Text style={[styles.val, { color: '#3498DB' }]}>{calculateMetrics().cpi}%</Text>
+              <Text style={styles.lab}>المعالج المعرفي</Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={styles.retryBtn} 
+            onPress={() => navigation?.goBack()}
+          >
+            <Text style={styles.retryBtnText}>العودة للرئيسية 🏠</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      ) : (
+        <>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack()}>
+              <Ionicons name="arrow-forward" size={24} color={PRIMARY} />
+            </TouchableOpacity>
+            <View style={styles.titleBlock}>
+              <Text style={styles.mainTitle}>تحدي الأشكال الذكي</Text>
+              <Text style={styles.levelSubtitle}>المرحلة {level} . مهارة التآزر</Text>
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={styles.progressLabel}>مستوى الإنجاز {progressPercent}%</Text>
+            <View style={styles.progressBg}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+            </View>
+          </View>
+
+          <View style={styles.gameArea}>
+            <View style={styles.canvasWrapper} {...panResponder.panHandlers}>
+              <Svg height="100%" width="100%" viewBox="0 0 320 500">
+                <Defs>
+                  <Mask id="m">
+                    <Path d={getLevelPath()} fill="none" stroke="white" strokeWidth="40" strokeLinecap="round" />
+                  </Mask>
+                </Defs>
+                {/* الدليل المنقط خلف الشكل */}
+                <Path d={getLevelPath()} fill="none" stroke="#F1F5F9" strokeWidth="40" strokeLinecap="round" strokeDasharray="15,10" />
+                <G mask="url(#m)">
+                  {paths.map((p, i) => (
+                    <Path key={i} d={`M${p.points.join(' L')}`} fill="none" stroke={p.color} strokeWidth="50" strokeLinecap="round" />
+                  ))}
+                  <Path d={`M${currentPath.join(' L')}`} fill="none" stroke={selectedColor} strokeWidth="50" strokeLinecap="round" />
+                </G>
+              </Svg>
+            </View>
+
+            <View style={styles.palette}>
+              {colors.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.colorCircle, { 
+                    backgroundColor: c, 
+                    borderWidth: selectedColor === c ? 4 : 0, 
+                    borderColor: '#FFF' 
+                  }]}
+                  onPress={() => setSelectedColor(c)}
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.nextBtn} onPress={handleNextLevel}>
+              <Text style={styles.nextBtnText}>{level === 3 ? "إنهاء وتدقيق" : "المرحلة التالية ➡️"}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      {/* مودال الخطأ */}
+      <Modal visible={showError} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { borderTopColor: '#F59E0B' }]}>
+            <Ionicons name="color-palette" size={60} color="#F59E0B" />
+            <Text style={styles.modalTitle}>لم تنتهِ بعد!</Text>
+            <Text style={styles.modalSub}>لون مساحة أكبر من الشكل لتنتقل للمرحلة التالية 🎨</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* بطاقة التهنئة النهائية */}
       {showFinishedCard && (
         <View style={styles.fullOverlay}>
           <View style={styles.congratsCard}>
-            <Ionicons name="trophy" size={80} color="#FFD700" />
+            <Text style={{ fontSize: 80 }}>🏆</Text>
             <Text style={styles.congratsTitle}>أحسنت يا بطل!</Text>
             <Text style={styles.congratsSub}>لقد أكملت جميع الأشكال بنسبة 100% 🌟</Text>
-            <TouchableOpacity style={styles.mainBtn} onPress={() => { setShowFinishedCard(false); setShowReport(true); }}>
-              <Text style={styles.btnText}>عرض مؤشرات الأداء 📊</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={handleFinalFinish}>
+              <Text style={styles.retryBtnText}>عرض مؤشرات الأداء 📊</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
+      {/* أنيميشن النجاح بين المستويات */}
       {showSuccess && (
-        <Animated.View style={[styles.successOverlay, { opacity: fadeAnim }]}>
-          <View style={styles.successCircle}><Text style={styles.checkMark}>✓</Text></View>
+        <Animated.View style={[styles.levelSuccessOverlay, { opacity: fadeAnim }]}>
+          <View style={styles.checkCircle}><Text style={styles.checkIcon}>✓</Text></View>
         </Animated.View>
       )}
-
-      {/* مودال الخطأ عند عدم إكمال التلوين */}
-      <Modal visible={showError} transparent animationType="slide">
-        <View style={styles.errorContainer}>
-           <View style={styles.errorBox}>
-              <Ionicons name="color-palette" size={50} color="#F59E0B" />
-              <Text style={styles.errorTitle}>لم تنتهِ بعد!</Text>
-              <Text style={styles.errorText}>لون مساحة أكبر من الشكل لتنتقل للمرحلة التالية 🎨</Text>
-           </View>
-        </View>
-      </Modal>
-
-      <View style={styles.header}>
-        <Text style={styles.title}>تحدي الأشكال الذكي</Text>
-        <Text style={styles.progressText}>الإنجاز: {progressPercent}%</Text>
-        <View style={styles.progressContainer}>
-           <View style={[styles.progressBar, { width: `${progressPercent}%` }]} />
-        </View>
-      </View>
-
-      <View style={styles.canvasContainer} {...panResponder.panHandlers}>
-        <Svg height="100%" width="100%" viewBox="0 0 320 500">
-          <Defs><Mask id="m"><Path d={getLevelPath()} fill="none" stroke="white" strokeWidth="40" strokeLinecap="round" /></Mask></Defs>
-          <Path d={getLevelPath()} fill="none" stroke="#F1F5F9" strokeWidth="40" strokeLinecap="round" strokeDasharray="15,10" />
-          <G mask="url(#m)">
-            {paths.map((p, i) => (<Path key={i} d={`M${p.points.join(' L')}`} fill="none" stroke={p.color} strokeWidth="50" strokeLinecap="round" />))}
-            <Path d={`M${currentPath.join(' L')}`} fill="none" stroke={selectedColor} strokeWidth="50" strokeLinecap="round" />
-          </G>
-        </Svg>
-      </View>
-
-      <View style={styles.colorPicker}>
-        {colors.map((c) => (
-          <TouchableOpacity 
-            key={c} 
-            style={[styles.circle, { backgroundColor: c, borderWidth: selectedColor === c ? 4 : 0, borderColor: '#1E293B' }]} 
-            onPress={() => setSelectedColor(c)} 
-          />
-        ))}
-      </View>
-
-      <TouchableOpacity style={styles.mainBtn} onPress={handleNextLevel}>
-        <Text style={styles.btnText}>{level === 3 ? "إنهاء وتدقيق" : "المرحلة التالية ➡️"}</Text>
-      </TouchableOpacity>
-
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navItem}><Ionicons name="person-outline" size={22} color="#94A3B8" /><Text style={styles.navText}>حسابي</Text></TouchableOpacity>
-        <View style={styles.activeNavItem}><Ionicons name="brush" size={22} color="#10B981" /><Text style={[styles.navText, {color: '#10B981'}]}>نشاط</Text></View>
-        <TouchableOpacity style={styles.navItem}><Ionicons name="home-outline" size={22} color="#94A3B8" /><Text style={styles.navText}>الرئيسية</Text></TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    </AppLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', alignItems: 'center' },
-  header: { width: '90%', marginTop: 20, alignItems: 'flex-end' },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#1E293B' },
-  progressText: { marginTop: 5, fontSize: 13, color: '#64748B', fontWeight: 'bold' },
-  progressContainer: { width: '100%', height: 10, backgroundColor: '#E2E8F0', borderRadius: 5, marginTop: 5 },
-  progressBar: { height: '100%', backgroundColor: '#10B981', borderRadius: 5 },
-  canvasContainer: { width: 320, height: 380, backgroundColor: '#FFF', borderRadius: 30, marginTop: 15, elevation: 5, overflow: 'hidden' },
-  colorPicker: { flexDirection: 'row', marginTop: 15, gap: 10, justifyContent: 'center', width: '90%' },
-  circle: { width: 38, height: 38, borderRadius: 19 },
-  mainBtn: { paddingVertical: 14, paddingHorizontal: 35, backgroundColor: '#10B981', borderRadius: 22, marginTop: 15, elevation: 4 },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
-  fullOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(240, 253, 244, 0.95)', justifyContent: 'center', alignItems: 'center', zIndex: 200 },
-  congratsCard: { width: '85%', padding: 30, backgroundColor: '#FFF', borderRadius: 30, alignItems: 'center', elevation: 10 },
-  congratsTitle: { fontSize: 26, fontWeight: 'bold', color: '#10B981', marginTop: 15 },
-  congratsSub: { fontSize: 15, color: '#64748B', textAlign: 'center', marginVertical: 20 },
-  navBar: { position: 'absolute', bottom: 25, flexDirection: 'row', backgroundColor: '#FFF', width: '90%', height: 65, borderRadius: 32, alignItems: 'center', justifyContent: 'space-around', elevation: 12 },
-  navItem: { alignItems: 'center' },
-  activeNavItem: { alignItems: 'center', backgroundColor: '#F0FDF4', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
-  navText: { fontSize: 11, color: '#64748B', marginTop: 3, fontWeight: '700' },
-  reportTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 40, color: '#1E293B' },
-  statsGrid: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 25, marginBottom: 30 },
-  card: { width: width * 0.28, padding: 15, backgroundColor: '#FFF', borderRadius: 20, borderBottomWidth: 5, borderBottomColor: '#10B981', elevation: 4, alignItems: 'center' },
-  val: { fontSize: 22, fontWeight: 'bold', color: '#10B981' },
-  lab: { fontSize: 10, color: '#64748B', marginTop: 5, textAlign: 'center' },
-  successOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
-  successCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center' },
-  checkMark: { color: 'white', fontSize: 50, fontWeight: 'bold' },
-  // تصميم رسالة الخطأ
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
-  errorBox: { width: '80%', backgroundColor: '#FFF', padding: 25, borderRadius: 25, alignItems: 'center', borderTopWidth: 8, borderTopColor: '#F59E0B' },
-  errorTitle: { fontSize: 20, fontWeight: 'bold', color: '#1E293B', marginTop: 10 },
-  errorText: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 10 },
+  header: { flexDirection: 'row-reverse', alignItems: 'center', padding: 20, gap: 12 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: CARD, alignItems: 'center', justifyContent: 'center', elevation: 2 },
+  titleBlock: { flex: 1, alignItems: 'flex-end' },
+  mainTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
+  levelSubtitle: { color: PRIMARY, fontWeight: 'bold', fontSize: 12 },
+  progressSection: { paddingHorizontal: 25 },
+  progressLabel: { textAlign: 'right', fontSize: 12, marginBottom: 5, color: MUTED },
+  progressBg: { height: 8, backgroundColor: BORDER, borderRadius: 4, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: PRIMARY },
+  gameArea: { flex: 1, alignItems: 'center', marginTop: 15 },
+  canvasWrapper: { width: width * 0.85, height: 380, backgroundColor: CARD, borderRadius: 30, elevation: 5, overflow: 'hidden', borderWidth: 2, borderColor: BORDER },
+  palette: { flexDirection: 'row', marginTop: 20, gap: 12 },
+  colorCircle: { width: 35, height: 35, borderRadius: 18, elevation: 2 },
+  nextBtn: { backgroundColor: PRIMARY, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 20, marginTop: 20, elevation: 3 },
+  nextBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  reportContainer: { padding: 25, alignItems: 'center', paddingTop: 40 },
+  reportTitle: { fontSize: 24, fontWeight: 'bold', color: '#1E293B', marginBottom: 30 },
+  statsGrid: { flexDirection: 'row', gap: 15, marginBottom: 30 },
+  statItem: { width: width * 0.4, padding: 20, backgroundColor: CARD, borderRadius: 20, alignItems: 'center', elevation: 4, borderBottomWidth: 6, borderBottomColor: PRIMARY },
+  val: { fontSize: 28, fontWeight: 'bold', color: PRIMARY },
+  lab: { fontSize: 11, color: MUTED, textAlign: 'center', marginTop: 5 },
+  retryBtn: { backgroundColor: PRIMARY, width: '90%', padding: 15, borderRadius: 15, alignItems: 'center' },
+  retryBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { width: '80%', backgroundColor: CARD, borderRadius: 30, padding: 25, alignItems: 'center', borderTopWidth: 8 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 10, color: '#1E293B' },
+  modalSub: { fontSize: 14, color: MUTED, textAlign: 'center', marginTop: 10 },
+  fullOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
+  congratsCard: { width: '85%', padding: 30, backgroundColor: CARD, borderRadius: 30, alignItems: 'center', elevation: 8 },
+  congratsTitle: { fontSize: 26, fontWeight: 'bold', color: PRIMARY, marginTop: 10 },
+  congratsSub: { fontSize: 15, color: MUTED, textAlign: 'center', marginVertical: 20 },
+  levelSuccessOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 50 },
+  checkCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: PRIMARY, justifyContent: 'center', alignItems: 'center' },
+  checkIcon: { color: 'white', fontSize: 50, fontWeight: 'bold' }
 });
