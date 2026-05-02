@@ -1,16 +1,24 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  Alert,
   Image,
-  Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
+// استيراد إعدادات Firebase
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../FirebaseConfig";
+
+// استيراد مكونات الثيم الموحد والـ ResultModal
+import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
+import ResultModal from "./Result"; // تأكد من مطابقة المسار لملف النتائج الموحد لديك
+
+// وظائف الحسابات لمؤشرات الأداء
 function calculateVisualMotorIndex(accuracy, speedScore, errorRate) {
   return accuracy * 0.4 + speedScore * 0.3 + (1 - errorRate) * 0.3;
 }
@@ -20,12 +28,11 @@ function calculateCognitiveIndex(accuracy, speedScore, consistency) {
 }
 
 export default function MatchGame() {
-
   const router = useRouter();
   const [selected, setSelected] = useState(null);
   const [message, setMessage] = useState("");
   const [completed, setCompleted] = useState(false);
-  const [showPerformance, setShowPerformance] = useState(false);
+  const [gameState, setGameState] = useState("playing"); // playing, won
 
   const attemptsRef = useRef(0);
   const wrongAttemptsRef = useRef(0);
@@ -33,502 +40,186 @@ export default function MatchGame() {
   const firstTryCorrectRef = useRef(false);
 
   const correctAnswer = "apple";
-  const totalGames = 1;
+
+  // دالة حفظ النتائج في Firebase
+  const saveResultToFirebase = async (vmi, cpi, finalScore) => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await addDoc(collection(db, "ActivityResults"), {
+          childId: user.uid,
+          activityId: "match_similar_shape",
+          vmiScore: Math.round(vmi * 100),
+          cpiScore: Math.round(cpi * 100),
+          totalScore: Math.round(finalScore),
+          errors: wrongAttemptsRef.current,
+          timeSpent: parseFloat(((Date.now() - startTimeRef.current) / 1000).toFixed(1)),
+          status: "completed",
+          createdAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      console.error("❌ Firebase Save Error:", error);
+    }
+  };
 
   const handleSelect = (type) => {
     if (completed) return;
-
     attemptsRef.current += 1;
 
     if (type === correctAnswer) {
       setSelected(type);
-      setMessage("🎉 أحسنت!");
+      setMessage("🎉 أحسنت يا بطل!");
       setCompleted(true);
+      setGameState("won"); // تفعيل ظهور نافذة النتائج
 
-      if (attemptsRef.current === 1) {
-        firstTryCorrectRef.current = true;
-      }
+      if (attemptsRef.current === 1) firstTryCorrectRef.current = true;
 
       const endTime = Date.now();
       const elapsedSeconds = (endTime - startTimeRef.current) / 1000;
-
-      const attempts = attemptsRef.current;
-      const wrongAttempts = wrongAttemptsRef.current;
-      const accuracy = 1;
-      const errorRate = attempts > 0 ? wrongAttempts / attempts : 0;
-
       const speedScore = Math.max(0, Math.min(1, 1 - elapsedSeconds / 30));
+      const errorRate = wrongAttemptsRef.current / attemptsRef.current;
+      const consistency = firstTryCorrectRef.current ? 1 : Math.max(0, 1 - errorRate);
 
-      const consistency = firstTryCorrectRef.current
-        ? 1
-        : Math.max(0, 1 - wrongAttempts / attempts);
-
-      const vmi = calculateVisualMotorIndex(accuracy, speedScore, errorRate);
-      const cpi = calculateCognitiveIndex(accuracy, speedScore, consistency);
-
+      const vmi = calculateVisualMotorIndex(1, speedScore, errorRate);
+      const cpi = calculateCognitiveIndex(1, speedScore, consistency);
       const finalScore = ((vmi + cpi) / 2) * 100;
 
-      const dashboardData = {
-        attempts,
-        wrongAttempts,
-        elapsedSeconds,
-        accuracy: Math.round(accuracy * 100),
-        speedScore: Math.round(speedScore * 100),
-        errorRate: Math.round(errorRate * 100),
-        consistency: Math.round(consistency * 100),
-        vmi: Math.round(vmi * 100),
-        cpi: Math.round(cpi * 100),
-        finalScore: Math.round(finalScore),
-      };
-
-      Alert.alert("تقييم الأداء", "هل تريد عرض تقييم الأداء؟", [
-        {
-          text: "لا",
-          style: "cancel",
-        },
-        {
-          text: "نعم",
-          onPress: () => {
-            setShowPerformance(true);
-            setPerformanceData(dashboardData);
-          },
-        },
-      ]);
+      saveResultToFirebase(vmi, cpi, finalScore);
     } else {
       wrongAttemptsRef.current += 1;
-      setMessage("❌ حاول مرة أخرى");
+      setMessage("❌ حاول مرة أخرى، أنت تستطيع!");
     }
   };
 
-  const [performanceData, setPerformanceData] = useState({
-    attempts: 0,
-    wrongAttempts: 0,
-    elapsedSeconds: 0,
-    accuracy: 0,
-    speedScore: 0,
-    errorRate: 0,
-    consistency: 0,
-    vmi: 0,
-    cpi: 0,
-    finalScore: 0,
-  });
+  const handleReset = () => {
+    setSelected(null);
+    setMessage("");
+    setCompleted(false);
+    setGameState("playing");
+    attemptsRef.current = 0;
+    wrongAttemptsRef.current = 0;
+    startTimeRef.current = Date.now();
+  };
 
   const progress = completed ? 100 : 0;
 
-  const getPerformanceText = (score) => {
-    if (score >= 85) return "ممتاز";
-    if (score >= 65) return "جيد";
-    if (score >= 45) return "مقبول";
-    return "بحاجة لتحسين";
-  };
-
   return (
-    <View style={styles.container}>
-      <Image
-        source={require("../../assets/images/background.png")}
-        style={styles.background}
-      />
-
+    <AppLayout activeTab="activities">
+      {/* الهيدر: الزر يسار والنص يمين */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#2ecc71" />
+          <Ionicons name="arrow-back" size={24} color={PRIMARY} />
         </TouchableOpacity>
-
-        <View>
-          <Text style={styles.title}>نشاط إيجاد الشكل المتماثل</Text>
-          <Text style={styles.level}>مستوى 1 - مهارة المعرفة</Text>
+        
+        <View style={styles.titleBlock}>
+          <Text style={styles.mainTitle}>نشاط إيجاد الشكل المتماثل</Text>
+          <Text style={styles.levelSubtitle}>مستوى 1 . مهارة المعرفة</Text>
         </View>
       </View>
 
       <View style={styles.progressSection}>
-        <Text style={styles.percent}>{progress}%</Text>
-        <Text style={styles.progressText}>مستوى التقدم</Text>
-
-        <View style={styles.progressBar}>
+        <View style={styles.progressHeader}>
+           <Text style={styles.progressValue}>{progress}%</Text>
+           <Text style={styles.progressLabel}>مستوى التقدم</Text>
+        </View>
+        <View style={styles.progressBg}>
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
       </View>
 
-      <View style={styles.instructions}>
-        <Text style={styles.mainText}>
+      <ScrollView contentContainerStyle={styles.gameArea}>
+        <Text style={styles.instructionText}>
           قم باختيار الشكل المتماثل من بين الأشكال الظاهرة
         </Text>
-      </View>
 
-      <View style={styles.mainRow}>
-        <Image
-          source={require("../../assets/images/apples.png")}
-          style={styles.mainImage}
-        />
+        <View style={styles.matchContainer}>
+          <View style={styles.imageWrapper}>
+            <Image source={require("../../assets/images/apples.png")} style={styles.matchImage} />
+          </View>
+          
+          <Ionicons name="reorder-two-outline" size={40} color={BORDER} style={{transform: [{rotate: '90deg'}]}} />
 
-        <View style={styles.resultBox}>
-          {selected && (
-            <Image
-              source={require("../../assets/images/applecor.png")}
-              style={styles.resultImage}
-            />
-          )}
-        </View>
-      </View>
-
-      <View style={styles.optionsRow}>
-        {!completed && (
-          <>
-            <TouchableOpacity onPress={() => handleSelect("banana")}>
-              <Image
-                source={require("../../assets/images/bnana.png")}
-                style={styles.optionImage}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleSelect("apple")}>
-              <Image
-                source={require("../../assets/images/applecor.png")}
-                style={styles.optionImage}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleSelect("wrong")}>
-              <Image
-                source={require("../../assets/images/rong.png")}
-                style={styles.optionImage}
-              />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      <Text style={styles.message}>{message}</Text>
-
-      <View style={styles.footer}>
-        <View style={styles.footerItem}>
-          <Ionicons name="home-outline" size={22} />
-          <Text>الرئيسية</Text>
-        </View>
-
-        <View style={styles.footerItemActive}>
-          <Ionicons name="game-controller" size={22} color="white" />
-          <Text style={{ color: "white" }}>نشاط</Text>
-        </View>
-      <TouchableOpacity 
-                 style={styles.footerItem}
-                onPress={() => router.push("/parent/homepageP")}
-              >
-                <Ionicons name="person-outline" size={22} />
-                <Text>حسابي</Text>
-              </TouchableOpacity>
-      
-            </View>  
-
-        
-
-      <Modal
-        visible={showPerformance}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPerformance(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>📊 Dashboard الأداء</Text>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>عدد الألعاب:</Text>
-              <Text style={styles.statValue}>{totalGames}</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>عدد المحاولات:</Text>
-              <Text style={styles.statValue}>{performanceData.attempts}</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>عدد الأخطاء:</Text>
-              <Text style={styles.statValue}>{performanceData.wrongAttempts}</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>الزمن المستغرق:</Text>
-              <Text style={styles.statValue}>
-                {performanceData.elapsedSeconds.toFixed(1)} ثانية
-              </Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>نسبة الفوز:</Text>
-              <Text style={styles.statValue}>100%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>متوسط الحركات:</Text>
-              <Text style={styles.statValue}>{performanceData.attempts}</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>متوسط السرعة:</Text>
-              <Text style={styles.statValue}>{performanceData.speedScore}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>مؤشر الإدراك البصري الحركي VMI:</Text>
-              <Text style={styles.statValue}>{performanceData.vmi}%</Text>
-            </View>
-
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>مؤشر المعالجة المعرفية CPI:</Text>
-              <Text style={styles.statValue}>{performanceData.cpi}%</Text>
-            </View>
-
-            <Text style={styles.finalText}>
-              {getPerformanceText(performanceData.finalScore)}
-            </Text>
-
-            <View style={styles.performanceBar}>
-              <View
-                style={[
-                  styles.performanceFill,
-                  { width: `${performanceData.finalScore}%` },
-                ]}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={() => setShowPerformance(false)}
-            >
-              <Text style={styles.closeBtnText}>إغلاق</Text>
-            </TouchableOpacity>
+          <View style={[styles.resultSlot, selected && {borderColor: PRIMARY}]}>
+            {selected ? (
+              <Image source={require("../../assets/images/applecor.png")} style={styles.matchImage} />
+            ) : (
+              <Ionicons name="help-circle" size={50} color={BORDER} />
+            )}
           </View>
         </View>
-      </Modal>
-    </View>
+
+        <View style={styles.optionsGrid}>
+          {!completed && (
+            <>
+              {["banana", "apple", "wrong"].map((type, index) => {
+                const images = {
+                  banana: require("../../assets/images/bnana.png"),
+                  apple: require("../../assets/images/applecor.png"),
+                  wrong: require("../../assets/images/rong.png"),
+                };
+                return (
+                  <TouchableOpacity key={index} style={styles.optionCard} onPress={() => handleSelect(type)}>
+                    <Image source={images[type]} style={styles.optionImg} resizeMode="contain" />
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+        </View>
+
+        <Text style={[styles.statusMessage, {color: completed ? PRIMARY : "#FF6B6B"}]}>{message}</Text>
+      </ScrollView>
+
+      {/* نافذة النتائج الموحدة */}
+      <ResultModal 
+        visible={gameState !== "playing"} 
+        state={gameState} 
+        onReset={handleReset} 
+        onNavigateNext={() => router.back()} // أو التوجه لنشاط محدد
+      />
+    </AppLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
-  background: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+  // تعديل الهيدر ليكون الزر يسار والنص يمين
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingHorizontal: 20, 
+    paddingTop: 50,
+    paddingBottom: 20
   },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 60,
-    paddingHorizontal: 20,
-    gap: 10,
+  backBtn: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
+    backgroundColor: CARD, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    elevation: 2 
   },
-
-  backBtn: {
-    backgroundColor: "#eafaf1",
-    padding: 10,
-    borderRadius: 50,
-  },
-
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  level: {
-    color: "#2ecc71",
-    fontSize: 12,
-  },
-
-  progressSection: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-
-  percent: {
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-
-  progressText: {
-    alignSelf: "flex-end",
-    marginBottom: 5,
-  },
-
-  progressBar: {
-    height: 10,
-    backgroundColor: "#ddd",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#2ecc71",
-    borderRadius: 10,
-  },
-
-  instructions: {
-    alignItems: "center",
-    marginTop: 20,
-    paddingHorizontal: 20,
-  },
-
-  mainText: {
-    fontWeight: "bold",
-    fontSize: 16,
-    textAlign: "center",
-  },
-
-  mainRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 30,
-    gap: 20,
-  },
-
-  mainImage: {
-    width: 100,
-    height: 150,
-    borderRadius: 10,
-  },
-
-  resultBox: {
-    width: 100,
-    height: 150,
-    backgroundColor: "#eee",
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  resultImage: {
-    width: 100,
-    height: 150,
-    borderRadius: 10,
-  },
-
-  optionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 40,
-  },
-
-  optionImage: {
-    width: 80,
-    height: 120,
-    borderRadius: 10,
-  },
-
-  message: {
-    textAlign: "center",
-    marginTop: 15,
-    fontSize: 16,
-  },
-
-  footer: {
-    position: "absolute",
-    bottom: 20,
-    width: "90%",
-    alignSelf: "center",
-    backgroundColor: "white",
-    borderRadius: 20,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: 15,
-  },
-
-  footerItem: {
-    alignItems: "center",
-  },
-
-  footerItemActive: {
-    backgroundColor: "#2ecc71",
-    padding: 10,
-    borderRadius: 15,
-    alignItems: "center",
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-
-  modalCard: {
-    width: "100%",
-    backgroundColor: "white",
-    borderRadius: 28,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    elevation: 8,
-  },
-
-  modalTitle: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2ecc71",
-    marginBottom: 20,
-  },
-
-  statsRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-
-  statLabel: {
-    fontSize: 16,
-    color: "#444",
-    textAlign: "right",
-  },
-
-  statValue: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#222",
-  },
-
-  finalText: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2ecc71",
-    marginTop: 16,
-    marginBottom: 14,
-  },
-
-  performanceBar: {
-    height: 12,
-    width: "100%",
-    backgroundColor: "#e5e5e5",
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 20,
-  },
-
-  performanceFill: {
-    height: "100%",
-    backgroundColor: "#2ecc71",
-    borderRadius: 20,
-  },
-
-  closeBtn: {
-    backgroundColor: "#2ecc71",
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    width: "40%",
-    alignSelf: "center",
-  },
-
-  closeBtnText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  titleBlock: { alignItems: 'flex-end' },
+  mainTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
+  levelSubtitle: { color: PRIMARY, fontWeight: 'bold', fontSize: 12 },
+  
+  progressSection: { paddingHorizontal: 25, marginBottom: 20 },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  progressLabel: { fontSize: 13, color: MUTED },
+  progressValue: { fontSize: 12, fontWeight: 'bold', color: PRIMARY },
+  progressBg: { height: 8, backgroundColor: BORDER, borderRadius: 4, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: PRIMARY },
+  
+  gameArea: { alignItems: 'center', paddingVertical: 10 },
+  instructionText: { fontSize: 16, fontWeight: 'bold', textAlign: 'center', color: '#475569', paddingHorizontal: 30, marginBottom: 25 },
+  matchContainer: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 40 },
+  imageWrapper: { width: 110, height: 140, backgroundColor: CARD, borderRadius: 20, padding: 10, elevation: 3 },
+  resultSlot: { width: 110, height: 140, backgroundColor: BORDER, borderRadius: 20, borderStyle: 'dashed', borderWidth: 2, borderColor: MUTED, justifyContent: 'center', alignItems: 'center' },
+  matchImage: { width: '100%', height: '100%', borderRadius: 15 },
+  optionsGrid: { flexDirection: 'row', gap: 15, justifyContent: 'center' },
+  optionCard: { width: 90, height: 120, backgroundColor: CARD, borderRadius: 15, padding: 10, elevation: 4, borderWidth: 1, borderColor: BORDER },
+  optionImg: { width: '100%', height: '100%' },
+  statusMessage: { marginTop: 25, fontSize: 18, fontWeight: 'bold' },
 });
-
