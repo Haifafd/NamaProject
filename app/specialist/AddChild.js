@@ -1,214 +1,562 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { addDoc, collection } from "firebase/firestore";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
-  Text,
+  Platform,
   TextInput,
-  TouchableOpacity,
-  View
+  Image,
+  StatusBar,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
-import { db } from "../../FirebaseConfig";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../../FirebaseConfig";
 
-export default function AddChild({ navigation }) {
-  const [childName, setChildName] = useState("");
+// ─── نفس ثيم الهوم بيج ───
+const PRIMARY = "#79ccf8";
+const PRIMARY_DARK = "#0288D1";
+const PRIMARY_LIGHT = "#E1F5FE";
+const BG = "#F0F4F8";
+const CARD = "#FFFFFF";
+const BORDER = "#E0E0E0";
+const TEXT = "#1A1A1A";
+const MUTED = "#757575";
+const PINK = "#F48FB1";
+const PINK_LIGHT = "#FCE4EC";
+
+export default function AddChild() {
+  const router = useRouter();
+
+  const [name, setName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
-  const [difficultyType, setDifficultyType] = useState("");
+  const [difficulty, setDifficulty] = useState("");
   const [gender, setGender] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [birthDate, setBirthDate] = useState(new Date());
+  const [date, setDate] = useState(new Date(2022, 8, 9));
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateText, setDateText] = useState("تاريخ الميلاد");
+  const [saving, setSaving] = useState(false);
 
-  const onDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || birthDate;
-    setShowDatePicker(Platform.OS === 'ios');
-    setBirthDate(currentDate);
-
-    let tempDate = new Date(currentDate);
-    let fDate = tempDate.getDate() + '/' + (tempDate.getMonth() + 1) + '/' + tempDate.getFullYear();
-    setDateText(fDate);
+  const onChangeDate = (event, selectedDate) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
   };
 
-  const handleSaveChild = async () => {
-    if (!childName || !parentEmail || !gender || dateText === "تاريخ الميلاد") {
-      Alert.alert("تنبيه", "يرجى تعبئة الحقول الأساسية وتحديد تاريخ الميلاد");
+  // ─────────────────────────────────────────────
+  // 💾 حفظ الطفل في Firebase
+  // ─────────────────────────────────────────────
+  const handleSave = async () => {
+    // التحقق من المدخلات
+    if (!name.trim()) {
+      Alert.alert("تنبيه", "الرجاء إدخال اسم الطفل");
+      return;
+    }
+    if (!parentEmail.trim()) {
+      Alert.alert("تنبيه", "الرجاء إدخال إيميل ولي الأمر");
+      return;
+    }
+    if (!difficulty.trim()) {
+      Alert.alert("تنبيه", "الرجاء إدخال نوع الصعوبة");
+      return;
+    }
+    if (!gender) {
+      Alert.alert("تنبيه", "الرجاء اختيار الجنس");
       return;
     }
 
-    setLoading(true);
+    const specialistId = auth.currentUser?.uid;
+    if (!specialistId) {
+      Alert.alert("تنبيه", "الرجاء تسجيل الدخول أولاً");
+      return;
+    }
+
     try {
+      setSaving(true);
+
+      // حفظ الطفل في Children collection
       await addDoc(collection(db, "Children"), {
-        name: childName,
-        parentEmail: parentEmail,
-        difficulty: difficultyType,
+        name: name.trim(),
+        parentEmail: parentEmail.trim(),
+        difficulty: difficulty.trim(),
         gender: gender,
-        birthDate: birthDate.toISOString(),
-        createdAt: new Date().toISOString(),
+        birthDate: date.toISOString().split("T")[0], // YYYY-MM-DD
+        specialistId: specialistId,
+        createdAt: serverTimestamp(),
       });
 
-      Alert.alert("نجاح", "تمت إضافة معلومات الطفل بنجاح");
-      navigation?.navigate("TreatPlan");
+      Alert.alert("تم بنجاح", "تم إضافة الطفل بنجاح", [
+        {
+          text: "حسناً",
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error) {
-      Alert.alert("خطأ", "فشل في حفظ البيانات.");
+      console.error("Error saving child:", error);
+      Alert.alert("خطأ", "لم نتمكن من حفظ بيانات الطفل");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  };
+
+  // ─── أيقونة الطفل تتغير حسب الجنس (طفولية) ───
+  const getChildIcon = () => {
+    if (gender === "male") return "face-man";
+    if (gender === "female") return "face-woman";
+    return "baby-face-outline";
+  };
+
+  const getChildIconColor = () => {
+    if (gender === "male") return PRIMARY_DARK;
+    if (gender === "female") return "#E91E63";
+    return MUTED;
+  };
+
+  const getChildIconBg = () => {
+    if (gender === "male") return PRIMARY_LIGHT;
+    if (gender === "female") return PINK_LIGHT;
+    return BG;
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.customHeader}>
-        <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backButtonCircle}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#030303" />
-        </TouchableOpacity>
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.mainTitle}>أدخل معلومات الطفل</Text>
+      {/* ─── HEADER GRADIENT ─── */}
+      <View style={styles.headerGradient}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-forward" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>إضافة طفل جديد</Text>
+
+          <View style={{ width: 42 }} />
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.inputSection}>
-          <TextInput 
-            placeholder="اسم الطفل" 
-            style={styles.customInput} 
-            value={childName} 
-            onChangeText={setChildName} 
-            placeholderTextColor="#90A4AE"
-          />
-          <TextInput 
-            placeholder="ايميل ولي الأمر" 
-            style={styles.customInput} 
-            value={parentEmail} 
-            onChangeText={setParentEmail} 
-            placeholderTextColor="#90A4AE"
-          />
-          <TextInput 
-            placeholder="نوع الصعوبة" 
-            style={styles.customInput} 
-            value={difficultyType} 
-            onChangeText={setDifficultyType} 
-            placeholderTextColor="#90A4AE"
-          />
-
-          <TouchableOpacity 
-            style={styles.customInput} 
-            onPress={() => setShowDatePicker(true)}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ─── أيقونة الطفل (تتغير حسب الجنس) ─── */}
+        <View style={styles.avatarSection}>
+          <View
+            style={[
+              styles.avatarCircle,
+              { backgroundColor: getChildIconBg() },
+            ]}
           >
-            <Text style={[styles.dateTextDisplay, dateText === "تاريخ الميلاد" && { color: "#90A4AE" }]}>
-              {dateText}
+            <MaterialCommunityIcons
+              name={getChildIcon()}
+              size={70}
+              color={getChildIconColor()}
+            />
+          </View>
+          <Text style={styles.avatarHint}>
+            {gender === "male"
+              ? "طفل"
+              : gender === "female"
+              ? "طفلة"
+              : "اختاري الجنس"}
+          </Text>
+        </View>
+
+        {/* ─── العنوان ─── */}
+        <Text style={styles.title}>
+          أدخلي معلومات الطفل لنبدأ رحلة{"\n"}المتابعة والنمو
+        </Text>
+
+        {/* ─── الحقول ─── */}
+        <View style={styles.inputSection}>
+          {/* اسم الطفل */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={PRIMARY_DARK} />
+            <TextInput
+              placeholder="اسم الطفل"
+              style={styles.customInput}
+              placeholderTextColor="#888"
+              value={name}
+              onChangeText={setName}
+              textAlign="right"
+            />
+          </View>
+
+          {/* ايميل ولي الأمر */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color={PRIMARY_DARK} />
+            <TextInput
+              placeholder="إيميل ولي أمر الطفل"
+              style={styles.customInput}
+              placeholderTextColor="#888"
+              value={parentEmail}
+              onChangeText={setParentEmail}
+              textAlign="right"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* نوع الصعوبة */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="medkit-outline" size={20} color={PRIMARY_DARK} />
+            <TextInput
+              placeholder="نوع الصعوبة"
+              style={styles.customInput}
+              placeholderTextColor="#888"
+              value={difficulty}
+              onChangeText={setDifficulty}
+              textAlign="right"
+            />
+          </View>
+        </View>
+
+        {/* ─── اختيار الجنس ─── */}
+        <Text style={styles.sectionLabel}>الجنس</Text>
+        <View style={styles.genderRow}>
+          <TouchableOpacity
+            style={[
+              styles.genderCard,
+              gender === "female" && styles.genderCardActiveFemale,
+            ]}
+            onPress={() => setGender("female")}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.genderIconBox,
+                gender === "female" && { backgroundColor: PINK },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="face-woman"
+                size={32}
+                color={gender === "female" ? "#fff" : "#E91E63"}
+              />
+            </View>
+            <Text
+              style={[
+                styles.genderText,
+                gender === "female" && { color: "#E91E63", fontWeight: "700" },
+              ]}
+            >
+              أنثى
             </Text>
           </TouchableOpacity>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={birthDate}
-              mode="date"
-              display="default"
-              maximumDate={new Date()}
-              onChange={onDateChange}
-            />
-          )}
+          <TouchableOpacity
+            style={[
+              styles.genderCard,
+              gender === "male" && styles.genderCardActiveMale,
+            ]}
+            onPress={() => setGender("male")}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.genderIconBox,
+                gender === "male" && { backgroundColor: PRIMARY },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="face-man"
+                size={32}
+                color={gender === "male" ? "#fff" : PRIMARY_DARK}
+              />
+            </View>
+            <Text
+              style={[
+                styles.genderText,
+                gender === "male" && { color: PRIMARY_DARK, fontWeight: "700" },
+              ]}
+            >
+              ذكر
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.genderRow}>
-          <TouchableOpacity style={styles.radioButtonContainer} onPress={() => setGender("female")}>
-            <View style={[styles.radioOuter, gender === "female" && styles.radioOuterActive]}>
-              {gender === "female" && <View style={styles.radioInner} />}
-            </View>
-            <Text style={styles.genderText}>أنثى</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.radioButtonContainer} onPress={() => setGender("male")}>
-            <View style={[styles.radioOuter, gender === "male" && styles.radioOuterActive]}>
-              {gender === "male" && <View style={styles.radioInner} />}
-            </View>
-            <Text style={styles.genderText}>ذكر</Text>
-          </TouchableOpacity>
-        </View>
-
+        {/* ─── تاريخ الميلاد ─── */}
+        <Text style={styles.sectionLabel}>تاريخ الميلاد</Text>
         <TouchableOpacity
-          style={[styles.nextButton, loading && { backgroundColor: "#A0A0A0" }]}
-          onPress={handleSaveChild}
-          disabled={loading}
+          style={styles.dateInput}
+          onPress={() => setShowDatePicker(true)}
+          activeOpacity={0.7}
         >
-          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.nextButtonText}>الخطوة التالية</Text>}
+          <Ionicons name="calendar-outline" size={22} color={PRIMARY_DARK} />
+          <Text style={styles.dateText}>
+            {date.toLocaleDateString("ar-EG", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </Text>
         </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={onChangeDate}
+            locale="ar-SA"
+            maximumDate={new Date()}
+          />
+        )}
+
+        {/* ─── زر الحفظ ─── */}
+        <TouchableOpacity
+          style={[styles.nextButton, saving && { opacity: 0.7 }]}
+          onPress={handleSave}
+          disabled={saving}
+          activeOpacity={0.85}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.nextButtonText}>حفظ بيانات الطفل</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8FEFF" },
-  customHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    paddingTop: Platform.OS === 'ios' ? 20 : 40,
+  safeArea: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+
+  // ─── Header ───
+  headerGradient: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
     paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: "hidden",
+    position: "relative",
   },
-  headerTextContainer: { alignItems: 'flex-end' },
-  mainTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A2530',
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif',
+  decorCircle1: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
-  subTitle: {
+  decorCircle2: {
+    position: "absolute",
+    bottom: -40,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  headerRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1,
+  },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  container: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+    alignItems: "center",
+  },
+
+  // ─── Avatar Section ───
+  avatarSection: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  avatarCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    borderWidth: 4,
+    borderColor: "#fff",
+    shadowColor: PRIMARY_DARK,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  avatarHint: {
+    fontSize: 13,
+    color: MUTED,
+    fontWeight: "600",
+  },
+
+  title: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    color: TEXT,
+    lineHeight: 28,
+    marginBottom: 25,
+  },
+
+  // ─── Inputs ───
+  inputSection: {
+    width: "100%",
+    gap: 12,
+  },
+  inputContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: CARD,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#EEF2FF",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  customInput: {
+    flex: 1,
+    height: 50,
     fontSize: 14,
-    color: '#00E676',
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif',
+    color: TEXT,
+    padding: 0,
   },
-  backButtonCircle: {
+
+  // ─── Section Label ───
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: TEXT,
+    alignSelf: "flex-end",
+    marginTop: 22,
+    marginBottom: 12,
+  },
+
+  // ─── Gender ───
+  genderRow: {
+    flexDirection: "row-reverse",
+    width: "100%",
+    gap: 12,
+  },
+  genderCard: {
+    flex: 1,
+    backgroundColor: CARD,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 2,
+    borderColor: "#EEF2FF",
+  },
+  genderCardActiveMale: {
+    borderColor: PRIMARY,
+    backgroundColor: PRIMARY_LIGHT,
+  },
+  genderCardActiveFemale: {
+    borderColor: PINK,
+    backgroundColor: PINK_LIGHT,
+  },
+  genderIconBox: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    backgroundColor: '#E8FFF5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: BG,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  container: { paddingHorizontal: 25, paddingBottom: 30 },
-  inputSection: { width: '100%', gap: 12, marginTop: 20 },
-  customInput: { 
-    backgroundColor: "#E7EEFF", 
-    borderRadius: 25, 
-    height: 55, 
-    paddingHorizontal: 20, 
-    justifyContent: 'center',
-    textAlign: 'right',
-  },
-  dateTextDisplay: {
-    textAlign: 'right',
+  genderText: {
     fontSize: 14,
-    color: '#1A2530',
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif'
+    color: MUTED,
+    fontWeight: "600",
   },
-  genderRow: { flexDirection: "row-reverse", justifyContent: "center", gap: 50, marginVertical: 30 },
-  radioButtonContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  radioOuter: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#D1E3FF', justifyContent: 'center', alignItems: 'center' },
-  radioOuterActive: { borderColor: '#4E7CF3' },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#4E7CF3' },
-  genderText: { 
-    fontSize: 16, 
-    color: "#555",
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif'
+
+  // ─── Date ───
+  dateInput: {
+    backgroundColor: CARD,
+    borderRadius: 16,
+    height: 55,
+    width: "100%",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#EEF2FF",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  nextButton: { backgroundColor: "#8EBEF5", width: '100%', height: 55, borderRadius: 25, justifyContent: "center", alignItems: "center", marginTop: 10 },
-  nextButtonText: { 
-    color: "#FFF", 
-    fontSize: 18, 
-    fontWeight: "bold",
-    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif'
-  }
+  dateText: {
+    flex: 1,
+    fontSize: 14,
+    color: TEXT,
+    textAlign: "right",
+  },
+
+  // ─── Save Button ───
+  nextButton: {
+    flexDirection: "row-reverse",
+    backgroundColor: PRIMARY,
+    width: "100%",
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 30,
+    shadowColor: PRIMARY_DARK,
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  nextButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });
