@@ -1,387 +1,262 @@
-import { useState } from "react";
+import { useRouter } from "expo-router";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
 import {
-    Dimensions,
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
+import { auth, db } from "../../FirebaseConfig";
+import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
 
 const { width } = Dimensions.get("window");
 
 export default function XOGame() {
-  // الحالات
+  const router = useRouter(); 
   const [board, setBoard] = useState(Array(9).fill(null));
   const [userChoice, setUserChoice] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState("X");
   const [gameState, setGameState] = useState("playing");
 
-  // التحقق من الفائز
+  const startTimeRef = useRef(null);
+  const movesCountRef = useRef(0);
+
+  useEffect(() => {
+    if (userChoice && !startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    }
+  }, [userChoice]);
+
+  const saveResultToFirebase = async (finalState) => {
+    try {
+      const user = auth.currentUser;
+      if (user && startTimeRef.current) {
+        const endTime = Date.now();
+        const elapsedSeconds = (endTime - startTimeRef.current) / 1000;
+        const score = finalState === "won" ? 100 : finalState === "draw" ? 70 : 40;
+
+        await addDoc(collection(db, "ActivityResults"), {
+          childId: user.uid,
+          activityId: "xo_planning_challenge",
+          totalScore: score,
+          status: finalState,
+          moves: movesCountRef.current,
+          timeSpent: parseFloat(elapsedSeconds.toFixed(1)),
+          createdAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      console.error("❌ Firebase Save Error:", error);
+    }
+  };
+
   const checkWinner = (squares) => {
     const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6],
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
     ];
-
     for (let line of lines) {
       const [a, b, c] = line;
-      if (
-        squares[a] &&
-        squares[a] === squares[b] &&
-        squares[a] === squares[c]
-      ) {
-        return squares[a];
-      }
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) return squares[a];
     }
-
     return squares.every((s) => s !== null) ? "draw" : null;
   };
 
-  // عند الضغط على خانة
   const handlePress = (index) => {
     if (!userChoice || board[index] || gameState !== "playing") return;
-
+    
+    movesCountRef.current += 1;
     const newBoard = [...board];
     newBoard[index] = currentPlayer;
     setBoard(newBoard);
-
+    
     const result = checkWinner(newBoard);
-
     if (result) {
-      if (result === "draw") setGameState("draw");
-      else setGameState(result === userChoice ? "won" : "lost");
+      let finalState = result === "draw" ? "draw" : (result === userChoice ? "won" : "lost");
+      setGameState(finalState);
+      saveResultToFirebase(finalState);
     } else {
       setCurrentPlayer(currentPlayer === "X" ? "O" : "X");
     }
   };
 
-  // إعادة اللعبة
   const resetGame = () => {
     setBoard(Array(9).fill(null));
     setUserChoice(null);
     setCurrentPlayer("X");
     setGameState("playing");
+    startTimeRef.current = null;
+    movesCountRef.current = 0;
   };
 
+  // مستوى الإنجاز يبدأ من 0%
+  const completionRate = gameState === "won" ? "100%" : "0%";
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* الهيدر */}
+    <AppLayout activeTab="activities">
+      <StatusBar barStyle="dark-content" />
+      
+      {/* الهيدر المعدل */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+        {/* الزر الآن في أقصى اليسار */}
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => router.back()} 
+        >
+          <Text style={styles.backArrow}>‹</Text> 
         </TouchableOpacity>
 
+        {/* النصوص الآن في أقصى اليمين */}
         <View style={styles.headerTitles}>
-          <Text style={styles.mainTitle}>لعبة XO</Text>
-          <Text style={styles.subTitle}>مستوى ٣ . مهارة المعرفة</Text>
+          <Text style={styles.mainTitle}>تحدي الذكاء XO</Text>
+          <Text style={styles.subTitle}>مستوى ٣ . مهارة التخطيط</Text>
         </View>
       </View>
 
-      {/* البروجريس */}
       <View style={styles.progressSection}>
-        <Text style={styles.progressValue}>65%</Text>
-        <Text style={styles.progressLabel}>مستوى التقدم</Text>
-
+        <View style={styles.progressHeader}>
+           <Text style={styles.progressValue}>{completionRate}</Text>
+           <Text style={styles.progressLabel}>مستوى الإنجاز</Text>
+        </View>
         <View style={styles.progressBg}>
-          <View style={styles.progressFill} />
+          <View style={[styles.progressFill, { width: completionRate }]} />
         </View>
       </View>
 
-      {/* منطقة اللعبة */}
-      <View style={styles.gameArea}>
-        <Text style={styles.instruction}>اختر رمزك</Text>
+      <View style={styles.gameContainer}>
+        <Text style={styles.instruction}>بطل نماء، اختر رمزك للبدء</Text>
 
-        {/* اختيار X و O */}
-        <View style={styles.choices}>
-          <TouchableOpacity
-            onPress={() => setUserChoice("X")}
-            style={[
-              styles.choiceBtn,
-              userChoice === "X" && styles.choiceBtnActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.choiceText,
-                userChoice === "X" && styles.choiceTextActive,
-              ]}
-            >
-              X
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setUserChoice("O")}
-            style={[
-              styles.choiceBtn,
-              userChoice === "O" && styles.choiceBtnActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.choiceText,
-                userChoice === "O" && styles.choiceTextActive,
-              ]}
-            >
-              O
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* لوحة XO */}
-        <View style={styles.board}>
-          {board.map((cell, index) => (
+        <View style={styles.choicesRow}>
+          {["X", "O"].map((symbol) => (
             <TouchableOpacity
-              key={index}
-              style={styles.cell}
-              onPress={() => handlePress(index)}
+              key={symbol}
+              disabled={board.some(cell => cell !== null)}
+              onPress={() => setUserChoice(symbol)}
+              style={[
+                styles.choiceCard, 
+                userChoice === symbol && styles.choiceCardActive
+              ]}
             >
-              <Text
-                style={[
-                  styles.cellText,
-                  cell === "X" ? styles.xColor : styles.oColor,
-                ]}
-              >
-                {cell}
+              <Text style={[
+                styles.choiceSymbol, 
+                userChoice === symbol && styles.choiceSymbolActive
+              ]}>
+                {symbol}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {!userChoice && <Text style={styles.warning}>اختر رمزك أولاً</Text>}
-      </View>
-
-      {/* البار السفلي */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIconInactive}>🏠</Text>
-          <Text style={styles.navTextInactive}>الرئيسية</Text>
-        </TouchableOpacity>
-
-        <View style={styles.activeTab}>
-          <Text style={styles.navIconActive}>🎮</Text>
-          <Text style={styles.navTextActive}>نشاط</Text>
+        <View style={styles.boardGrid}>
+          {board.map((cell, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={[
+                styles.gridCell,
+                index < 6 && { borderBottomWidth: 2, borderBottomColor: BORDER },
+                (index % 3 !== 2) && { borderRightWidth: 2, borderRightColor: BORDER }
+              ]} 
+              onPress={() => handlePress(index)}
+              activeOpacity={0.6}
+            >
+              <Text style={[
+                styles.cellText, 
+                cell === "X" ? styles.xStyle : styles.oStyle
+              ]}>
+                {cell}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIconInactive}>👤</Text>
-          <Text style={styles.navTextInactive}>حسابي</Text>
-        </TouchableOpacity>
+        
+        {!userChoice && (
+          <View style={styles.hintBox}>
+             <Text style={styles.hintText}>💡 اختر X أو O لبدء التحدي</Text>
+          </View>
+        )}
       </View>
 
-      {/* النتيجة */}
       <Modal visible={gameState !== "playing"} transparent animationType="fade">
-        <View style={styles.overlay}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {gameState === "won"
-                ? "🎉 عمل رائع!"
-                : gameState === "lost"
-                  ? "😢 حاول مرة أخرى"
-                  : "🤝 تعادل"}
+            <Text style={styles.modalEmoji}>
+               {gameState === "won" ? "🏆" : gameState === "lost" ? "💪" : "🤝"}
             </Text>
-
-            <TouchableOpacity style={styles.actionBtn} onPress={resetGame}>
-              <Text style={styles.actionText}>إعادة اللعب</Text>
+            <Text style={styles.modalTitle}>
+              {gameState === "won" ? "أحسنت يا بطل!" : gameState === "lost" ? "محاولة جيدة!" : "تعادل ذكي!"}
+            </Text>
+            <Text style={styles.modalSub}>
+              {gameState === "won" ? "لقد انتصرت بذكائك وتخطيطك" : "حاول مرة أخرى لتطوير مهارتك"}
+            </Text>
+            
+            <TouchableOpacity style={styles.retryBtn} onPress={resetGame}>
+              <Text style={styles.retryText}>إعادة التحدي 🔄</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </AppLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FAFFFA" },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
+  header: { 
+    flexDirection: "row", // استخدام صف عادي
+    justifyContent: "space-between", // توزيع العناصر (واحد يمين وواحد يسار)
+    paddingHorizontal: 20, 
+    paddingTop: 50,
+    paddingBottom: 20,
     alignItems: "center",
   },
-
-  backBtn: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: "#E8F5E9",
-    justifyContent: "center",
-    alignItems: "center",
+  backBtn: { 
+    width: 40, height: 40, borderRadius: 20, backgroundColor: CARD, 
+    justifyContent: "center", alignItems: "center", elevation: 4 
   },
-
-  backArrow: { fontSize: 22, color: "#4CAF50" },
-
-  headerTitles: { alignItems: "flex-end" },
-
-  mainTitle: { fontSize: 20, fontWeight: "bold", color: "#1B5E20" },
-  subTitle: { fontSize: 13, color: "#81C784" },
-
-  progressSection: { paddingHorizontal: 25 },
-
-  progressValue: {
-    position: "absolute",
-    left: 25,
-    fontSize: 12,
-    color: "#999",
+  backArrow: { fontSize: 35, color: PRIMARY, fontWeight: 'bold' },
+  headerTitles: { 
+    alignItems: "flex-end" // محاذاة محتوى النصوص لليمين
   },
-
-  progressLabel: {
-    textAlign: "right",
-    fontSize: 13,
-    color: "#2E7D32",
-    marginBottom: 8,
+  mainTitle: { fontSize: 18, fontWeight: "bold", color: "#1E293B" },
+  subTitle: { fontSize: 12, color: PRIMARY, fontWeight: '600' },
+  progressSection: { paddingHorizontal: 25, marginBottom: 20 },
+  progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 5 },
+  progressValue: { fontSize: 12, fontWeight: "bold", color: PRIMARY },
+  progressLabel: { fontSize: 13, color: MUTED },
+  progressBg: { height: 8, backgroundColor: "#E2E8F0", borderRadius: 4 },
+  progressFill: { height: "100%", backgroundColor: PRIMARY, borderRadius: 4 },
+  gameContainer: { flex: 1, alignItems: "center", paddingTop: 10 },
+  instruction: { fontSize: 17, fontWeight: "bold", marginBottom: 20, color: "#475569" },
+  choicesRow: { flexDirection: "row", marginBottom: 30, gap: 20 },
+  choiceCard: { 
+    width: 70, height: 70, backgroundColor: CARD, borderRadius: 20, 
+    justifyContent: "center", alignItems: "center", elevation: 3,
+    borderWidth: 2, borderColor: 'transparent'
   },
-
-  progressBg: {
-    height: 10,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 5,
+  choiceCardActive: { borderColor: PRIMARY, backgroundColor: "#F0FDF4" },
+  choiceSymbol: { fontSize: 28, color: MUTED, fontWeight: "900" },
+  choiceSymbolActive: { color: PRIMARY },
+  boardGrid: { 
+    width: width * 0.85, height: width * 0.85, flexDirection: "row", flexWrap: "wrap", 
+    backgroundColor: CARD, borderRadius: 30, padding: 15, elevation: 8
   },
-
-  progressFill: {
-    height: "100%",
-    width: "65%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 5,
+  gridCell: { 
+    width: "33.33%", height: "33.33%", justifyContent: "center", alignItems: "center"
   },
-
-  gameArea: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  instruction: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-
-  choices: {
-    flexDirection: "row",
-    marginBottom: 20,
-  },
-
-  choiceBtn: {
-    width: 90,
-    height: 45,
-    backgroundColor: "#DDD",
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 10,
-  },
-
-  choiceBtnActive: {
-    backgroundColor: "#A5D6A7",
-  },
-
-  choiceText: {
-    fontSize: 20,
-    color: "#777",
-    fontWeight: "bold",
-  },
-
-  choiceTextActive: {
-    color: "#1B5E20",
-  },
-
-  board: {
-    width: width * 0.7,
-    height: width * 0.7,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    borderWidth: 2,
-    borderColor: "#4CAF50",
-    borderRadius: 15,
-  },
-
-  cell: {
-    width: "33.33%",
-    height: "33.33%",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#4CAF50",
-  },
-
-  cellText: {
-    fontSize: 42,
-    fontWeight: "bold",
-  },
-
-  xColor: { color: "#333" },
-  oColor: { color: "#4CAF50" },
-
-  warning: {
-    marginTop: 10,
-    color: "#FF8A80",
-    fontWeight: "bold",
-  },
-
-  bottomNav: {
-    flexDirection: "row",
-    height: 90,
-    backgroundColor: "#FFF",
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 15,
-    elevation: 10,
-  },
-
-  navItem: { alignItems: "center" },
-
-  activeTab: {
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignItems: "center",
-  },
-
-  navIconActive: { fontSize: 20 },
-  navTextActive: { color: "#4CAF50", fontWeight: "bold" },
-
-  navIconInactive: { fontSize: 22, color: "#DDD" },
-  navTextInactive: { color: "#DDD", fontSize: 12 },
-
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  modalCard: {
-    backgroundColor: "#FFF",
-    padding: 30,
-    borderRadius: 30,
-    alignItems: "center",
-  },
-
-  modalTitle: {
-    fontSize: 22,
-    marginBottom: 20,
-  },
-
-  actionBtn: {
-    backgroundColor: "#CCFF00",
-    padding: 15,
-    borderRadius: 20,
-  },
-
-  actionText: {
-    fontWeight: "bold",
-  },
+  cellText: { fontSize: 50, fontWeight: "900" },
+  xStyle: { color: "#334155" },
+  oStyle: { color: PRIMARY },
+  hintBox: { marginTop: 20, padding: 10, backgroundColor: "#FEFCE8", borderRadius: 12 },
+  hintText: { color: "#854D0E", fontWeight: "bold" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(30, 41, 59, 0.7)", justifyContent: "center", alignItems: "center" },
+  modalCard: { backgroundColor: CARD, padding: 30, borderRadius: 40, alignItems: "center", width: "85%", elevation: 20 },
+  modalEmoji: { fontSize: 60, marginBottom: 10 },
+  modalTitle: { fontSize: 24, fontWeight: "bold", color: "#1E293B", marginBottom: 5 },
+  modalSub: { fontSize: 16, color: MUTED, marginBottom: 25 },
+  retryBtn: { backgroundColor: PRIMARY, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 20, elevation: 4 },
+  retryText: { color: "#FFF", fontWeight: "bold", fontSize: 17 },
 });
