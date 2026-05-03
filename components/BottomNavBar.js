@@ -25,7 +25,7 @@ import {
   FONT_SIZE,
   FONT_WEIGHT,
   SHADOWS,
-  SPACING
+  SPACING,
 } from "../constants/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
