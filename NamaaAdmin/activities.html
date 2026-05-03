@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الأنشطة - نماء أدمن</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🌸</div>
+        <h1 class="sidebar-title">نماء</h1>
+        <p class="sidebar-subtitle">لوحة الأدمن</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-item">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">الرئيسية</span>
+        </a>
+        <a href="activities.html" class="nav-item active">
+          <span class="nav-icon">🎮</span>
+          <span class="nav-text">الأنشطة</span>
+        </a>
+        <a href="categories.html" class="nav-item">
+          <span class="nav-icon">📁</span>
+          <span class="nav-text">الفئات</span>
+        </a>
+        <a href="users.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">المستخدمين</span>
+        </a>
+        <a href="children.html" class="nav-item">
+          <span class="nav-icon">👶</span>
+          <span class="nav-text">الأطفال</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <p>الإصدار 1.0.0</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">إدارة الأنشطة</h1>
+          <p class="page-subtitle">إضافة وتعديل وحذف الأنشطة المتاحة في التطبيق</p>
+        </div>
+      </div>
+
+      <div id="alertBox" class="alert"></div>
+
+      <!-- Add Activity Form -->
+      <div class="card">
+        <h2 class="card-title">➕ إضافة نشاط جديد</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">عنوان النشاط</label>
+            <input type="text" id="title" class="form-input" placeholder="مثال: لعبة المطابقة" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">الفئة</label>
+            <select id="categoryId" class="form-select">
+              <option value="">اختر الفئة</option>
+              <option value="memoryCategoryID">🧠 الذاكرة</option>
+              <option value="focusCategoryID">👁️ التركيز والانتباه</option>
+              <option value="thinkingCategoryID">💡 التفكير وحل المشكلات</option>
+              <option value="perceptionCategoryID">🔷 الإدراك البصري</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">عدد المستويات</label>
+            <input type="number" id="levels" class="form-input" min="1" max="3" value="3" />
+            <p class="form-hint">من 1 إلى 3 مستويات</p>
+          </div>
+        </div>
+
+        <button class="btn btn-block" id="addBtn" onclick="window.addActivity()">
+          💾 حفظ النشاط
+        </button>
+      </div>
+
+      <!-- Filters + List -->
+      <div class="card">
+        <h2 class="card-title">📋 الأنشطة الموجودة</h2>
+
+        <div class="toolbar">
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="بحث في الأنشطة..." />
+          </div>
+          <select id="filterCategory" class="filter-select">
+            <option value="">جميع الفئات</option>
+            <option value="memoryCategoryID">🧠 الذاكرة</option>
+            <option value="focusCategoryID">👁️ التركيز</option>
+            <option value="thinkingCategoryID">💡 التفكير</option>
+            <option value="perceptionCategoryID">🔷 الإدراك</option>
+          </select>
+        </div>
+
+        <div id="activitiesList">
+          <div class="loading-state">جاري التحميل...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal">
+      <h2 class="modal-title">✏️ تعديل النشاط</h2>
+      <p class="modal-subtitle">قومي بتعديل البيانات ثم اضغطي حفظ</p>
+
+      <div class="form-group">
+        <label class="form-label">عنوان النشاط</label>
+        <input type="text" id="editTitle" class="form-input" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">الفئة</label>
+        <select id="editCategory" class="form-select">
+          <option value="memoryCategoryID">🧠 الذاكرة</option>
+          <option value="focusCategoryID">👁️ التركيز والانتباه</option>
+          <option value="thinkingCategoryID">💡 التفكير وحل المشكلات</option>
+          <option value="perceptionCategoryID">🔷 الإدراك البصري</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">عدد المستويات</label>
+        <input type="number" id="editLevels" class="form-input" min="1" max="3" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="window.closeEditModal()">إلغاء</button>
+        <button class="btn" id="saveEditBtn" onclick="window.saveEdit()">💾 حفظ التعديل</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      db,
+      collection,
+      doc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      CATEGORY_MAP,
+      showAlert,
+      escapeHtml,
+      formatRelativeTime,
+    } from "./assets/firebase.js";
+
+    let allActivities = [];
+    let editingId = null;
+
+    // ─────────── Add Activity ───────────
+    window.addActivity = async function () {
+      const title = document.getElementById("title").value.trim();
+      const categoryId = document.getElementById("categoryId").value;
+      const levels = parseInt(document.getElementById("levels").value);
+      const addBtn = document.getElementById("addBtn");
+
+      if (!title) return showAlert("الرجاء إدخال عنوان النشاط", "error");
+      if (!categoryId) return showAlert("الرجاء اختيار الفئة", "error");
+      if (!levels || levels < 1 || levels > 3) return showAlert("عدد المستويات بين 1 و 3", "error");
+
+      try {
+        addBtn.disabled = true;
+        addBtn.textContent = "جاري الحفظ...";
+
+        await addDoc(collection(db, "Activities"), {
+          title,
+          categoryId,
+          levels,
+          createdAt: new Date(),
+        });
+
+        document.getElementById("title").value = "";
+        document.getElementById("categoryId").value = "";
+        document.getElementById("levels").value = 3;
+
+        showAlert("✅ تم حفظ النشاط بنجاح", "success");
+      } catch (error) {
+        console.error(error);
+        showAlert("❌ خطأ: " + error.message, "error");
+      } finally {
+        addBtn.disabled = false;
+        addBtn.innerHTML = "💾 حفظ النشاط";
+      }
+    };
+
+    // ─────────── Delete ───────────
+    window.deleteActivity = async function (id, title) {
+      if (!confirm(`هل أنتي متأكدة من حذف "${title}"؟\n\nلا يمكن التراجع عن هذا.`)) return;
+
+      try {
+        await deleteDoc(doc(db, "Activities", id));
+        showAlert("🗑️ تم حذف النشاط", "success");
+      } catch (error) {
+        showAlert("❌ خطأ في الحذف: " + error.message, "error");
+      }
+    };
+
+    // ─────────── Edit Modal ───────────
+    window.openEditModal = function (id) {
+      const activity = allActivities.find((a) => a.id === id);
+      if (!activity) return;
+
+      editingId = id;
+      document.getElementById("editTitle").value = activity.title || "";
+      document.getElementById("editCategory").value = activity.categoryId || "";
+      document.getElementById("editLevels").value = activity.levels || 3;
+
+      document.getElementById("editModal").classList.add("show");
+    };
+
+    window.closeEditModal = function () {
+      editingId = null;
+      document.getElementById("editModal").classList.remove("show");
+    };
+
+    window.saveEdit = async function () {
+      if (!editingId) return;
+
+      const title = document.getElementById("editTitle").value.trim();
+      const categoryId = document.getElementById("editCategory").value;
+      const levels = parseInt(document.getElementById("editLevels").value);
+      const btn = document.getElementById("saveEditBtn");
+
+      if (!title) return showAlert("الرجاء إدخال العنوان", "error");
+      if (!categoryId) return showAlert("الرجاء اختيار الفئة", "error");
+      if (!levels || levels < 1 || levels > 3) return showAlert("المستويات بين 1 و 3", "error");
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "جاري الحفظ...";
+
+        await updateDoc(doc(db, "Activities", editingId), {
+          title,
+          categoryId,
+          levels,
+        });
+
+        window.closeEditModal();
+        showAlert("✅ تم تحديث النشاط", "success");
+      } catch (error) {
+        showAlert("❌ خطأ: " + error.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "💾 حفظ التعديل";
+      }
+    };
+
+    // ─────────── Render List ───────────
+    function renderList() {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const categoryFilter = document.getElementById("filterCategory").value;
+      const list = document.getElementById("activitiesList");
+
+      let filtered = allActivities;
+      if (categoryFilter) filtered = filtered.filter((a) => a.categoryId === categoryFilter);
+      if (search) filtered = filtered.filter((a) => (a.title || "").toLowerCase().includes(search));
+
+      if (filtered.length === 0) {
+        const isEmpty = allActivities.length === 0;
+        list.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">${isEmpty ? "📭" : "🔍"}</span>
+            <div class="empty-title">${isEmpty ? "لا توجد أنشطة بعد" : "لا توجد نتائج"}</div>
+            <div class="empty-sub">${isEmpty ? "أضيفي أول نشاط من النموذج أعلاه" : "جرّبي تغيير البحث أو الفلتر"}</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = '<div class="item-list">' + filtered.map((act) => {
+        const cat = CATEGORY_MAP[act.categoryId] || { name: "—", badge: "badge-default", icon: "❓" };
+        return `
+          <div class="list-item">
+            <div style="font-size:32px;">${cat.icon}</div>
+            <div class="item-info">
+              <div class="item-title">${escapeHtml(act.title || "بدون عنوان")}</div>
+              <div class="item-meta">
+                <span class="badge ${cat.badge}">${cat.name}</span>
+                <span>📊 ${act.levels || 0} مستويات</span>
+                <span>${formatRelativeTime(act.createdAt)}</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-sm btn-outline" onclick="window.openEditModal('${act.id}')">✏️ تعديل</button>
+              <button class="btn btn-sm btn-danger" onclick="window.deleteActivity('${act.id}', '${escapeHtml(act.title || '').replace(/'/g, '\\\'')}')">🗑️ حذف</button>
+            </div>
+          </div>
+        `;
+      }).join("") + '</div>';
+    }
+
+    // ─────────── Real-time Listener ───────────
+    onSnapshot(collection(db, "Activities"), (snap) => {
+      allActivities = [];
+      snap.forEach((d) => allActivities.push({ id: d.id, ...d.data() }));
+      allActivities.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+      renderList();
+    });
+
+    // ─────────── Search & Filter ───────────
+    document.getElementById("searchInput").addEventListener("input", renderList);
+    document.getElementById("filterCategory").addEventListener("change", renderList);
+
+    // Close modal on backdrop click
+    document.getElementById("editModal").addEventListener("click", (e) => {
+      if (e.target.id === "editModal") window.closeEditModal();
+    });
+  </script>
+</body>
+</html>
