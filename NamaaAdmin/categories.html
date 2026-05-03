@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الفئات - نماء أدمن</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🌸</div>
+        <h1 class="sidebar-title">نماء</h1>
+        <p class="sidebar-subtitle">لوحة الأدمن</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-item">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">الرئيسية</span>
+        </a>
+        <a href="activities.html" class="nav-item">
+          <span class="nav-icon">🎮</span>
+          <span class="nav-text">الأنشطة</span>
+        </a>
+        <a href="categories.html" class="nav-item active">
+          <span class="nav-icon">📁</span>
+          <span class="nav-text">الفئات</span>
+        </a>
+        <a href="users.html" class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">المستخدمين</span>
+        </a>
+        <a href="children.html" class="nav-item">
+          <span class="nav-icon">👶</span>
+          <span class="nav-text">الأطفال</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <p>الإصدار 1.0.0</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">الفئات</h1>
+          <p class="page-subtitle">الفئات الأساسية للأنشطة في تطبيق نماء</p>
+        </div>
+      </div>
+
+      <div id="alertBox" class="alert"></div>
+
+      <!-- Categories Grid -->
+      <div class="card">
+        <h2 class="card-title">📁 الفئات الأربع الرئيسية</h2>
+        <p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">
+          هذه الفئات ثابتة في النظام. كل نشاط يجب أن ينتمي لإحدى هذه الفئات.
+        </p>
+
+        <div id="categoriesGrid" class="stats-grid" style="margin-bottom: 0;">
+          <div class="loading-state">جاري التحميل...</div>
+        </div>
+      </div>
+
+      <!-- Activities by Category -->
+      <div class="card">
+        <h2 class="card-title">📋 الأنشطة حسب الفئة</h2>
+        <div id="activitiesByCategory">
+          <div class="loading-state">جاري التحميل...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import {
+      db,
+      collection,
+      onSnapshot,
+      CATEGORY_MAP,
+      escapeHtml,
+    } from "./assets/firebase.js";
+
+    onSnapshot(collection(db, "Activities"), (snap) => {
+      const activities = [];
+      const counts = { memoryCategoryID: 0, focusCategoryID: 0, thinkingCategoryID: 0, perceptionCategoryID: 0 };
+      const byCategory = { memoryCategoryID: [], focusCategoryID: [], thinkingCategoryID: [], perceptionCategoryID: [] };
+
+      snap.forEach((d) => {
+        const data = { id: d.id, ...d.data() };
+        activities.push(data);
+        if (counts[data.categoryId] !== undefined) {
+          counts[data.categoryId]++;
+          byCategory[data.categoryId].push(data);
+        }
+      });
+
+      const grid = document.getElementById("categoriesGrid");
+      const colorClasses = {
+        memoryCategoryID: "purple",
+        focusCategoryID: "amber",
+        thinkingCategoryID: "blue",
+        perceptionCategoryID: "pink",
+      };
+
+      grid.innerHTML = Object.keys(CATEGORY_MAP).map((catId) => {
+        const cat = CATEGORY_MAP[catId];
+        const count = counts[catId] || 0;
+        return `
+          <div class="stat-card">
+            <div class="stat-icon ${colorClasses[catId]}">${cat.icon}</div>
+            <div class="stat-info">
+              <div class="stat-value">${count}</div>
+              <div class="stat-label">${cat.name}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      const container = document.getElementById("activitiesByCategory");
+      if (activities.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">📭</span>
+            <div class="empty-title">لا توجد أنشطة بعد</div>
+            <div class="empty-sub">أضيفي أنشطة من صفحة الأنشطة</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = Object.keys(CATEGORY_MAP).map((catId) => {
+        const cat = CATEGORY_MAP[catId];
+        const items = byCategory[catId] || [];
+
+        return `
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid ${cat.color}33;">
+              <span style="font-size: 24px;">${cat.icon}</span>
+              <h3 style="font-size: 15px; font-weight: 700; color: var(--text);">${cat.name}</h3>
+              <span class="badge ${cat.badge}" style="margin-right: auto;">${items.length} نشاط</span>
+            </div>
+
+            ${items.length === 0
+              ? '<p style="color: var(--muted); font-size: 13px; padding: 8px 0;">لا توجد أنشطة في هذه الفئة</p>'
+              : '<div class="item-list">' + items.map((act) => `
+                  <div class="list-item">
+                    <div class="item-info">
+                      <div class="item-title">${escapeHtml(act.title || "بدون عنوان")}</div>
+                      <div class="item-meta">
+                        <span>📊 ${act.levels || 0} مستويات</span>
+                      </div>
+                    </div>
+                  </div>
+                `).join("") + '</div>'
+            }
+          </div>
+        `;
+      }).join("");
+    });
+  </script>
+</body>
+</html>
