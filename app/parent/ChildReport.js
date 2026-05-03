@@ -1,394 +1,632 @@
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    Dimensions,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { db } from "../../FirebaseConfig";
+import BottomNavBar from "../../components/BottomNavBar";
 
-const { width } = Dimensions.get("window");
+// ─── 🎨 الثيم الموحد ───
+import {
+  COLORS,
+  SCORE_COLORS,
+  CATEGORY_COLORS as THEME_CATEGORIES,
+} from "../../constants/theme";
 
-// --- نظام التقييم الاحترافي (1 هو الأفضل - أخضر) ---
-const ProfessionalRating = ({ activeScore }) => {
-  const getStyle = (num) => {
-    const isActive = activeScore === num;
-    if (!isActive) return { backgroundColor: "#F0F2F5", color: "#ADB5BD" };
+const PRIMARY = COLORS.PRIMARY;
+const PRIMARY_DARK = COLORS.PRIMARY_DARK;
+const PRIMARY_LIGHT = COLORS.PRIMARY_LIGHT;
+const BG = COLORS.BG;
+const CARD = COLORS.CARD_BG;
+const TEXT = COLORS.TEXT;
+const MUTED = COLORS.MUTED;
+const PINK_LIGHT = "#FCE4EC";
 
-    const colors = {
-      1: "#27AE60", // ممتاز
-      2: "#2ECC71",
-      3: "#F1C40F",
-      4: "#E67E22",
-      5: "#E74C3C",
-    };
-    return { backgroundColor: colors[num], color: "#FFF", fontWeight: "bold" };
-  };
-
-  return (
-    <View style={styles.ratingRow}>
-      {[5, 4, 3, 2, 1].map((num) => (
-        <View
-          key={num}
-          style={[
-            styles.ratingCircle,
-            { backgroundColor: getStyle(num).backgroundColor },
-          ]}
-        >
-          <Text
-            style={[
-              styles.ratingNum,
-              {
-                color: getStyle(num).color,
-                fontWeight: getStyle(num).fontWeight,
-              },
-            ]}
-          >
-            {num}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
+// ─── ألوان الفئات (مع labels) ───
+const CATEGORY_COLORS = {
+  memory: { ...THEME_CATEGORIES.memory, label: "الذاكرة" },
+  focus: { ...THEME_CATEGORIES.focus, label: "التركيز والانتباه" },
+  thinking: { ...THEME_CATEGORIES.thinking, label: "التفكير وحل المشكلات" },
+  perception: { ...THEME_CATEGORIES.perception, label: "الإدراك البصري" },
 };
 
-// --- كرت الرسم البياني الخطي ---
-const LineChartTile = ({ title, score, color, data }) => (
-  <View style={[styles.chartCard, styles.shadowCard]}>
-    <Text style={styles.chartTitle}>{title}</Text>
-    <View style={styles.chartBody}>
-      <View style={styles.yAxis}>
-        {["100%", "80%", "60%", "40%"].map((val, i) => (
-          <Text key={i} style={styles.axisTxt}>
-            {val}
+const SCORE_LABELS = {
+  1: "ممتاز",
+  2: "جيد",
+  3: "متوسط",
+  4: "ضعيف",
+  5: "ضعيف جداً",
+};
+
+export default function ChildReport() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { childId, childName } = params;
+
+  const [child, setChild] = useState(null);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const calculateCategoryScore = (categoryId) => {
+    const categoryResults = results.filter((r) => r.categoryId === categoryId);
+    if (categoryResults.length === 0) return null;
+
+    const sum = categoryResults.reduce((acc, r) => acc + (r.score || 0), 0);
+    const avg = sum / categoryResults.length;
+
+    return Math.round(avg);
+  };
+
+  const loadData = async () => {
+    if (!childId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const childDoc = await getDoc(doc(db, "Children", childId));
+      if (childDoc.exists()) {
+        setChild({ id: childDoc.id, ...childDoc.data() });
+      }
+
+      const resultsQuery = query(
+        collection(db, "ActivityResults"),
+        where("childId", "==", childId),
+      );
+      const resultsSnapshot = await getDocs(resultsQuery);
+      const resultsData = resultsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setResults(resultsData);
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [childId]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return "—";
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birth.getDate())
+    ) {
+      age--;
+    }
+    return age;
+  };
+
+  const ScoreCircles = ({ score }) => {
+    return (
+      <View style={styles.circlesContainer}>
+        <View style={styles.circlesRow}>
+          {[5, 4, 3, 2, 1].map((num) => {
+            const isActive = score === num;
+            return (
+              <View key={num} style={styles.circleWrapper}>
+                <View
+                  style={[
+                    styles.scoreCircle,
+                    isActive && {
+                      backgroundColor: SCORE_COLORS[num],
+                      borderColor: SCORE_COLORS[num],
+                      transform: [{ scale: 1.2 }],
+                    },
+                  ]}
+                >
+                  {isActive && (
+                    <Ionicons name="checkmark" size={12} color="#fff" />
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.circleNumber,
+                    isActive && { color: SCORE_COLORS[num], fontWeight: "800" },
+                  ]}
+                >
+                  {num}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+        <View style={styles.scaleRow}>
+          <Text style={[styles.scaleLabel, { color: SCORE_COLORS[5] }]}>
+            ضعيف جداً
           </Text>
-        ))}
+          <View style={styles.scaleLine} />
+          <Text style={[styles.scaleLabel, { color: SCORE_COLORS[1] }]}>
+            ممتاز
+          </Text>
+        </View>
       </View>
-      <View style={styles.chartArea}>
-        {[1, 2, 3, 4].map((i) => (
-          <View key={i} style={styles.gridLine} />
-        ))}
-        <View style={styles.chartLineLayer}>
-          {data.map((h, i) => (
+    );
+  };
+
+  const CategoryCard = ({ categoryKey, categoryId }) => {
+    const info = CATEGORY_COLORS[categoryKey];
+    const score = calculateCategoryScore(categoryId);
+    const hasResults = score !== null;
+
+    return (
+      <View style={styles.categoryCard}>
+        <View style={styles.categoryHeader}>
+          <View style={[styles.categoryIconBox, { backgroundColor: info.bg }]}>
+            <MaterialCommunityIcons
+              name={info.icon}
+              size={20}
+              color={info.color}
+            />
+          </View>
+          <Text style={styles.categoryTitle}>{info.label}</Text>
+        </View>
+
+        {hasResults ? (
+          <>
+            <ScoreCircles score={score} />
             <View
-              key={i}
               style={[
-                styles.dataPoint,
-                {
-                  bottom: h * 0.45,
-                  left: i * (width * 0.08),
-                  backgroundColor: color,
-                },
+                styles.scoreBadge,
+                { backgroundColor: SCORE_COLORS[score] + "20" },
               ]}
             >
-              <View style={[styles.pointPulse, { backgroundColor: color }]} />
+              <Text
+                style={[styles.scoreBadgeText, { color: SCORE_COLORS[score] }]}
+              >
+                التقييم: {SCORE_LABELS[score]}
+              </Text>
             </View>
-          ))}
-        </View>
+          </>
+        ) : (
+          <View style={styles.emptyResultBox}>
+            <Ionicons name="time-outline" size={20} color={MUTED} />
+            <Text style={styles.emptyResultText}>
+              لن تظهر النتائج إلا بعد إكمال الأنشطة
+            </Text>
+          </View>
+        )}
       </View>
-    </View>
-    <View style={styles.xAxis}>
-      {["جلسة 4", "جلسة 3", "جلسة 2", "جلسة 1"].map((val, i) => (
-        <Text key={i} style={styles.axisTxtX}>
-          {val}
-        </Text>
-      ))}
-    </View>
-    <View style={styles.divider} />
-    <ProfessionalRating activeScore={score} />
-  </View>
-);
+    );
+  };
 
-export default function App() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headBtn}>
-          <Text style={styles.headIcon}>〉</Text>
-        </TouchableOpacity>
-
-        <View style={styles.avatarContainer}>
-          <Text style={{ fontSize: 55 }}>👦🏻</Text>
-        </View>
-
-        <TouchableOpacity style={styles.headBtn}>
-          <Text style={{ fontSize: 20 }}>📄</Text>
-        </TouchableOpacity>
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerLoading]}>
+        <ActivityIndicator size="large" color={PRIMARY} />
+        <Text style={styles.loadingText}>جاري تحميل البيانات...</Text>
       </View>
+    );
+  }
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.profileInfo}>
-          <Text style={styles.nameTxt}>الأسم : محمد عبدالله</Text>
-          <Text style={styles.subTxt}>العمر : 4 سنوات</Text>
-
-          {/* تم تغيير لون نوع الصعوبة من الأحمر إلى الأزرق الاحترافي الهادئ */}
-          <View style={styles.difficultyBadge}>
-            <Text style={styles.difficultyText}>نوع الصعوبة: تشتت انتباه</Text>
-          </View>
-        </View>
-
-        <View style={styles.grid}>
-          <LineChartTile
-            title="مؤشر الذاكرة العاملة"
-            score={1}
-            color="#3498DB"
-            data={[40, 60, 85, 95]}
-          />
-          <LineChartTile
-            title="الأنتباه والثبات على المهمة"
-            score={2}
-            color="#2ECC71"
-            data={[30, 50, 70, 85]}
-          />
-
-          <View style={[styles.chartCard, styles.shadowCard]}>
-            <Text style={styles.chartTitle}>مؤشر الإدراك البصري</Text>
-            <View style={styles.barArea}>
-              <View style={styles.yAxis}>
-                {["100%", "80%", "60%", "40%"].map((v, i) => (
-                  <Text key={i} style={styles.axisTxt}>
-                    {v}
-                  </Text>
-                ))}
-              </View>
-              <View style={styles.barsContainer}>
-                {[
-                  { v: 82, l: "نسخ", c: "#3498DB" },
-                  { v: 70, l: "تركيب", c: "#5DADE2" },
-                  { v: 76, l: "لون", c: "#85C1E9" },
-                ].map((b, i) => (
-                  <View key={i} style={styles.barCol}>
-                    <Text style={[styles.barVal, { color: b.c }]}>{b.v}%</Text>
-                    <View
-                      style={[
-                        styles.barBody,
-                        { height: b.v * 0.4, backgroundColor: b.c },
-                      ]}
-                    />
-                    <Text style={styles.barLab}>{b.l}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <ProfessionalRating activeScore={3} />
-          </View>
-
-          <View style={[styles.chartCard, styles.shadowCard]}>
-            <Text style={styles.chartTitle}>متوسط الأداء العام</Text>
-            <View style={styles.circleContainer}>
-              <View style={styles.circleBorder}>
-                <Text style={styles.circleText}>92%</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <ProfessionalRating activeScore={1} />
-          </View>
-        </View>
-
+  if (!child) {
+    return (
+      <View style={[styles.container, styles.centerLoading]}>
+        <Ionicons name="alert-circle-outline" size={50} color={MUTED} />
+        <Text style={styles.errorText}>لم يتم العثور على بيانات الطفل</Text>
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.footerBtn, styles.shadowCard]}
+          style={styles.backToHomeBtn}
+          onPress={() => router.back()}
         >
-          <View style={styles.btnIconCircle}>
-            <Text style={{ fontSize: 22 }}>📝</Text>
-          </View>
-          <Text style={styles.btnLabel}>
-            استمارة تقييم الطفل من قبل ولي الأمر
-          </Text>
+          <Text style={styles.backToHomeText}>الرجوع</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    );
+  }
+
+  const age = calculateAge(child.birthDate);
+  const totalActivitiesCompleted = results.length;
+  const childIcon =
+    child.gender === "male"
+      ? "face-man"
+      : child.gender === "female"
+        ? "face-woman"
+        : "baby-face-outline";
+  const childIconColor =
+    child.gender === "male"
+      ? PRIMARY_DARK
+      : child.gender === "female"
+        ? "#E91E63"
+        : MUTED;
+  const childIconBg =
+    child.gender === "male"
+      ? PRIMARY_LIGHT
+      : child.gender === "female"
+        ? PINK_LIGHT
+        : BG;
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.headerGradient}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="chevron-forward" size={22} color="#fff" />
+            </TouchableOpacity>
+
+            <Text style={styles.headerTitle}>تقرير الطفل</Text>
+
+            <View style={{ width: 38 }} />
+          </View>
+
+          <View style={styles.childCard}>
+            <View
+              style={[styles.childAvatar, { backgroundColor: childIconBg }]}
+            >
+              <MaterialCommunityIcons
+                name={childIcon}
+                size={36}
+                color={childIconColor}
+              />
+            </View>
+            <View style={styles.childInfo}>
+              <Text style={styles.childName} numberOfLines={1}>
+                {child.name}
+              </Text>
+              <View style={styles.childMetaRow}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="calendar-outline" size={11} color={MUTED} />
+                  <Text style={styles.metaText}>
+                    {age} {age === 1 ? "سنة" : "سنوات"}
+                  </Text>
+                </View>
+                <View style={styles.metaDivider} />
+                <View style={styles.metaItem}>
+                  <Ionicons name="medkit-outline" size={11} color={MUTED} />
+                  <Text style={styles.metaText} numberOfLines={1}>
+                    {child.difficulty || "—"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[PRIMARY]}
+              tintColor={PRIMARY}
+            />
+          }
+        >
+          <View style={styles.quickStatsRow}>
+            <View style={styles.quickStatCard}>
+              <View
+                style={[
+                  styles.quickStatIcon,
+                  { backgroundColor: PRIMARY_LIGHT },
+                ]}
+              >
+                <Ionicons name="trophy" size={16} color={PRIMARY_DARK} />
+              </View>
+              <Text style={styles.quickStatNumber}>
+                {totalActivitiesCompleted}
+              </Text>
+              <Text style={styles.quickStatLabel}>نشاط مكتمل</Text>
+            </View>
+
+            <View style={styles.quickStatCard}>
+              <View
+                style={[styles.quickStatIcon, { backgroundColor: "#FFF6E8" }]}
+              >
+                <Ionicons name="time" size={16} color="#F5A623" />
+              </View>
+              <Text style={styles.quickStatNumber}>
+                {child.createdAt
+                  ? new Date(child.createdAt.seconds * 1000).toLocaleDateString(
+                      "ar-EG",
+                      { month: "short", year: "numeric" },
+                    )
+                  : "—"}
+              </Text>
+              <Text style={styles.quickStatLabel}>تاريخ الإضافة</Text>
+            </View>
+          </View>
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionSubtitle}>
+              مقياس التقييم: 1 ممتاز - 5 ضعيف جداً
+            </Text>
+            <Text style={styles.sectionTitle}>تقييم الفئات</Text>
+          </View>
+
+          <CategoryCard categoryKey="memory" categoryId="memoryCategoryID" />
+          <CategoryCard categoryKey="focus" categoryId="focusCategoryID" />
+          <CategoryCard
+            categoryKey="thinking"
+            categoryId="thinkingCategoryID"
+          />
+          <CategoryCard
+            categoryKey="perception"
+            categoryId="perceptionCategoryID"
+          />
+
+          <View style={{ height: 110 }} />
+        </ScrollView>
+
+        {/* ─── BOTTOM NAVBAR ─── */}
+        <BottomNavBar />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FBFF" },
-  header: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    padding: 20,
-    alignItems: "center",
-  },
-  headBtn: {
-    width: 45,
-    height: 45,
-    borderRadius: 15,
-    backgroundColor: "#FFF",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 3,
-  },
-  headIcon: { fontSize: 20, fontWeight: "bold", color: "#333" },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#E1F5FE",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#FFF",
-  },
-
-  scroll: { paddingHorizontal: 16, paddingBottom: 40 },
-  profileInfo: { alignItems: "center", marginVertical: 15 },
-  nameTxt: { fontSize: 22, fontWeight: "800", color: "#2D3436" },
-  subTxt: { fontSize: 14, color: "#636E72", marginTop: 4 },
-
-  // تنسيق جديد لنوع الصعوبة
-  difficultyBadge: {
-    backgroundColor: "#EBF5FF",
-    paddingHorizontal: 15,
-    paddingVertical: 6,
+  container: { flex: 1, backgroundColor: BG },
+  centerLoading: { justifyContent: "center", alignItems: "center", gap: 12 },
+  loadingText: { color: MUTED, fontSize: 13 },
+  errorText: { color: TEXT, fontSize: 14, fontWeight: "600", marginTop: 12 },
+  backToHomeBtn: {
+    marginTop: 16,
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
     borderRadius: 12,
-    marginTop: 8,
   },
-  difficultyText: { fontSize: 13, color: "#3498DB", fontWeight: "700" },
+  backToHomeText: { color: "#fff", fontWeight: "700" },
 
-  grid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  chartCard: {
-    width: "48%",
-    backgroundColor: "#FFF",
-    borderRadius: 24,
-    padding: 12,
-    marginBottom: 16,
-  },
-  chartTitle: {
-    fontSize: 11,
-    fontWeight: "bold",
-    color: "#2D3436",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-
-  chartBody: { flexDirection: "row-reverse", height: 80 },
-  yAxis: {
-    width: 30,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  axisTxt: { fontSize: 8, color: "#B2BEC3", fontWeight: "bold" },
-  chartArea: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderColor: "#F1F2F6",
+  headerGradient: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
+    paddingBottom: 60,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: "hidden",
     position: "relative",
   },
-  gridLine: {
-    height: 1,
-    backgroundColor: "#F8F9FA",
-    width: "100%",
-    marginBottom: 18,
-  },
-  chartLineLayer: { position: "absolute", width: "100%", height: "100%" },
-  dataPoint: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  decorCircle1: {
     position: "absolute",
-    zIndex: 2,
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
-  pointPulse: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    opacity: 0.2,
+  decorCircle2: {
     position: "absolute",
-    top: -3,
-    left: -3,
+    bottom: -40,
+    left: -20,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
-  xAxis: {
+  headerRow: {
     flexDirection: "row-reverse",
-    justifyContent: "space-around",
-    paddingRight: 35,
-    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1,
   },
-  axisTxtX: { fontSize: 7, color: "#999", fontWeight: "700" },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: "#fff" },
 
-  barArea: { flexDirection: "row-reverse", height: 80 },
-  barsContainer: {
+  childCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 18,
+    gap: 14,
+    zIndex: 1,
+    shadowColor: PRIMARY_DARK,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  childAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
+  },
+  childInfo: { flex: 1 },
+  childName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: TEXT,
+    textAlign: "right",
+  },
+  childMetaRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    flexWrap: "wrap",
+  },
+  metaItem: { flexDirection: "row-reverse", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 11, color: MUTED },
+  metaDivider: { width: 1, height: 12, backgroundColor: "#E0E0E0" },
+
+  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
+
+  quickStatsRow: { flexDirection: "row-reverse", gap: 10, marginBottom: 20 },
+  quickStatCard: {
     flex: 1,
+    backgroundColor: CARD,
+    padding: 12,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  quickStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  quickStatNumber: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: TEXT,
+    textAlign: "right",
+  },
+  quickStatLabel: {
+    fontSize: 11,
+    color: MUTED,
+    marginTop: 2,
+    textAlign: "right",
+  },
+
+  sectionHeader: { marginBottom: 14 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: TEXT,
+    textAlign: "right",
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: MUTED,
+    textAlign: "right",
+    marginTop: 4,
+  },
+
+  categoryCard: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  categoryHeader: {
     flexDirection: "row-reverse",
-    alignItems: "flex-end",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
+  categoryIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryTitle: { fontSize: 14, fontWeight: "700", color: TEXT },
+
+  circlesContainer: { paddingVertical: 10 },
+  circlesRow: {
+    flexDirection: "row",
     justifyContent: "space-around",
-  },
-  barCol: { alignItems: "center" },
-  barBody: { width: 14, borderRadius: 4 },
-  barVal: { fontSize: 9, fontWeight: "800", marginBottom: 4 },
-  barLab: { fontSize: 7, color: "#636E72", marginTop: 6, fontWeight: "bold" },
-
-  circleContainer: {
-    height: 80,
-    justifyContent: "center",
     alignItems: "center",
+    marginBottom: 8,
   },
-  circleBorder: {
-    width: 75,
-    height: 75,
-    borderRadius: 37.5,
-    borderWidth: 6,
-    borderColor: "#3498DB",
-    justifyContent: "center",
+  circleWrapper: { alignItems: "center", gap: 4 },
+  scoreCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#E0E0E0",
     alignItems: "center",
-  },
-  circleText: { fontSize: 18, fontWeight: "900", color: "#2D3436" },
-
-  divider: { height: 1, backgroundColor: "#F1F2F6", marginVertical: 12 },
-  ratingRow: { flexDirection: "row-reverse", justifyContent: "center" },
-  ratingCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginHorizontal: 2,
     justifyContent: "center",
-    alignItems: "center",
   },
-  ratingNum: { fontSize: 10 },
-
-  footerBtn: {
+  circleNumber: { fontSize: 11, color: MUTED, fontWeight: "600" },
+  scaleRow: {
     flexDirection: "row-reverse",
-    backgroundColor: "#FFF",
-    padding: 18,
-    borderRadius: 25,
     alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  scaleLabel: { fontSize: 9, fontWeight: "700" },
+  scaleLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    marginHorizontal: 6,
+  },
+
+  scoreBadge: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 10,
     marginTop: 10,
   },
-  btnIconCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 15,
-    backgroundColor: "#E3F2FD",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 15,
-  },
-  btnLabel: {
-    flex: 1,
-    textAlign: "right",
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2D3436",
-  },
+  scoreBadgeText: { fontSize: 11, fontWeight: "700" },
 
-  shadowCard: {
-    elevation: 4,
-    shadowColor: "#3498DB",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+  emptyResultBox: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: BG,
+    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 4,
+  },
+  emptyResultText: {
+    flex: 1,
+    fontSize: 11,
+    color: MUTED,
+    textAlign: "right",
+    lineHeight: 16,
   },
 });
