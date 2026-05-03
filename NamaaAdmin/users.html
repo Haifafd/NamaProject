@@ -3,36 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>المستخدمين - نماء أدمن</title>
+  <title>المستخدمين - نماء</title>
   <link rel="stylesheet" href="assets/admin.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-logo">🌸</div>
+        <div class="sidebar-logo">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="32" cy="18" rx="7" ry="9" fill="white" opacity="0.95"/>
+            <ellipse cx="20" cy="26" rx="7" ry="9" fill="white" opacity="0.85" transform="rotate(-50 20 26)"/>
+            <ellipse cx="44" cy="26" rx="7" ry="9" fill="white" opacity="0.85" transform="rotate(50 44 26)"/>
+            <ellipse cx="22" cy="38" rx="7" ry="9" fill="white" opacity="0.75" transform="rotate(-110 22 38)"/>
+            <ellipse cx="42" cy="38" rx="7" ry="9" fill="white" opacity="0.75" transform="rotate(110 42 38)"/>
+            <circle cx="32" cy="30" r="6" fill="#FFD54F"/>
+            <circle cx="32" cy="30" r="3" fill="#FF9800"/>
+            <path d="M 32 36 Q 32 46 32 54" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+            <path d="M 32 46 Q 24 44 22 50 Q 28 50 32 48 Z" fill="white" opacity="0.7"/>
+          </svg>
+        </div>
         <h1 class="sidebar-title">نماء</h1>
-        <p class="sidebar-subtitle">لوحة الأدمن</p>
+        <p class="sidebar-subtitle">صفحة المسؤول</p>
       </div>
       <nav class="sidebar-nav">
         <a href="index.html" class="nav-item">
-          <span class="nav-icon">🏠</span>
+          <span class="nav-icon"><i data-lucide="home"></i></span>
           <span class="nav-text">الرئيسية</span>
         </a>
         <a href="activities.html" class="nav-item">
-          <span class="nav-icon">🎮</span>
+          <span class="nav-icon"><i data-lucide="puzzle"></i></span>
           <span class="nav-text">الأنشطة</span>
         </a>
         <a href="categories.html" class="nav-item">
-          <span class="nav-icon">📁</span>
+          <span class="nav-icon"><i data-lucide="layout-grid"></i></span>
           <span class="nav-text">الفئات</span>
         </a>
         <a href="users.html" class="nav-item active">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><i data-lucide="users"></i></span>
           <span class="nav-text">المستخدمين</span>
         </a>
         <a href="children.html" class="nav-item">
-          <span class="nav-icon">👶</span>
+          <span class="nav-icon"><i data-lucide="baby"></i></span>
           <span class="nav-text">الأطفال</span>
         </a>
       </nav>
@@ -44,31 +57,33 @@
     <main class="main">
       <div class="page-header">
         <div>
-          <h1 class="page-title">المستخدمين</h1>
+          <h1 class="page-title">
+            <i data-lucide="users" style="color: var(--sky-dark);"></i>
+            المستخدمين
+          </h1>
           <p class="page-subtitle">جميع المستخدمين المسجلين في النظام</p>
         </div>
       </div>
 
       <div id="alertBox" class="alert"></div>
 
-      <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon sky">👥</div>
+          <div class="stat-icon sky"><i data-lucide="users"></i></div>
           <div class="stat-info">
             <div class="stat-value" id="statTotal">0</div>
             <div class="stat-label">إجمالي المستخدمين</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon green">👨‍👩</div>
+          <div class="stat-icon green"><i data-lucide="heart-handshake"></i></div>
           <div class="stat-info">
             <div class="stat-value" id="statParents">0</div>
             <div class="stat-label">أولياء الأمور</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon purple">👨‍⚕️</div>
+          <div class="stat-icon purple"><i data-lucide="stethoscope"></i></div>
           <div class="stat-info">
             <div class="stat-value" id="statSpecialists">0</div>
             <div class="stat-label">الأخصائيين</div>
@@ -76,9 +91,11 @@
         </div>
       </div>
 
-      <!-- Users List -->
       <div class="card">
-        <h2 class="card-title">📋 قائمة المستخدمين</h2>
+        <h2 class="card-title">
+          <i data-lucide="list"></i>
+          قائمة المستخدمين
+        </h2>
 
         <div class="toolbar">
           <div class="search-box">
@@ -98,6 +115,78 @@
     </main>
   </div>
 
+  <!-- Detail Modal -->
+  <div class="modal-backdrop" id="detailModal">
+    <div class="detail-modal">
+      <div class="detail-header">
+        <button class="detail-close" onclick="window.closeDetail()">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="detail-avatar" id="detailAvatar"></div>
+        <div class="detail-name" id="detailName"></div>
+        <div class="detail-role" id="detailRole"></div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-section">
+          <div class="detail-section-title">
+            <i data-lucide="info"></i>
+            المعلومات الأساسية
+          </div>
+          <div class="detail-info-grid" id="detailInfo"></div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">
+            <i data-lucide="activity"></i>
+            الإحصائيات
+          </div>
+          <div class="detail-stats-row">
+            <div class="detail-stat-box">
+              <div class="detail-stat-value" id="detailChildrenCount">—</div>
+              <div class="detail-stat-label" id="detailChildrenLabel">الأطفال</div>
+            </div>
+            <div class="detail-stat-box">
+              <div class="detail-stat-value" id="detailChatsCount">—</div>
+              <div class="detail-stat-label">المحادثات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-outline" onclick="window.closeDetail()">إغلاق</button>
+        <button class="btn btn-danger" onclick="window.openDeleteConfirm()">
+          <i data-lucide="trash-2"></i> حذف المستخدم
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="confirm-modal">
+      <div class="confirm-icon">
+        <i data-lucide="alert-triangle"></i>
+      </div>
+      <div class="confirm-title">حذف المستخدم نهائياً</div>
+      <div class="confirm-message">
+        هذا الإجراء لا يمكن التراجع عنه.
+      </div>
+      <div class="confirm-warning" id="confirmWarning">
+        سيتم حذف بيانات المستخدم وكل ما يرتبط به من أطفال ومحادثات.
+      </div>
+      <label class="confirm-input-label">
+        لتأكيد الحذف، اكتبي اسم المستخدم: <strong id="confirmExpectedName"></strong>
+      </label>
+      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتبي الاسم هنا..." />
+      <div class="confirm-actions">
+        <button class="btn btn-outline" onclick="window.closeDeleteConfirm()">إلغاء</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn" onclick="window.confirmDelete()" disabled>
+          <i data-lucide="trash-2"></i> تأكيد الحذف
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import {
       db,
@@ -105,9 +194,17 @@
       onSnapshot,
       escapeHtml,
       formatDate,
+      deleteUserCascade,
+      getUserStats,
+      showAlert,
     } from "./assets/firebase.js";
 
+    function refreshIcons() {
+      if (typeof lucide !== "undefined") lucide.createIcons();
+    }
+
     let allUsers = [];
+    let selectedUser = null;
 
     function getRoleInfo(role) {
       if (role === "parent") return { name: "ولي أمر", badge: "badge-parent" };
@@ -133,11 +230,12 @@
         const isEmpty = allUsers.length === 0;
         list.innerHTML = `
           <div class="empty-state">
-            <span class="empty-icon">${isEmpty ? "👤" : "🔍"}</span>
+            <span class="empty-icon"><i data-lucide="${isEmpty ? 'user-x' : 'search-x'}"></i></span>
             <div class="empty-title">${isEmpty ? "لا يوجد مستخدمين بعد" : "لا توجد نتائج"}</div>
             <div class="empty-sub">${isEmpty ? "سيظهر المستخدمين هنا عند تسجيلهم" : "جرّبي تغيير البحث أو الفلتر"}</div>
           </div>
         `;
+        refreshIcons();
         return;
       }
 
@@ -147,19 +245,23 @@
         const created = u.createdAt ? formatDate(u.createdAt) : "—";
 
         return `
-          <div class="list-item">
+          <div class="list-item" onclick="window.openDetail('${u.id}')" style="cursor: pointer;">
             <div style="width:48px; height:48px; background: var(--sky-light); color: var(--sky-dark); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink: 0;">${escapeHtml(initial)}</div>
             <div class="item-info">
               <div class="item-title">${escapeHtml(u.name || "بدون اسم")}</div>
               <div class="item-meta">
                 <span class="badge ${roleInfo.badge}">${roleInfo.name}</span>
-                <span>📧 ${escapeHtml(u.email || "—")}</span>
-                <span>📅 ${created}</span>
+                <span>${escapeHtml(u.email || "—")}</span>
+                <span>${created}</span>
               </div>
+            </div>
+            <div class="item-actions" style="pointer-events: none;">
+              <i data-lucide="chevron-left" class="icon-sm" style="color: var(--muted);"></i>
             </div>
           </div>
         `;
       }).join("") + '</div>';
+      refreshIcons();
     }
 
     onSnapshot(collection(db, "Users"), (snap) => {
@@ -172,11 +274,7 @@
         else if (data.role === "specialist") specialists++;
       });
 
-      allUsers.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || 0;
-        const timeB = b.createdAt?.toMillis?.() || 0;
-        return timeB - timeA;
-      });
+      allUsers.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
 
       document.getElementById("statTotal").textContent = allUsers.length;
       document.getElementById("statParents").textContent = parents;
@@ -187,6 +285,113 @@
 
     document.getElementById("searchInput").addEventListener("input", renderList);
     document.getElementById("filterRole").addEventListener("change", renderList);
+
+    // ─────────── Detail Modal ───────────
+    window.openDetail = async function (userId) {
+      const user = allUsers.find((u) => u.id === userId);
+      if (!user) return;
+      selectedUser = user;
+
+      const initial = (user.name || "؟").charAt(0).toUpperCase();
+      const roleInfo = getRoleInfo(user.role);
+      const created = user.createdAt ? formatDate(user.createdAt) : "غير معروف";
+
+      document.getElementById("detailAvatar").innerHTML = `<span>${escapeHtml(initial)}</span>`;
+      document.getElementById("detailName").textContent = user.name || "بدون اسم";
+      document.getElementById("detailRole").textContent = roleInfo.name;
+
+      document.getElementById("detailInfo").innerHTML = `
+        <div class="detail-row">
+          <span class="detail-row-label">البريد الإلكتروني</span>
+          <span class="detail-row-value">${escapeHtml(user.email || "—")}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">معرف الحساب</span>
+          <span class="detail-row-value" style="font-family: monospace; font-size: 11px;">${escapeHtml(user.id)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">تاريخ التسجيل</span>
+          <span class="detail-row-value">${created}</span>
+        </div>
+      `;
+
+      document.getElementById("detailChildrenLabel").textContent =
+        user.role === "parent" ? "أطفاله" : (user.role === "specialist" ? "الأطفال المتابعين" : "الأطفال");
+
+      document.getElementById("detailChildrenCount").textContent = "...";
+      document.getElementById("detailChatsCount").textContent = "...";
+      document.getElementById("detailModal").classList.add("show");
+      refreshIcons();
+
+      try {
+        const stats = await getUserStats(user.id, user.role);
+        document.getElementById("detailChildrenCount").textContent = stats.childrenCount;
+        document.getElementById("detailChatsCount").textContent = stats.chatsCount;
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    window.closeDetail = function () {
+      document.getElementById("detailModal").classList.remove("show");
+      selectedUser = null;
+    };
+
+    // ─────────── Delete Confirm ───────────
+    window.openDeleteConfirm = function () {
+      if (!selectedUser) return;
+      document.getElementById("confirmExpectedName").textContent = selectedUser.name || "بدون اسم";
+      document.getElementById("confirmInput").value = "";
+      document.getElementById("confirmDeleteBtn").disabled = true;
+      document.getElementById("confirmModal").classList.add("show");
+      refreshIcons();
+      setTimeout(() => document.getElementById("confirmInput").focus(), 100);
+    };
+
+    window.closeDeleteConfirm = function () {
+      document.getElementById("confirmModal").classList.remove("show");
+      document.getElementById("confirmInput").value = "";
+    };
+
+    document.getElementById("confirmInput").addEventListener("input", (e) => {
+      const expected = (selectedUser?.name || "").trim();
+      const typed = e.target.value.trim();
+      document.getElementById("confirmDeleteBtn").disabled = typed !== expected || !expected;
+    });
+
+    window.confirmDelete = async function () {
+      if (!selectedUser) return;
+      const btn = document.getElementById("confirmDeleteBtn");
+
+      try {
+        btn.disabled = true;
+        btn.innerHTML = "جاري الحذف...";
+
+        const result = await deleteUserCascade(selectedUser.id, selectedUser.role);
+
+        window.closeDeleteConfirm();
+        window.closeDetail();
+
+        let msg = "تم حذف المستخدم";
+        if (result.children > 0) msg += ` و ${result.children} طفل`;
+        if (result.chats > 0) msg += ` و ${result.chats} محادثة`;
+        showAlert(msg, "success");
+      } catch (error) {
+        showAlert("خطأ في الحذف: " + error.message, "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="trash-2"></i> تأكيد الحذف';
+        refreshIcons();
+      }
+    };
+
+    document.getElementById("detailModal").addEventListener("click", (e) => {
+      if (e.target.id === "detailModal") window.closeDetail();
+    });
+    document.getElementById("confirmModal").addEventListener("click", (e) => {
+      if (e.target.id === "confirmModal") window.closeDeleteConfirm();
+    });
+
+    refreshIcons();
   </script>
 </body>
 </html>

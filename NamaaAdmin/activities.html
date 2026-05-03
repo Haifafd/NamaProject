@@ -3,48 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>الأنشطة - نماء أدمن</title>
+  <title>الأنشطة - نماء</title>
   <link rel="stylesheet" href="assets/admin.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-logo">🌸</div>
+        <div class="sidebar-logo">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="32" cy="18" rx="7" ry="9" fill="white" opacity="0.95"/>
+            <ellipse cx="20" cy="26" rx="7" ry="9" fill="white" opacity="0.85" transform="rotate(-50 20 26)"/>
+            <ellipse cx="44" cy="26" rx="7" ry="9" fill="white" opacity="0.85" transform="rotate(50 44 26)"/>
+            <ellipse cx="22" cy="38" rx="7" ry="9" fill="white" opacity="0.75" transform="rotate(-110 22 38)"/>
+            <ellipse cx="42" cy="38" rx="7" ry="9" fill="white" opacity="0.75" transform="rotate(110 42 38)"/>
+            <circle cx="32" cy="30" r="6" fill="#FFD54F"/>
+            <circle cx="32" cy="30" r="3" fill="#FF9800"/>
+            <path d="M 32 36 Q 32 46 32 54" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+            <path d="M 32 46 Q 24 44 22 50 Q 28 50 32 48 Z" fill="white" opacity="0.7"/>
+          </svg>
+        </div>
         <h1 class="sidebar-title">نماء</h1>
-        <p class="sidebar-subtitle">لوحة الأدمن</p>
+        <p class="sidebar-subtitle">صفحة المسؤول</p>
       </div>
       <nav class="sidebar-nav">
         <a href="index.html" class="nav-item">
-          <span class="nav-icon">🏠</span>
+          <span class="nav-icon"><i data-lucide="home"></i></span>
           <span class="nav-text">الرئيسية</span>
         </a>
         <a href="activities.html" class="nav-item active">
-          <span class="nav-icon">🎮</span>
+          <span class="nav-icon"><i data-lucide="puzzle"></i></span>
           <span class="nav-text">الأنشطة</span>
         </a>
         <a href="categories.html" class="nav-item">
-          <span class="nav-icon">📁</span>
+          <span class="nav-icon"><i data-lucide="layout-grid"></i></span>
           <span class="nav-text">الفئات</span>
         </a>
         <a href="users.html" class="nav-item">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><i data-lucide="users"></i></span>
           <span class="nav-text">المستخدمين</span>
         </a>
         <a href="children.html" class="nav-item">
-          <span class="nav-icon">👶</span>
+          <span class="nav-icon"><i data-lucide="baby"></i></span>
           <span class="nav-text">الأطفال</span>
         </a>
       </nav>
       <div class="sidebar-footer">
         <p>الإصدار 1.0.0</p>
+        <p>© 2026 نماء</p>
       </div>
     </aside>
 
     <main class="main">
       <div class="page-header">
         <div>
-          <h1 class="page-title">إدارة الأنشطة</h1>
+          <h1 class="page-title">
+            <i data-lucide="puzzle" style="color: var(--sky-dark);"></i>
+            إدارة الأنشطة
+          </h1>
           <p class="page-subtitle">إضافة وتعديل وحذف الأنشطة المتاحة في التطبيق</p>
         </div>
       </div>
@@ -53,7 +70,10 @@
 
       <!-- Add Activity Form -->
       <div class="card">
-        <h2 class="card-title">➕ إضافة نشاط جديد</h2>
+        <h2 class="card-title">
+          <i data-lucide="plus-circle"></i>
+          إضافة نشاط جديد
+        </h2>
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label">عنوان النشاط</label>
@@ -64,10 +84,10 @@
             <label class="form-label">الفئة</label>
             <select id="categoryId" class="form-select">
               <option value="">اختر الفئة</option>
-              <option value="memoryCategoryID">🧠 الذاكرة</option>
-              <option value="focusCategoryID">👁️ التركيز والانتباه</option>
-              <option value="thinkingCategoryID">💡 التفكير وحل المشكلات</option>
-              <option value="perceptionCategoryID">🔷 الإدراك البصري</option>
+              <option value="memoryCategoryID">الذاكرة</option>
+              <option value="focusCategoryID">التركيز والانتباه</option>
+              <option value="thinkingCategoryID">التفكير وحل المشكلات</option>
+              <option value="perceptionCategoryID">الإدراك البصري</option>
             </select>
           </div>
 
@@ -79,13 +99,17 @@
         </div>
 
         <button class="btn btn-block" id="addBtn" onclick="window.addActivity()">
-          💾 حفظ النشاط
+          <i data-lucide="save"></i>
+          حفظ النشاط
         </button>
       </div>
 
       <!-- Filters + List -->
       <div class="card">
-        <h2 class="card-title">📋 الأنشطة الموجودة</h2>
+        <h2 class="card-title">
+          <i data-lucide="list"></i>
+          الأنشطة الموجودة
+        </h2>
 
         <div class="toolbar">
           <div class="search-box">
@@ -93,10 +117,10 @@
           </div>
           <select id="filterCategory" class="filter-select">
             <option value="">جميع الفئات</option>
-            <option value="memoryCategoryID">🧠 الذاكرة</option>
-            <option value="focusCategoryID">👁️ التركيز</option>
-            <option value="thinkingCategoryID">💡 التفكير</option>
-            <option value="perceptionCategoryID">🔷 الإدراك</option>
+            <option value="memoryCategoryID">الذاكرة</option>
+            <option value="focusCategoryID">التركيز</option>
+            <option value="thinkingCategoryID">التفكير</option>
+            <option value="perceptionCategoryID">الإدراك</option>
           </select>
         </div>
 
@@ -110,7 +134,7 @@
   <!-- EDIT MODAL -->
   <div class="modal-backdrop" id="editModal">
     <div class="modal">
-      <h2 class="modal-title">✏️ تعديل النشاط</h2>
+      <h2 class="modal-title">تعديل النشاط</h2>
       <p class="modal-subtitle">قومي بتعديل البيانات ثم اضغطي حفظ</p>
 
       <div class="form-group">
@@ -121,10 +145,10 @@
       <div class="form-group">
         <label class="form-label">الفئة</label>
         <select id="editCategory" class="form-select">
-          <option value="memoryCategoryID">🧠 الذاكرة</option>
-          <option value="focusCategoryID">👁️ التركيز والانتباه</option>
-          <option value="thinkingCategoryID">💡 التفكير وحل المشكلات</option>
-          <option value="perceptionCategoryID">🔷 الإدراك البصري</option>
+          <option value="memoryCategoryID">الذاكرة</option>
+          <option value="focusCategoryID">التركيز والانتباه</option>
+          <option value="thinkingCategoryID">التفكير وحل المشكلات</option>
+          <option value="perceptionCategoryID">الإدراك البصري</option>
         </select>
       </div>
 
@@ -135,7 +159,10 @@
 
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="window.closeEditModal()">إلغاء</button>
-        <button class="btn" id="saveEditBtn" onclick="window.saveEdit()">💾 حفظ التعديل</button>
+        <button class="btn" id="saveEditBtn" onclick="window.saveEdit()">
+          <i data-lucide="save"></i>
+          حفظ التعديل
+        </button>
       </div>
     </div>
   </div>
@@ -155,10 +182,13 @@
       formatRelativeTime,
     } from "./assets/firebase.js";
 
+    function refreshIcons() {
+      if (typeof lucide !== "undefined") lucide.createIcons();
+    }
+
     let allActivities = [];
     let editingId = null;
 
-    // ─────────── Add Activity ───────────
     window.addActivity = async function () {
       const title = document.getElementById("title").value.trim();
       const categoryId = document.getElementById("categoryId").value;
@@ -184,29 +214,28 @@
         document.getElementById("categoryId").value = "";
         document.getElementById("levels").value = 3;
 
-        showAlert("✅ تم حفظ النشاط بنجاح", "success");
+        showAlert("تم حفظ النشاط بنجاح", "success");
       } catch (error) {
         console.error(error);
-        showAlert("❌ خطأ: " + error.message, "error");
+        showAlert("خطأ: " + error.message, "error");
       } finally {
         addBtn.disabled = false;
-        addBtn.innerHTML = "💾 حفظ النشاط";
+        addBtn.innerHTML = '<i data-lucide="save"></i> حفظ النشاط';
+        refreshIcons();
       }
     };
 
-    // ─────────── Delete ───────────
     window.deleteActivity = async function (id, title) {
       if (!confirm(`هل أنتي متأكدة من حذف "${title}"؟\n\nلا يمكن التراجع عن هذا.`)) return;
 
       try {
         await deleteDoc(doc(db, "Activities", id));
-        showAlert("🗑️ تم حذف النشاط", "success");
+        showAlert("تم حذف النشاط", "success");
       } catch (error) {
-        showAlert("❌ خطأ في الحذف: " + error.message, "error");
+        showAlert("خطأ في الحذف: " + error.message, "error");
       }
     };
 
-    // ─────────── Edit Modal ───────────
     window.openEditModal = function (id) {
       const activity = allActivities.find((a) => a.id === id);
       if (!activity) return;
@@ -247,16 +276,16 @@
         });
 
         window.closeEditModal();
-        showAlert("✅ تم تحديث النشاط", "success");
+        showAlert("تم تحديث النشاط", "success");
       } catch (error) {
-        showAlert("❌ خطأ: " + error.message, "error");
+        showAlert("خطأ: " + error.message, "error");
       } finally {
         btn.disabled = false;
-        btn.innerHTML = "💾 حفظ التعديل";
+        btn.innerHTML = '<i data-lucide="save"></i> حفظ التعديل';
+        refreshIcons();
       }
     };
 
-    // ─────────── Render List ───────────
     function renderList() {
       const search = document.getElementById("searchInput").value.toLowerCase();
       const categoryFilter = document.getElementById("filterCategory").value;
@@ -270,37 +299,44 @@
         const isEmpty = allActivities.length === 0;
         list.innerHTML = `
           <div class="empty-state">
-            <span class="empty-icon">${isEmpty ? "📭" : "🔍"}</span>
+            <span class="empty-icon"><i data-lucide="${isEmpty ? 'inbox' : 'search-x'}"></i></span>
             <div class="empty-title">${isEmpty ? "لا توجد أنشطة بعد" : "لا توجد نتائج"}</div>
             <div class="empty-sub">${isEmpty ? "أضيفي أول نشاط من النموذج أعلاه" : "جرّبي تغيير البحث أو الفلتر"}</div>
           </div>
         `;
+        refreshIcons();
         return;
       }
 
       list.innerHTML = '<div class="item-list">' + filtered.map((act) => {
-        const cat = CATEGORY_MAP[act.categoryId] || { name: "—", badge: "badge-default", icon: "❓" };
+        const cat = CATEGORY_MAP[act.categoryId] || { name: "—", badge: "badge-default", iconClass: "sky", lucideIcon: "help-circle" };
         return `
           <div class="list-item">
-            <div style="font-size:32px;">${cat.icon}</div>
+            <div class="item-emoji ${cat.iconClass}">
+              <i data-lucide="${cat.lucideIcon}"></i>
+            </div>
             <div class="item-info">
               <div class="item-title">${escapeHtml(act.title || "بدون عنوان")}</div>
               <div class="item-meta">
                 <span class="badge ${cat.badge}">${cat.name}</span>
-                <span>📊 ${act.levels || 0} مستويات</span>
+                <span>${act.levels || 0} مستويات</span>
                 <span>${formatRelativeTime(act.createdAt)}</span>
               </div>
             </div>
             <div class="item-actions">
-              <button class="btn btn-sm btn-outline" onclick="window.openEditModal('${act.id}')">✏️ تعديل</button>
-              <button class="btn btn-sm btn-danger" onclick="window.deleteActivity('${act.id}', '${escapeHtml(act.title || '').replace(/'/g, '\\\'')}')">🗑️ حذف</button>
+              <button class="btn btn-sm btn-outline" onclick="window.openEditModal('${act.id}')">
+                <i data-lucide="pencil" class="icon-sm"></i> تعديل
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="window.deleteActivity('${act.id}', '${escapeHtml(act.title || '').replace(/'/g, '\\\'')}')">
+                <i data-lucide="trash-2" class="icon-sm"></i> حذف
+              </button>
             </div>
           </div>
         `;
       }).join("") + '</div>';
+      refreshIcons();
     }
 
-    // ─────────── Real-time Listener ───────────
     onSnapshot(collection(db, "Activities"), (snap) => {
       allActivities = [];
       snap.forEach((d) => allActivities.push({ id: d.id, ...d.data() }));
@@ -308,14 +344,14 @@
       renderList();
     });
 
-    // ─────────── Search & Filter ───────────
     document.getElementById("searchInput").addEventListener("input", renderList);
     document.getElementById("filterCategory").addEventListener("change", renderList);
 
-    // Close modal on backdrop click
     document.getElementById("editModal").addEventListener("click", (e) => {
       if (e.target.id === "editModal") window.closeEditModal();
     });
+
+    refreshIcons();
   </script>
 </body>
 </html>
