@@ -916,3 +916,329 @@ html, body {
   flex: 1;
   justify-content: center;
 }
+
+/* ─────────── Login Page ─────────── */
+.login-page {
+  min-height: 100vh;
+  background: var(--sky-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-decor-1,
+.login-decor-2,
+.login-decor-3 {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+.login-decor-1 {
+  width: 280px;
+  height: 280px;
+  top: -80px;
+  right: -80px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.login-decor-2 {
+  width: 220px;
+  height: 220px;
+  bottom: -60px;
+  left: -60px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.login-decor-3 {
+  width: 140px;
+  height: 140px;
+  top: 50%;
+  left: 8%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.login-card {
+  background: white;
+  border-radius: 28px;
+  padding: 40px 36px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  max-width: 440px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.login-logo {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
+  background: var(--sky-gradient);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(2, 136, 209, 0.35);
+}
+
+.login-logo svg { width: 100%; height: 100%; }
+
+.login-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-input-group {
+  margin-bottom: 16px;
+}
+
+.login-input-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.login-input-label svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
+  color: var(--sky-dark);
+}
+
+.login-input-wrapper {
+  position: relative;
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  padding-left: 44px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #FAFBFD;
+  transition: all 0.2s;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--sky-primary);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(121, 204, 248, 0.18);
+}
+
+.login-input.error {
+  border-color: var(--danger);
+  background: #FFF5F5;
+}
+
+.login-eye-btn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.login-eye-btn:hover { color: var(--sky-dark); }
+
+.login-eye-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.login-error-message {
+  background: #FFEBEE;
+  color: #C62828;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 18px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  border-right: 4px solid var(--danger);
+}
+
+.login-error-message.show { display: flex; }
+
+.login-error-message svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--sky-gradient);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  margin-top: 8px;
+  box-shadow: 0 8px 20px rgba(2, 136, 209, 0.3);
+  font-family: inherit;
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(2, 136, 209, 0.4);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+}
+
+.login-footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #F0F0F0;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─────────── Sidebar User Info ─────────── */
+.sidebar-user-info {
+  padding: 14px 16px;
+  margin: 0 12px 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.sidebar-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sidebar-user-text {
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-email {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-logout-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(255, 77, 79, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.sidebar-logout-btn:hover {
+  background: rgba(255, 77, 79, 0.35);
+  transform: translateY(-1px);
+}
+
+.sidebar-logout-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
+}
+
+/* Hide sidebar text on small screens */
+@media (max-width: 900px) {
+  .sidebar-user-info { padding: 8px; gap: 0; justify-content: center; }
+  .sidebar-user-text, .sidebar-logout-btn .logout-text { display: none; }
+}

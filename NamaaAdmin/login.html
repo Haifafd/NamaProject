@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل الدخول - نماء</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-decor-1"></div>
+    <div class="login-decor-2"></div>
+    <div class="login-decor-3"></div>
+
+    <div class="login-card">
+      <div class="login-logo">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="18" rx="7" ry="9" fill="white" opacity="0.95"/>
+          <ellipse cx="20" cy="26" rx="7" ry="9" fill="white" opacity="0.85" transform="rotate(-50 20 26)"/>
+          <ellipse cx="44" cy="26" rx="7" ry="9" fill="white" opacity="0.85" transform="rotate(50 44 26)"/>
+          <ellipse cx="22" cy="38" rx="7" ry="9" fill="white" opacity="0.75" transform="rotate(-110 22 38)"/>
+          <ellipse cx="42" cy="38" rx="7" ry="9" fill="white" opacity="0.75" transform="rotate(110 42 38)"/>
+          <circle cx="32" cy="30" r="6" fill="#FFD54F"/>
+          <circle cx="32" cy="30" r="3" fill="#FF9800"/>
+          <path d="M 32 36 Q 32 46 32 54" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+          <path d="M 32 46 Q 24 44 22 50 Q 28 50 32 48 Z" fill="white" opacity="0.7"/>
+        </svg>
+      </div>
+
+      <h1 class="login-title">صفحة المسؤول</h1>
+      <p class="login-subtitle">سجّلي الدخول للمتابعة إلى لوحة التحكم</p>
+
+      <div class="login-error-message" id="errorBox">
+        <i data-lucide="alert-circle"></i>
+        <span id="errorText"></span>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="login-input-group">
+          <label class="login-input-label" for="email">
+            <i data-lucide="mail"></i>
+            البريد الإلكتروني
+          </label>
+          <div class="login-input-wrapper">
+            <input
+              type="email"
+              id="email"
+              class="login-input"
+              placeholder="admin@namaa.app"
+              required
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <div class="login-input-group">
+          <label class="login-input-label" for="password">
+            <i data-lucide="lock"></i>
+            كلمة المرور
+          </label>
+          <div class="login-input-wrapper">
+            <input
+              type="password"
+              id="password"
+              class="login-input"
+              placeholder="••••••••"
+              required
+              autocomplete="off"
+            />
+            <button type="button" class="login-eye-btn" id="toggleEye" aria-label="إظهار كلمة المرور">
+              <i data-lucide="eye" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn">
+          <i data-lucide="log-in"></i>
+          <span>تسجيل الدخول</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p>صفحة المسؤول مخصصة للإدارة فقط</p>
+        <p style="margin-top: 4px;">© 2026 نماء</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      auth,
+      db,
+      doc,
+      getDoc,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+    } from "./assets/firebase.js";
+
+    function refreshIcons() {
+      if (typeof lucide !== "undefined") lucide.createIcons();
+    }
+    refreshIcons();
+
+    // Auto-redirect if already logged in as admin
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      try {
+        const userDoc = await getDoc(doc(db, "Users", user.uid));
+        if (userDoc.exists() && userDoc.data().role === "admin") {
+          window.location.href = "index.html";
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    // Show/hide password
+    const passwordInput = document.getElementById("password");
+    const eyeIcon = document.getElementById("eyeIcon");
+    document.getElementById("toggleEye").addEventListener("click", () => {
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      eyeIcon.setAttribute("data-lucide", isPassword ? "eye-off" : "eye");
+      refreshIcons();
+    });
+
+    function showError(message) {
+      document.getElementById("errorText").textContent = message;
+      document.getElementById("errorBox").classList.add("show");
+      document.getElementById("email").classList.add("error");
+      document.getElementById("password").classList.add("error");
+      refreshIcons();
+    }
+
+    function clearError() {
+      document.getElementById("errorBox").classList.remove("show");
+      document.getElementById("email").classList.remove("error");
+      document.getElementById("password").classList.remove("error");
+    }
+
+    document.getElementById("email").addEventListener("input", clearError);
+    document.getElementById("password").addEventListener("input", clearError);
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const btn = document.getElementById("loginBtn");
+
+      if (!email || !password) {
+        showError("الرجاء إدخال البريد وكلمة المرور");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div><span>جاري التحقق...</span>';
+
+      try {
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const userId = credential.user.uid;
+
+        const userDoc = await getDoc(doc(db, "Users", userId));
+
+        if (!userDoc.exists()) {
+          await auth.signOut();
+          showError("الحساب غير مسجّل في النظام");
+          resetButton();
+          return;
+        }
+
+        const userData = userDoc.data();
+        if (userData.role !== "admin") {
+          await auth.signOut();
+          showError("هذا الحساب لا يملك صلاحيات المسؤول");
+          resetButton();
+          return;
+        }
+
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error(error);
+        let message = "حدث خطأ، حاولي مرة أخرى";
+        if (error.code === "auth/invalid-credential" ||
+            error.code === "auth/wrong-password" ||
+            error.code === "auth/user-not-found") {
+          message = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+        } else if (error.code === "auth/invalid-email") {
+          message = "البريد الإلكتروني غير صحيح";
+        } else if (error.code === "auth/too-many-requests") {
+          message = "محاولات كثيرة. حاولي بعد قليل";
+        } else if (error.code === "auth/network-request-failed") {
+          message = "تحقّقي من اتصال الإنترنت";
+        }
+        showError(message);
+        resetButton();
+      }
+    });
+
+    function resetButton() {
+      const btn = document.getElementById("loginBtn");
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="log-in"></i><span>تسجيل الدخول</span>';
+      refreshIcons();
+    }
+  </script>
+</body>
+</html>

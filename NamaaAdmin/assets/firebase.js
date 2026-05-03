@@ -14,6 +14,14 @@ import {
   orderBy,
   limit,
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  setPersistence,
+  browserSessionPersistence,
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
 // ─────────── Firebase Config ───────────
 const firebaseConfig = {
@@ -29,6 +37,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
+// Auth instance with session-only persistence (logs out on browser close)
+export const auth = getAuth(app);
+setPersistence(auth, browserSessionPersistence).catch((err) =>
+  console.error("Persistence error:", err)
+);
+
 // Re-export Firestore functions
 export {
   collection,
@@ -43,6 +57,13 @@ export {
   where,
   orderBy,
   limit,
+};
+
+// Re-export auth functions
+export {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
 };
 
 // ─────────── Category Mapping ───────────
@@ -242,5 +263,39 @@ export async function getUserStats(uid, role) {
   } catch (error) {
     console.error("Error fetching user stats:", error);
     return { childrenCount: 0, chatsCount: 0 };
+  }
+}
+
+// ─────────────────────────────────────────────
+// 🛡️ Verify the current user is an admin
+// Returns user data if admin, null otherwise
+// ─────────────────────────────────────────────
+export async function verifyAdmin() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return null;
+
+  try {
+    const userDoc = await getDoc(doc(db, "Users", currentUser.uid));
+    if (!userDoc.exists()) return null;
+
+    const data = userDoc.data();
+    if (data.role !== "admin") return null;
+
+    return { id: currentUser.uid, ...data };
+  } catch (error) {
+    console.error("Error verifying admin:", error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
+// 🚪 Sign out current admin
+// ─────────────────────────────────────────────
+export async function logoutAdmin() {
+  try {
+    await signOut(auth);
+    window.location.href = "login.html";
+  } catch (error) {
+    console.error("Error signing out:", error);
   }
 }
