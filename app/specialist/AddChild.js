@@ -1,7 +1,14 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -79,9 +86,33 @@ export default function AddChild() {
     try {
       setSaving(true);
 
+      // ─── 🔍 Look up parent's UID by email ───
+      const parentQuery = query(
+        collection(db, "Users"),
+        where("email", "==", parentEmail.trim()),
+        where("role", "==", "parent")
+      );
+      const parentSnapshot = await getDocs(parentQuery);
+
+      if (parentSnapshot.empty) {
+        Alert.alert(
+          "تنبيه",
+          "لم يتم العثور على ولي أمر مسجل بهذا الإيميل.\n\nيرجى التأكد من أن ولي الأمر قد سجل حسابه أولاً، ثم حاولي مرة أخرى."
+        );
+        setSaving(false);
+        return;
+      }
+
+      const parentDoc = parentSnapshot.docs[0];
+      const parentId = parentDoc.id;
+      const parentName = parentDoc.data().name || "";
+
+      // Save child with BOTH parentEmail AND parentId
       await addDoc(collection(db, "Children"), {
         name: name.trim(),
         parentEmail: parentEmail.trim(),
+        parentId: parentId,
+        parentName: parentName,
         difficulty: difficulty.trim(),
         gender: gender,
         birthDate: date.toISOString().split("T")[0],
