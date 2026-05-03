@@ -15,7 +15,11 @@ import {
   View,
 } from "react-native";
 import { auth } from "../../FirebaseConfig";
-import { getCurrentUser } from "../../Services/UserService";
+import {
+  getCurrentUser,
+  getNotificationPreferences,
+  updateNotificationPreference,
+} from "../../Services/UserService";
 import BottomNavBar from "../../components/BottomNavBar";
 
 // ─── الثيم السماوي ───
@@ -50,6 +54,13 @@ export default function Settings() {
     try {
       const userData = await getCurrentUser();
       setUser(userData);
+
+      const prefs = await getNotificationPreferences();
+      if (prefs) {
+        setPushNotifications(prefs.pushNotifications ?? true);
+        setEmailNotifications(prefs.emailNotifications ?? true);
+        setReportAlerts(prefs.reportAlerts ?? true);
+      }
     } catch (error) {
       console.error("Error loading user:", error);
     } finally {
@@ -180,13 +191,13 @@ export default function Settings() {
               icon="person-outline"
               title="تعديل الملف الشخصي"
               subtitle="الاسم والصورة والبريد"
-              onPress={() => router.push("./EditProfile")}
+              onPress={() => router.push("/settings/EditProfile")}
             />
             <SettingItem
               icon="lock-closed-outline"
               title="تغيير كلمة المرور"
               subtitle="حماية حسابك"
-              onPress={() => router.push("./ChangePassword")}
+              onPress={() => router.push("/settings/ChangePassword")}
               isLast={true}
             />
           </View>
@@ -202,7 +213,18 @@ export default function Settings() {
               subtitle="تلقي الإشعارات الفورية"
               isSwitch={true}
               switchValue={pushNotifications}
-              onSwitchChange={setPushNotifications}
+              onSwitchChange={async (value) => {
+                setPushNotifications(value);
+                try {
+                  await updateNotificationPreference(
+                    "pushNotifications",
+                    value
+                  );
+                } catch (error) {
+                  setPushNotifications(!value);
+                  Alert.alert("خطأ", "لم نتمكن من حفظ التفضيلات");
+                }
+              }}
             />
             <SettingItem
               icon="mail-outline"
@@ -212,7 +234,18 @@ export default function Settings() {
               subtitle="إرسال تنبيهات للبريد"
               isSwitch={true}
               switchValue={emailNotifications}
-              onSwitchChange={setEmailNotifications}
+              onSwitchChange={async (value) => {
+                setEmailNotifications(value);
+                try {
+                  await updateNotificationPreference(
+                    "emailNotifications",
+                    value
+                  );
+                } catch (error) {
+                  setEmailNotifications(!value);
+                  Alert.alert("خطأ", "لم نتمكن من حفظ التفضيلات");
+                }
+              }}
             />
             <SettingItem
               icon="document-text-outline"
@@ -222,7 +255,15 @@ export default function Settings() {
               subtitle="عند توفر تقرير جديد"
               isSwitch={true}
               switchValue={reportAlerts}
-              onSwitchChange={setReportAlerts}
+              onSwitchChange={async (value) => {
+                setReportAlerts(value);
+                try {
+                  await updateNotificationPreference("reportAlerts", value);
+                } catch (error) {
+                  setReportAlerts(!value);
+                  Alert.alert("خطأ", "لم نتمكن من حفظ التفضيلات");
+                }
+              }}
               isLast={true}
             />
           </View>
@@ -235,14 +276,14 @@ export default function Settings() {
               iconColor={GREEN}
               iconBg="#E8F5E9"
               title="سياسة الخصوصية"
-              onPress={() => router.push("./Privacy")}
+              onPress={() => router.push("/settings/Privacy")}
             />
             <SettingItem
               icon="document-outline"
               iconColor={GREEN}
               iconBg="#E8F5E9"
               title="الشروط والأحكام"
-              onPress={() => router.push("./Terms")}
+              onPress={() => router.push("/settings/Terms")}
               isLast={true}
             />
           </View>
@@ -254,18 +295,18 @@ export default function Settings() {
               icon="chatbubbles-outline"
               title="تواصل معنا"
               subtitle="نسعد بمساعدتك"
-              onPress={() => router.push("./Contact")}
+              onPress={() => router.push("/settings/Contact")}
             />
             <SettingItem
               icon="help-circle-outline"
               title="الأسئلة الشائعة"
-              onPress={() => router.push("./FAQ")}
+              onPress={() => router.push("/settings/FAQ")}
             />
             <SettingItem
               icon="information-circle-outline"
               title="عن تطبيق نماء"
               subtitle="الإصدار 1.0.0"
-              onPress={() => router.push("./About")}
+              onPress={() => router.push("/settings/About")}
               isLast={true}
             />
           </View>
