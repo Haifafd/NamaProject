@@ -67,7 +67,7 @@ export default function Settings() {
         onPress: async () => {
           try {
             await signOut(auth);
-            router.replace("/Login");
+            router.replace("/auth/Login");
           } catch (error) {
             Alert.alert("خطأ", "لم نتمكن من تسجيل الخروج");
           }
