@@ -99,9 +99,9 @@
 
         <div class="toolbar">
           <div class="search-box">
-            <input type="text" id="searchInput" placeholder="بحث بالاسم أو البريد..." />
+            <input type="text" id="searchInput" placeholder="بحث بالاسم أو البريد..." aria-label="بحث بالاسم أو البريد" />
           </div>
-          <select id="filterRole" class="filter-select">
+          <select id="filterRole" class="filter-select" aria-label="تصفية حسب الدور">
             <option value="">جميع الأدوار</option>
             <option value="parent">ولي أمر</option>
             <option value="specialist">أخصائي</option>
@@ -119,7 +119,7 @@
   <div class="modal-backdrop" id="detailModal">
     <div class="detail-modal">
       <div class="detail-header">
-        <button class="detail-close" onclick="window.closeDetail()">
+        <button type="button" class="detail-close" onclick="window.closeDetail()" aria-label="إغلاق">
           <i data-lucide="x"></i>
         </button>
         <div class="detail-avatar" id="detailAvatar"></div>
@@ -153,8 +153,8 @@
         </div>
       </div>
       <div class="detail-actions">
-        <button class="btn btn-outline" onclick="window.closeDetail()">إغلاق</button>
-        <button class="btn btn-danger" onclick="window.openDeleteConfirm()">
+        <button type="button" class="btn btn-outline" onclick="window.closeDetail()">إغلاق</button>
+        <button type="button" class="btn btn-danger" onclick="window.openDeleteConfirm()">
           <i data-lucide="trash-2"></i> حذف المستخدم
         </button>
       </div>
@@ -174,13 +174,13 @@
       <div class="confirm-warning" id="confirmWarning">
         سيتم حذف بيانات المستخدم وكل ما يرتبط به من أطفال ومحادثات.
       </div>
-      <label class="confirm-input-label">
+      <label class="confirm-input-label" for="confirmInput">
         لتأكيد الحذف، اكتبي اسم المستخدم: <strong id="confirmExpectedName"></strong>
       </label>
-      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتبي الاسم هنا..." />
+      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتبي الاسم هنا..." aria-label="اكتبي اسم المستخدم لتأكيد الحذف" />
       <div class="confirm-actions">
-        <button class="btn btn-outline" onclick="window.closeDeleteConfirm()">إلغاء</button>
-        <button class="btn btn-danger" id="confirmDeleteBtn" onclick="window.confirmDelete()" disabled>
+        <button type="button" class="btn btn-outline" onclick="window.closeDeleteConfirm()">إلغاء</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="window.confirmDelete()" disabled>
           <i data-lucide="trash-2"></i> تأكيد الحذف
         </button>
       </div>

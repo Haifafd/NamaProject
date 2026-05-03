@@ -76,12 +76,12 @@
         </h2>
         <div class="form-grid">
           <div class="form-group">
-            <label class="form-label">عنوان النشاط</label>
+            <label class="form-label" for="title">عنوان النشاط</label>
             <input type="text" id="title" class="form-input" placeholder="مثال: لعبة المطابقة" />
           </div>
 
           <div class="form-group">
-            <label class="form-label">الفئة</label>
+            <label class="form-label" for="categoryId">الفئة</label>
             <select id="categoryId" class="form-select">
               <option value="">اختر الفئة</option>
               <option value="memoryCategoryID">الذاكرة</option>
@@ -92,13 +92,13 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">عدد المستويات</label>
+            <label class="form-label" for="levels">عدد المستويات</label>
             <input type="number" id="levels" class="form-input" min="1" max="3" value="3" />
             <p class="form-hint">من 1 إلى 3 مستويات</p>
           </div>
         </div>
 
-        <button class="btn btn-block" id="addBtn" onclick="window.addActivity()">
+        <button type="button" class="btn btn-block" id="addBtn" onclick="window.addActivity()">
           <i data-lucide="save"></i>
           حفظ النشاط
         </button>
@@ -113,9 +113,9 @@
 
         <div class="toolbar">
           <div class="search-box">
-            <input type="text" id="searchInput" placeholder="بحث في الأنشطة..." />
+            <input type="text" id="searchInput" placeholder="بحث في الأنشطة..." aria-label="بحث في الأنشطة" />
           </div>
-          <select id="filterCategory" class="filter-select">
+          <select id="filterCategory" class="filter-select" aria-label="تصفية حسب الفئة">
             <option value="">جميع الفئات</option>
             <option value="memoryCategoryID">الذاكرة</option>
             <option value="focusCategoryID">التركيز</option>
@@ -138,12 +138,12 @@
       <p class="modal-subtitle">قومي بتعديل البيانات ثم اضغطي حفظ</p>
 
       <div class="form-group">
-        <label class="form-label">عنوان النشاط</label>
+        <label class="form-label" for="editTitle">عنوان النشاط</label>
         <input type="text" id="editTitle" class="form-input" />
       </div>
 
       <div class="form-group">
-        <label class="form-label">الفئة</label>
+        <label class="form-label" for="editCategory">الفئة</label>
         <select id="editCategory" class="form-select">
           <option value="memoryCategoryID">الذاكرة</option>
           <option value="focusCategoryID">التركيز والانتباه</option>
@@ -153,13 +153,13 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">عدد المستويات</label>
+        <label class="form-label" for="editLevels">عدد المستويات</label>
         <input type="number" id="editLevels" class="form-input" min="1" max="3" />
       </div>
 
       <div class="modal-actions">
-        <button class="btn btn-outline" onclick="window.closeEditModal()">إلغاء</button>
-        <button class="btn" id="saveEditBtn" onclick="window.saveEdit()">
+        <button type="button" class="btn btn-outline" onclick="window.closeEditModal()">إلغاء</button>
+        <button type="button" class="btn" id="saveEditBtn" onclick="window.saveEdit()">
           <i data-lucide="save"></i>
           حفظ التعديل
         </button>
@@ -324,10 +324,10 @@
               </div>
             </div>
             <div class="item-actions">
-              <button class="btn btn-sm btn-outline" onclick="window.openEditModal('${act.id}')">
+              <button type="button" class="btn btn-sm btn-outline" onclick="window.openEditModal('${act.id}')">
                 <i data-lucide="pencil" class="icon-sm"></i> تعديل
               </button>
-              <button class="btn btn-sm btn-danger" onclick="window.deleteActivity('${act.id}', '${escapeHtml(act.title || '').replace(/'/g, '\\\'')}')">
+              <button type="button" class="btn btn-sm btn-danger" onclick="window.deleteActivity('${act.id}', '${escapeHtml(act.title || '').replace(/'/g, '\\\'')}')">
                 <i data-lucide="trash-2" class="icon-sm"></i> حذف
               </button>
             </div>
