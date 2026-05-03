@@ -2,21 +2,22 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../FirebaseConfig";
 
 import {
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { COLORS } from "../../constants/theme";
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -77,18 +78,18 @@ export default function ResetPassword() {
   };
 
   return (
-    <LinearGradient colors={["#eef2f8", "#cfdcf3"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#79ccf8", "#5BB5E8"]} style={{ flex: 1 }}>
+      <Animated.View
+        style={[styles.decorCircle1, { transform: [{ translateY: circle1 }] }]}
+      />
+      <Animated.View
+        style={[styles.decorCircle2, { transform: [{ translateY: circle2 }] }]}
+      />
+      <View style={styles.decorCircle3} />
+
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={28} color="#4a6fa5" />
+        <Ionicons name="arrow-back" size={24} color={COLORS.WHITE} />
       </TouchableOpacity>
-
-      <Animated.View
-        style={[styles.circle1, { transform: [{ translateY: circle1 }] }]}
-      />
-
-      <Animated.View
-        style={[styles.circle2, { transform: [{ translateY: circle2 }] }]}
-      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -97,18 +98,42 @@ export default function ResetPassword() {
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>إعادة تعيين كلمة المرور</Text>
+          <View style={styles.brandWrap}>
+            <View style={styles.logoCircle}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={32}
+                color={COLORS.WHITE}
+              />
+            </View>
+          </View>
+
+          <Text style={styles.title}>نسيت كلمة المرور؟</Text>
+          <Text style={styles.subtitleHero}>
+            أدخلي بريدك واستعادة كلمة المرور
+          </Text>
 
           <View style={styles.card}>
             <Text style={styles.label}>البريد الإلكتروني</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="example@email.com"
-              value={email}
-              onChangeText={setEmail}
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="example@email.com"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                textAlign="right"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
             {message ? (
               <View
@@ -128,8 +153,18 @@ export default function ResetPassword() {
               </View>
             ) : null}
 
-            <TouchableOpacity style={styles.button} onPress={handleReset}>
-              <Text style={styles.buttonText}>إرسال الرابط</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleReset}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.buttonText}>إرسال رابط الاستعادة</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push("/auth/Login")}>
+              <Text style={styles.bottomLink}>
+                <Text style={styles.link}>العودة لتسجيل الدخول</Text>
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -140,110 +175,187 @@ export default function ResetPassword() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 130,
+    paddingTop: 110,
+    paddingBottom: 40,
     alignItems: "center",
-    paddingHorizontal: 30,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 40,
-  },
-
-  card: {
-    width: "100%",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 30,
-    padding: 25,
-  },
-
-  label: {
-    marginBottom: 8,
-    color: "#555",
-    textAlign: "right",
-  },
-
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 20,
-    textAlign: "left",
-  },
-
-  button: {
-    backgroundColor: "#7fa6d6",
-    padding: 16,
-    borderRadius: 25,
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  message: {
-    textAlign: "center",
-    marginBottom: 15,
-    color: "red",
+    paddingHorizontal: 22,
   },
 
   backButton: {
     position: "absolute",
-    top: 60,
+    top: 50,
     left: 20,
     zIndex: 999,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  circle1: {
-    position: "absolute",
-    width: 260,
-    height: 260,
-    backgroundColor: "#bcd0f3",
-    borderRadius: 200,
-    top: -80,
-    right: -60,
-    opacity: 0.4,
+  brandWrap: {
+    alignItems: "center",
+    marginBottom: 14,
   },
 
-  circle2: {
-    position: "absolute",
-    width: 200,
-    height: 200,
-    backgroundColor: "#9fbaf0",
-    borderRadius: 200,
-    bottom: -50,
-    left: -40,
-    opacity: 0.4,
+  logoCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: COLORS.WHITE,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+
+  subtitleHero: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.9)",
+    marginBottom: 22,
+    textAlign: "center",
+  },
+
+  card: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 28,
+    padding: 24,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+
+  label: {
+    fontSize: 13,
+    color: COLORS.TEXT,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "right",
+  },
+
+  inputContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "#F8FBFE",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#E1F5FE",
+  },
+
+  input: {
+    flex: 1,
+    height: 50,
+    fontSize: 15,
+    color: COLORS.TEXT,
+    padding: 0,
+  },
+
+  button: {
+    backgroundColor: COLORS.PRIMARY,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+
+  buttonText: {
+    color: COLORS.WHITE,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  bottomLink: {
+    color: COLORS.MUTED,
+    textAlign: "center",
+    marginTop: 16,
+    fontSize: 13,
+  },
+
+  link: {
+    fontWeight: "700",
+    color: COLORS.PRIMARY_DARK,
   },
 
   messageBox: {
     padding: 12,
-    borderRadius: 12,
-    marginBottom: 15,
+    borderRadius: 14,
+    marginBottom: 14,
   },
 
   successBox: {
-    backgroundColor: "#e6f7ed",
+    backgroundColor: "#E8F5E9",
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
   },
 
   errorBox: {
-    backgroundColor: "#fde8e8",
+    backgroundColor: "#FFEBEE",
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
   },
 
   messageText: {
     textAlign: "center",
-    fontSize: 14,
+    fontSize: 13,
   },
 
   successText: {
-    color: "#2e7d32",
+    color: "#2E7D32",
   },
 
   errorText: {
-    color: "#c62828",
+    color: "#C62828",
+  },
+
+  decorCircle1: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+
+  decorCircle2: {
+    position: "absolute",
+    bottom: -50,
+    left: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+
+  decorCircle3: {
+    position: "absolute",
+    top: "40%",
+    left: -40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });

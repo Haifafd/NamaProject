@@ -6,6 +6,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,10 +14,11 @@ import {
   View,
 } from "react-native";
 
-import { BlurView } from "expo-blur";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
+import { COLORS } from "../../constants/theme";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -69,62 +71,100 @@ export default function Login() {
   };
 
   return (
-    <LinearGradient colors={["#e8edf6", "#cfdcf3"]} style={{ flex: 1 }}>
-      <View style={styles.backgroundCircle1} />
-      <View style={styles.backgroundCircle2} />
+    <LinearGradient colors={["#79ccf8", "#5BB5E8"]} style={{ flex: 1 }}>
+      <View style={styles.decorCircle1} />
+      <View style={styles.decorCircle2} />
+      <View style={styles.decorCircle3} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
+        style={{ flex: 1 }}
       >
-        <Text style={styles.title}>تسجيل الدخول</Text>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.brandWrap}>
+            <View style={styles.logoCircle}>
+              <Ionicons name="flower-outline" size={32} color={COLORS.WHITE} />
+            </View>
+            <Text style={styles.brandName}>نماء</Text>
+          </View>
 
-        <Text style={styles.subtitle}>
-          لا تملك حسابًا؟
-          <Text
-            style={styles.link}
-            onPress={() => router.push("/auth/choose-role")}
-          >
-            {" "}
-            سجل الآن
-          </Text>
-        </Text>
+          <Text style={styles.title}>تسجيل الدخول</Text>
+          <Text style={styles.welcome}>أهلاً بعودتك في نماء</Text>
 
-        <BlurView intensity={15} style={styles.card}>
-          <Text style={styles.label}>البريد الإلكتروني</Text>
+          <View style={styles.card}>
+            <Text style={styles.label}>البريد الإلكتروني</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="example@email.com"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                textAlign="right"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            textAlign="right"
-          />
+            <Text style={styles.label}>كلمة المرور</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                textAlign="right"
+              />
+            </View>
 
-          <Text style={styles.label}>كلمة المرور</Text>
-
-          <TextInput
-            style={styles.input}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            textAlign="right"
-          />
-
-          <TouchableOpacity onPress={() => router.push("/auth/reset-password")}>
-            <Text style={styles.forgot}>نسيت كلمة المرور؟</Text>
-          </TouchableOpacity>
-
-          <Animated.View style={{ transform: [{ scale }] }}>
             <TouchableOpacity
-              style={styles.loginBtn}
-              onPressIn={pressIn}
-              onPressOut={pressOut}
-              onPress={handleLogin}
+              onPress={() => router.push("/auth/reset-password")}
             >
-              <Text style={styles.loginText}>تسجيل الدخول</Text>
+              <Text style={styles.forgot}>نسيت كلمة المرور؟</Text>
             </TouchableOpacity>
-          </Animated.View>
-        </BlurView>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <Animated.View style={{ transform: [{ scale }] }}>
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPressIn={pressIn}
+                onPressOut={pressOut}
+                onPress={handleLogin}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.loginText}>تسجيل الدخول</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Text style={styles.subtitle}>
+              ليس لديك حساب؟
+              <Text
+                style={styles.link}
+                onPress={() => router.push("/auth/choose-role")}
+              >
+                {" "}
+                سجل الآن
+              </Text>
+            </Text>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -132,120 +172,166 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 25,
+    paddingHorizontal: 22,
+    paddingVertical: 40,
+  },
+
+  brandWrap: {
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  logoCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
+    marginBottom: 10,
+  },
+
+  brandName: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: COLORS.WHITE,
+    letterSpacing: 1,
   },
 
   title: {
-    fontSize: 38,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-
-  subtitle: {
-    color: "#6d6d6d",
-    marginBottom: 45,
-  },
-
-  link: {
+    fontSize: 26,
     fontWeight: "700",
+    color: COLORS.WHITE,
+    marginBottom: 6,
+  },
+
+  welcome: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.9)",
+    marginBottom: 22,
   },
 
   card: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 28,
+    padding: 24,
     width: "100%",
-    borderRadius: 35,
-    padding: 25,
-    overflow: "hidden",
-
-    shadowColor: "#050000",
+    shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
 
   label: {
     fontSize: 13,
-    color: "#3d3d3d",
-    marginBottom: 6,
+    color: COLORS.TEXT,
+    fontWeight: "600",
+    marginBottom: 8,
     textAlign: "right",
   },
 
+  inputContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "#F8FBFE",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#E1F5FE",
+  },
+
   input: {
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 25,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    flex: 1,
+    height: 50,
     fontSize: 15,
-    marginBottom: 15,
+    color: COLORS.TEXT,
+    padding: 0,
   },
 
   forgot: {
-    alignSelf: "flex-end",
-    color: "#292540",
-    marginBottom: 25,
+    alignSelf: "flex-start",
+    color: COLORS.PRIMARY_DARK,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+
+  errorText: {
+    color: COLORS.DANGER,
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 4,
   },
 
   loginBtn: {
-    backgroundColor: "#7fa6d6",
-    paddingVertical: 16,
-    borderRadius: 30,
+    backgroundColor: COLORS.PRIMARY,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
     alignItems: "center",
-
-    shadowColor: "#7fa6d6",
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    marginTop: 18,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 6,
   },
 
   loginText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: COLORS.WHITE,
+    fontSize: 16,
+    fontWeight: "700",
   },
 
-  socialText: {
-    marginTop: 35,
-    marginBottom: 12,
-    color: "#6d6d6d",
+  subtitle: {
+    color: COLORS.MUTED,
+    textAlign: "center",
+    marginTop: 18,
+    fontSize: 13,
   },
 
-  googleBtn: {
-    backgroundColor: "rgba(255,255,255,0.7)",
-    padding: 18,
-    borderRadius: 50,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+  link: {
+    fontWeight: "700",
+    color: COLORS.PRIMARY_DARK,
   },
 
-  googleIcon: {
-    width: 34,
-    height: 34,
-  },
-
-  backgroundCircle1: {
+  decorCircle1: {
     position: "absolute",
-    width: 220,
-    height: 220,
-    backgroundColor: "#bcd0f3",
-    borderRadius: 200,
-    top: -60,
-    right: -60,
-    opacity: 0.4,
+    top: -40,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
 
-  backgroundCircle2: {
+  decorCircle2: {
     position: "absolute",
-    width: 180,
-    height: 180,
-    backgroundColor: "#a5bff0",
-    borderRadius: 200,
-    bottom: -40,
+    bottom: -50,
+    left: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+
+  decorCircle3: {
+    position: "absolute",
+    top: "40%",
     left: -40,
-    opacity: 0.4,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });

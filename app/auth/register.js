@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { COLORS } from "../../constants/theme";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -120,19 +121,21 @@ export default function Register() {
     ).start();
   }, []);
 
+  const roleLabel = role === "specialist" ? "المختص" : "الوالد";
+
   return (
-    <LinearGradient colors={["#eef2f8", "#cfdcf3"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#79ccf8", "#5BB5E8"]} style={{ flex: 1 }}>
+      <Animated.View
+        style={[styles.decorCircle1, { transform: [{ translateY: circle1 }] }]}
+      />
+      <Animated.View
+        style={[styles.decorCircle2, { transform: [{ translateY: circle2 }] }]}
+      />
+      <View style={styles.decorCircle3} />
+
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={28} color="#4a6fa5" />
+        <Ionicons name="arrow-back" size={24} color={COLORS.WHITE} />
       </TouchableOpacity>
-
-      <Animated.View
-        style={[styles.circle1, { transform: [{ translateY: circle1 }] }]}
-      />
-
-      <Animated.View
-        style={[styles.circle2, { transform: [{ translateY: circle2 }] }]}
-      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -141,48 +144,77 @@ export default function Register() {
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>إنشاء حساب</Text>
+          <View style={styles.brandWrap}>
+            <View style={styles.logoCircle}>
+              <Ionicons name="flower-outline" size={28} color={COLORS.WHITE} />
+            </View>
+          </View>
 
-          <Text style={styles.subtitle}>أدخل بياناتك للبدء</Text>
+          <Text style={styles.title}>إنشاء حساب جديد</Text>
+          <Text style={styles.subtitleHero}>
+            {role ? `كـ ${roleLabel}` : "أدخل بياناتك للبدء"}
+          </Text>
 
           <View style={styles.card}>
             <Text style={styles.label}>الاسم الكامل</Text>
-
-            <TextInput
-              style={[styles.input, { textAlign: "right" }]}
-              placeholder="اكتب اسمك"
-              placeholderTextColor="#777"
-              value={name}
-              onChangeText={setName}
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="اكتب اسمك"
+                placeholderTextColor="#999"
+                value={name}
+                onChangeText={setName}
+                textAlign="right"
+              />
+            </View>
 
             <Text style={styles.label}>البريد الإلكتروني</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="example@email.com"
-              placeholderTextColor="#777"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="example@email.com"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                textAlign="right"
+              />
+            </View>
 
             <Text style={styles.label}>كلمة المرور</Text>
-
-            <View style={styles.passwordContainer}>
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
               <TextInput
-                style={styles.passwordInput}
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
+                textAlign="right"
               />
-
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#666"
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={COLORS.MUTED}
                 />
               </TouchableOpacity>
             </View>
@@ -191,7 +223,7 @@ export default function Register() {
               <Text
                 style={[styles.rule, passwordRules.length && styles.validRule]}
               >
-                • 8 أحرف على الأقل{" "}
+                • 8 أحرف على الأقل
               </Text>
               <Text
                 style={[
@@ -199,7 +231,7 @@ export default function Register() {
                   passwordRules.uppercase && styles.validRule,
                 ]}
               >
-                • حرف كبير واحد على الأقل{" "}
+                • حرف كبير واحد على الأقل
               </Text>
               <Text
                 style={[
@@ -207,42 +239,58 @@ export default function Register() {
                   passwordRules.lowercase && styles.validRule,
                 ]}
               >
-                • حرف صغير واحد على الأقل{" "}
+                • حرف صغير واحد على الأقل
               </Text>
               <Text
                 style={[styles.rule, passwordRules.number && styles.validRule]}
               >
-                {" "}
-                • رقم واحد على الأقل{" "}
+                • رقم واحد على الأقل
               </Text>
               <Text
                 style={[styles.rule, passwordRules.special && styles.validRule]}
               >
-                • رمز خاص واحد على الأقل{" "}
+                • رمز خاص واحد على الأقل
               </Text>
             </View>
 
             <Text style={styles.label}>تأكيد كلمة المرور</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                textAlign="right"
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholderTextColor="#777"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            {error ? (
-              <Text
-                style={{ color: "red", marginBottom: 10, textAlign: "center" }}
-              >
-                {error}
-              </Text>
-            ) : null}
-
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleRegister}
+              activeOpacity={0.9}
+            >
               <Text style={styles.buttonText}>إنشاء الحساب</Text>
             </TouchableOpacity>
+
+            <Text style={styles.bottomLink}>
+              لديك حساب؟
+              <Text
+                style={styles.link}
+                onPress={() => router.push("/auth/Login")}
+              >
+                {" "}
+                تسجيل الدخول
+              </Text>
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -252,126 +300,178 @@ export default function Register() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 130,
+    paddingTop: 90,
+    paddingBottom: 40,
     alignItems: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 22,
   },
 
   backButton: {
     position: "absolute",
-    top: 60,
+    top: 50,
     left: 20,
     zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  brandWrap: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  logoCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
   },
 
   title: {
-    fontSize: 38,
-    fontWeight: "bold",
-    marginBottom: 15,
-    marginTop: -50,
+    fontSize: 26,
+    fontWeight: "700",
+    color: COLORS.WHITE,
+    marginBottom: 6,
   },
 
-  subtitle: {
-    fontSize: 18,
-    color: "#6c6c6c",
-    marginBottom: 40,
+  subtitleHero: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.9)",
+    marginBottom: 20,
   },
 
   card: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 28,
+    padding: 24,
     width: "100%",
-    borderRadius: 35,
-    padding: 25,
-
-    backgroundColor: "rgba(255, 255, 255, 0.21)",
-
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.59)",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
 
   label: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: "#444",
+    fontSize: 13,
+    color: COLORS.TEXT,
+    fontWeight: "600",
+    marginBottom: 8,
     textAlign: "right",
   },
 
-  input: {
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 25,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    marginBottom: 20,
-    fontSize: 15,
-  },
-
-  passwordContainer: {
-    flexDirection: "row",
+  inputContainer: {
+    flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 25,
-    paddingHorizontal: 18,
-    marginBottom: 20,
+    backgroundColor: "#F8FBFE",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#E1F5FE",
   },
 
-  passwordInput: {
+  input: {
     flex: 1,
-    paddingVertical: 14,
+    height: 50,
     fontSize: 15,
+    color: COLORS.TEXT,
+    padding: 0,
   },
 
   button: {
-    backgroundColor: "#7fa6d6",
-    borderRadius: 35,
-    paddingVertical: 16,
+    backgroundColor: COLORS.PRIMARY,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
-
-    shadowColor: "#7fa6d6",
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    marginTop: 14,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 6,
   },
 
   buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: COLORS.WHITE,
+    fontSize: 16,
+    fontWeight: "700",
   },
 
-  circle1: {
-    position: "absolute",
-    width: 260,
-    height: 260,
-    backgroundColor: "#bcd0f3",
-    borderRadius: 200,
-    top: -80,
-    right: -60,
-    opacity: 0.4,
+  bottomLink: {
+    color: COLORS.MUTED,
+    textAlign: "center",
+    marginTop: 16,
+    fontSize: 13,
   },
 
-  circle2: {
-    position: "absolute",
-    width: 200,
-    height: 200,
-    backgroundColor: "#9fbaf0",
-    borderRadius: 200,
-    bottom: -50,
-    left: -40,
-    opacity: 0.4,
+  link: {
+    fontWeight: "700",
+    color: COLORS.PRIMARY_DARK,
+  },
+
+  errorText: {
+    color: COLORS.DANGER,
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 4,
   },
 
   passwordRules: {
-    marginBottom: 20,
+    marginBottom: 14,
+    paddingHorizontal: 4,
   },
 
   rule: {
-    fontSize: 13,
-    color: "#777",
+    fontSize: 12,
+    color: COLORS.MUTED,
     marginBottom: 3,
     textAlign: "right",
   },
 
   validRule: {
-    color: "#4caf50",
+    color: COLORS.SUCCESS,
+  },
+
+  decorCircle1: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+
+  decorCircle2: {
+    position: "absolute",
+    bottom: -50,
+    left: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+
+  decorCircle3: {
+    position: "absolute",
+    top: "40%",
+    left: -40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });
