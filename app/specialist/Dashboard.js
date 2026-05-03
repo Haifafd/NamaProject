@@ -23,47 +23,28 @@ import {
 } from "react-native";
 import { db } from "../../FirebaseConfig";
 
-// ─── الثيم السماوي ───
-const PRIMARY = "#79ccf8";
-const PRIMARY_DARK = "#0288D1";
-const PRIMARY_LIGHT = "#E1F5FE";
-const BG = "#F0F4F8";
-const CARD = "#FFFFFF";
-const TEXT = "#1A1A1A";
-const MUTED = "#757575";
+// ─── 🎨 الثيم الموحد ───
+import {
+  COLORS,
+  SCORE_COLORS,
+  CATEGORY_COLORS as THEME_CATEGORIES,
+} from "../../constants/theme";
+
+const PRIMARY = COLORS.PRIMARY;
+const PRIMARY_DARK = COLORS.PRIMARY_DARK;
+const PRIMARY_LIGHT = COLORS.PRIMARY_LIGHT;
+const BG = COLORS.BG;
+const CARD = COLORS.CARD_BG;
+const TEXT = COLORS.TEXT;
+const MUTED = COLORS.MUTED;
 const PINK_LIGHT = "#FCE4EC";
 
-// ─── ألوان الفئات ───
+// ─── ألوان الفئات (مع labels) ───
 const CATEGORY_COLORS = {
-  memory: { color: "#9C27B0", bg: "#F3E5F5", icon: "brain", label: "الذاكرة" },
-  focus: {
-    color: "#FFC107",
-    bg: "#FFF8E1",
-    icon: "eye-outline",
-    label: "التركيز والانتباه",
-  },
-  thinking: {
-    color: "#2196F3",
-    bg: "#E3F2FD",
-    icon: "lightbulb-outline",
-    label: "التفكير وحل المشكلات",
-  },
-  perception: {
-    color: "#F44336",
-    bg: "#FFEBEE",
-    icon: "shape-outline",
-    label: "الإدراك البصري",
-  },
-};
-
-// ─── ألوان التقييم 1-5 ───
-// 1 = ممتاز (أخضر) ... 5 = ضعيف جداً (أحمر)
-const SCORE_COLORS = {
-  1: "#4CAF50", // ممتاز - أخضر
-  2: "#8BC34A", // جيد - أخضر فاتح
-  3: "#FFC107", // متوسط - أصفر
-  4: "#FF9800", // ضعيف - برتقالي
-  5: "#F44336", // ضعيف جداً - أحمر
+  memory: { ...THEME_CATEGORIES.memory, label: "الذاكرة" },
+  focus: { ...THEME_CATEGORIES.focus, label: "التركيز والانتباه" },
+  thinking: { ...THEME_CATEGORIES.thinking, label: "التفكير وحل المشكلات" },
+  perception: { ...THEME_CATEGORIES.perception, label: "الإدراك البصري" },
 };
 
 const SCORE_LABELS = {
@@ -84,24 +65,16 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ─────────────────────────────────────────────
-  // 📊 حساب التقييم للفئة (1-5)
-  // كم متوسط نتائج الطفل في الفئة هذي
-  // ─────────────────────────────────────────────
   const calculateCategoryScore = (categoryId) => {
     const categoryResults = results.filter((r) => r.categoryId === categoryId);
-    if (categoryResults.length === 0) return null; // ما فيه نتايج
+    if (categoryResults.length === 0) return null;
 
     const sum = categoryResults.reduce((acc, r) => acc + (r.score || 0), 0);
     const avg = sum / categoryResults.length;
 
-    // تقريب لأقرب رقم صحيح (1-5)
     return Math.round(avg);
   };
 
-  // ─────────────────────────────────────────────
-  // 📥 جلب بيانات الطفل والنتائج من Firebase
-  // ─────────────────────────────────────────────
   const loadData = async () => {
     if (!childId) {
       setLoading(false);
@@ -109,13 +82,11 @@ export default function Dashboard() {
     }
 
     try {
-      // جلب بيانات الطفل
       const childDoc = await getDoc(doc(db, "Children", childId));
       if (childDoc.exists()) {
         setChild({ id: childDoc.id, ...childDoc.data() });
       }
 
-      // جلب نتائج الأنشطة
       const resultsQuery = query(
         collection(db, "ActivityResults"),
         where("childId", "==", childId),
@@ -143,9 +114,6 @@ export default function Dashboard() {
     loadData();
   };
 
-  // ─────────────────────────────────────────────
-  // 🎨 حساب العمر من تاريخ الميلاد
-  // ─────────────────────────────────────────────
   const calculateAge = (birthDate) => {
     if (!birthDate) return "—";
     const today = new Date();
@@ -161,10 +129,6 @@ export default function Dashboard() {
     return age;
   };
 
-  // ─────────────────────────────────────────────
-  // 🔵 مكون عرض التقييم بـ 5 دوائر
-  // 5 = ضعيف جداً, 1 = ممتاز
-  // ─────────────────────────────────────────────
   const ScoreCircles = ({ score }) => {
     return (
       <View style={styles.circlesContainer}>
@@ -199,7 +163,6 @@ export default function Dashboard() {
             );
           })}
         </View>
-        {/* مقياس */}
         <View style={styles.scaleRow}>
           <Text style={[styles.scaleLabel, { color: SCORE_COLORS[5] }]}>
             ضعيف جداً
@@ -213,9 +176,6 @@ export default function Dashboard() {
     );
   };
 
-  // ─────────────────────────────────────────────
-  // 📋 بطاقة فئة
-  // ─────────────────────────────────────────────
   const CategoryCard = ({ categoryKey, categoryId }) => {
     const info = CATEGORY_COLORS[categoryKey];
     const score = calculateCategoryScore(categoryId);
@@ -223,7 +183,6 @@ export default function Dashboard() {
 
     return (
       <View style={styles.categoryCard}>
-        {/* رأس البطاقة */}
         <View style={styles.categoryHeader}>
           <View style={[styles.categoryIconBox, { backgroundColor: info.bg }]}>
             <MaterialCommunityIcons
@@ -235,7 +194,6 @@ export default function Dashboard() {
           <Text style={styles.categoryTitle}>{info.label}</Text>
         </View>
 
-        {/* المحتوى */}
         {hasResults ? (
           <>
             <ScoreCircles score={score} />
@@ -264,9 +222,6 @@ export default function Dashboard() {
     );
   };
 
-  // ─────────────────────────────────────────────
-  // ⏳ Loading
-  // ─────────────────────────────────────────────
   if (loading) {
     return (
       <View style={[styles.container, styles.centerLoading]}>
@@ -276,9 +231,6 @@ export default function Dashboard() {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // ❌ ما فيه طفل
-  // ─────────────────────────────────────────────
   if (!child) {
     return (
       <View style={[styles.container, styles.centerLoading]}>
@@ -319,7 +271,6 @@ export default function Dashboard() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
       <SafeAreaView style={{ flex: 1 }}>
-        {/* ─── HEADER ─── */}
         <View style={styles.headerGradient}>
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
@@ -339,7 +290,6 @@ export default function Dashboard() {
             </TouchableOpacity>
           </View>
 
-          {/* بطاقة الطفل في الـ Header */}
           <View style={styles.childCard}>
             <View
               style={[styles.childAvatar, { backgroundColor: childIconBg }]}
@@ -385,7 +335,6 @@ export default function Dashboard() {
             />
           }
         >
-          {/* ─── إحصائية سريعة ─── */}
           <View style={styles.quickStatsRow}>
             <View style={styles.quickStatCard}>
               <View
@@ -412,10 +361,7 @@ export default function Dashboard() {
                 {child.createdAt
                   ? new Date(child.createdAt.seconds * 1000).toLocaleDateString(
                       "ar-EG",
-                      {
-                        month: "short",
-                        year: "numeric",
-                      },
+                      { month: "short", year: "numeric" },
                     )
                   : "—"}
               </Text>
@@ -423,7 +369,6 @@ export default function Dashboard() {
             </View>
           </View>
 
-          {/* ─── العنوان ─── */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionSubtitle}>
               مقياس التقييم: 1 ممتاز - 5 ضعيف جداً
@@ -431,7 +376,6 @@ export default function Dashboard() {
             <Text style={styles.sectionTitle}>تقييم الفئات</Text>
           </View>
 
-          {/* ─── بطاقات الفئات ─── */}
           <CategoryCard categoryKey="memory" categoryId="memoryCategoryID" />
           <CategoryCard categoryKey="focus" categoryId="focusCategoryID" />
           <CategoryCard
@@ -443,7 +387,6 @@ export default function Dashboard() {
             categoryId="perceptionCategoryID"
           />
 
-          {/* ─── زر الخطة العلاجية ─── */}
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.85}
@@ -473,18 +416,9 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  centerLoading: {
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
+  centerLoading: { justifyContent: "center", alignItems: "center", gap: 12 },
   loadingText: { color: MUTED, fontSize: 13 },
-  errorText: {
-    color: TEXT,
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 12,
-  },
+  errorText: { color: TEXT, fontSize: 14, fontWeight: "600", marginTop: 12 },
   backToHomeBtn: {
     marginTop: 16,
     backgroundColor: PRIMARY,
@@ -494,7 +428,6 @@ const styles = StyleSheet.create({
   },
   backToHomeText: { color: "#fff", fontWeight: "700" },
 
-  // ─── Header ───
   headerGradient: {
     backgroundColor: PRIMARY,
     paddingHorizontal: 16,
@@ -545,13 +478,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-  },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: "#fff" },
 
-  // ─── Child Card ───
   childCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -576,9 +504,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#fff",
   },
-  childInfo: {
-    flex: 1,
-  },
+  childInfo: { flex: 1 },
   childName: {
     fontSize: 17,
     fontWeight: "700",
@@ -592,33 +518,13 @@ const styles = StyleSheet.create({
     marginTop: 6,
     flexWrap: "wrap",
   },
-  metaItem: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 11,
-    color: MUTED,
-  },
-  metaDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: "#E0E0E0",
-  },
+  metaItem: { flexDirection: "row-reverse", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 11, color: MUTED },
+  metaDivider: { width: 1, height: 12, backgroundColor: "#E0E0E0" },
 
-  // ─── Scroll ───
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
 
-  // ─── Quick Stats ───
-  quickStatsRow: {
-    flexDirection: "row-reverse",
-    gap: 10,
-    marginBottom: 20,
-  },
+  quickStatsRow: { flexDirection: "row-reverse", gap: 10, marginBottom: 20 },
   quickStatCard: {
     flex: 1,
     backgroundColor: CARD,
@@ -650,10 +556,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  // ─── Section Header ───
-  sectionHeader: {
-    marginBottom: 14,
-  },
+  sectionHeader: { marginBottom: 14 },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
@@ -667,7 +570,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // ─── Category Card ───
   categoryCard: {
     backgroundColor: CARD,
     borderRadius: 18,
@@ -692,26 +594,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  categoryTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: TEXT,
-  },
+  categoryTitle: { fontSize: 14, fontWeight: "700", color: TEXT },
 
-  // ─── Score Circles ───
-  circlesContainer: {
-    paddingVertical: 10,
-  },
+  circlesContainer: { paddingVertical: 10 },
   circlesRow: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     marginBottom: 8,
   },
-  circleWrapper: {
-    alignItems: "center",
-    gap: 4,
-  },
+  circleWrapper: { alignItems: "center", gap: 4 },
   scoreCircle: {
     width: 28,
     height: 28,
@@ -722,11 +614,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  circleNumber: {
-    fontSize: 11,
-    color: MUTED,
-    fontWeight: "600",
-  },
+  circleNumber: { fontSize: 11, color: MUTED, fontWeight: "600" },
   scaleRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -734,10 +622,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 4,
   },
-  scaleLabel: {
-    fontSize: 9,
-    fontWeight: "700",
-  },
+  scaleLabel: { fontSize: 9, fontWeight: "700" },
   scaleLine: {
     flex: 1,
     height: 1,
@@ -745,7 +630,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
 
-  // ─── Score Badge ───
   scoreBadge: {
     alignSelf: "flex-end",
     paddingHorizontal: 12,
@@ -753,12 +637,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 10,
   },
-  scoreBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
+  scoreBadgeText: { fontSize: 11, fontWeight: "700" },
 
-  // ─── Empty Result ───
   emptyResultBox: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -776,7 +656,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // ─── Action Button ───
   actionButton: {
     flexDirection: "row-reverse",
     backgroundColor: PRIMARY,
@@ -799,9 +678,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  actionContent: {
-    flex: 1,
-  },
+  actionContent: { flex: 1 },
   actionTitle: {
     fontSize: 14,
     fontWeight: "700",

@@ -1,33 +1,34 @@
-import React, { useState } from "react";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Platform,
   SafeAreaView,
   ScrollView,
-  Platform,
-  TextInput,
-  Image,
   StatusBar,
-  Alert,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "../../FirebaseConfig";
+import { auth, db } from "../../FirebaseConfig";
 
-// ─── نفس ثيم الهوم بيج ───
-const PRIMARY = "#79ccf8";
-const PRIMARY_DARK = "#0288D1";
-const PRIMARY_LIGHT = "#E1F5FE";
-const BG = "#F0F4F8";
-const CARD = "#FFFFFF";
-const BORDER = "#E0E0E0";
-const TEXT = "#1A1A1A";
-const MUTED = "#757575";
+// ─── 🎨 الثيم الموحد ───
+import { COLORS } from "../../constants/theme";
+
+const PRIMARY = COLORS.PRIMARY;
+const PRIMARY_DARK = COLORS.PRIMARY_DARK;
+const PRIMARY_LIGHT = COLORS.PRIMARY_LIGHT;
+const BG = COLORS.BG;
+const CARD = COLORS.CARD_BG;
+const BORDER = COLORS.BORDER_GRAY;
+const TEXT = COLORS.TEXT;
+const MUTED = COLORS.MUTED;
 const PINK = "#F48FB1";
 const PINK_LIGHT = "#FCE4EC";
 
@@ -51,11 +52,7 @@ export default function AddChild() {
     }
   };
 
-  // ─────────────────────────────────────────────
-  // 💾 حفظ الطفل في Firebase
-  // ─────────────────────────────────────────────
   const handleSave = async () => {
-    // التحقق من المدخلات
     if (!name.trim()) {
       Alert.alert("تنبيه", "الرجاء إدخال اسم الطفل");
       return;
@@ -82,13 +79,12 @@ export default function AddChild() {
     try {
       setSaving(true);
 
-      // حفظ الطفل في Children collection
       await addDoc(collection(db, "Children"), {
         name: name.trim(),
         parentEmail: parentEmail.trim(),
         difficulty: difficulty.trim(),
         gender: gender,
-        birthDate: date.toISOString().split("T")[0], // YYYY-MM-DD
+        birthDate: date.toISOString().split("T")[0],
         specialistId: specialistId,
         createdAt: serverTimestamp(),
       });
@@ -107,7 +103,6 @@ export default function AddChild() {
     }
   };
 
-  // ─── أيقونة الطفل تتغير حسب الجنس (طفولية) ───
   const getChildIcon = () => {
     if (gender === "male") return "face-man";
     if (gender === "female") return "face-woman";
@@ -130,7 +125,6 @@ export default function AddChild() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
-      {/* ─── HEADER GRADIENT ─── */}
       <View style={styles.headerGradient}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
@@ -153,13 +147,9 @@ export default function AddChild() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── أيقونة الطفل (تتغير حسب الجنس) ─── */}
         <View style={styles.avatarSection}>
           <View
-            style={[
-              styles.avatarCircle,
-              { backgroundColor: getChildIconBg() },
-            ]}
+            style={[styles.avatarCircle, { backgroundColor: getChildIconBg() }]}
           >
             <MaterialCommunityIcons
               name={getChildIcon()}
@@ -171,19 +161,16 @@ export default function AddChild() {
             {gender === "male"
               ? "طفل"
               : gender === "female"
-              ? "طفلة"
-              : "اختاري الجنس"}
+                ? "طفلة"
+                : "اختاري الجنس"}
           </Text>
         </View>
 
-        {/* ─── العنوان ─── */}
         <Text style={styles.title}>
           أدخلي معلومات الطفل لنبدأ رحلة{"\n"}المتابعة والنمو
         </Text>
 
-        {/* ─── الحقول ─── */}
         <View style={styles.inputSection}>
-          {/* اسم الطفل */}
           <View style={styles.inputContainer}>
             <Ionicons name="person-outline" size={20} color={PRIMARY_DARK} />
             <TextInput
@@ -196,7 +183,6 @@ export default function AddChild() {
             />
           </View>
 
-          {/* ايميل ولي الأمر */}
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={20} color={PRIMARY_DARK} />
             <TextInput
@@ -211,7 +197,6 @@ export default function AddChild() {
             />
           </View>
 
-          {/* نوع الصعوبة */}
           <View style={styles.inputContainer}>
             <Ionicons name="medkit-outline" size={20} color={PRIMARY_DARK} />
             <TextInput
@@ -225,7 +210,6 @@ export default function AddChild() {
           </View>
         </View>
 
-        {/* ─── اختيار الجنس ─── */}
         <Text style={styles.sectionLabel}>الجنس</Text>
         <View style={styles.genderRow}>
           <TouchableOpacity
@@ -289,7 +273,6 @@ export default function AddChild() {
           </TouchableOpacity>
         </View>
 
-        {/* ─── تاريخ الميلاد ─── */}
         <Text style={styles.sectionLabel}>تاريخ الميلاد</Text>
         <TouchableOpacity
           style={styles.dateInput}
@@ -317,7 +300,6 @@ export default function AddChild() {
           />
         )}
 
-        {/* ─── زر الحفظ ─── */}
         <TouchableOpacity
           style={[styles.nextButton, saving && { opacity: 0.7 }]}
           onPress={handleSave}
@@ -341,12 +323,8 @@ export default function AddChild() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  safeArea: { flex: 1, backgroundColor: BG },
 
-  // ─── Header ───
   headerGradient: {
     backgroundColor: PRIMARY,
     paddingHorizontal: 20,
@@ -389,11 +367,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#fff",
-  },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#fff" },
 
   container: {
     paddingHorizontal: 20,
@@ -402,11 +376,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // ─── Avatar Section ───
-  avatarSection: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
+  avatarSection: { alignItems: "center", marginBottom: 20 },
   avatarCircle: {
     width: 110,
     height: 110,
@@ -422,11 +392,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  avatarHint: {
-    fontSize: 13,
-    color: MUTED,
-    fontWeight: "600",
-  },
+  avatarHint: { fontSize: 13, color: MUTED, fontWeight: "600" },
 
   title: {
     fontSize: 16,
@@ -437,11 +403,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
 
-  // ─── Inputs ───
-  inputSection: {
-    width: "100%",
-    gap: 12,
-  },
+  inputSection: { width: "100%", gap: 12 },
   inputContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -457,15 +419,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 1,
   },
-  customInput: {
-    flex: 1,
-    height: 50,
-    fontSize: 14,
-    color: TEXT,
-    padding: 0,
-  },
+  customInput: { flex: 1, height: 50, fontSize: 14, color: TEXT, padding: 0 },
 
-  // ─── Section Label ───
   sectionLabel: {
     fontSize: 13,
     fontWeight: "700",
@@ -475,12 +430,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // ─── Gender ───
-  genderRow: {
-    flexDirection: "row-reverse",
-    width: "100%",
-    gap: 12,
-  },
+  genderRow: { flexDirection: "row-reverse", width: "100%", gap: 12 },
   genderCard: {
     flex: 1,
     backgroundColor: CARD,
@@ -495,10 +445,7 @@ const styles = StyleSheet.create({
     borderColor: PRIMARY,
     backgroundColor: PRIMARY_LIGHT,
   },
-  genderCardActiveFemale: {
-    borderColor: PINK,
-    backgroundColor: PINK_LIGHT,
-  },
+  genderCardActiveFemale: { borderColor: PINK, backgroundColor: PINK_LIGHT },
   genderIconBox: {
     width: 50,
     height: 50,
@@ -507,13 +454,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  genderText: {
-    fontSize: 14,
-    color: MUTED,
-    fontWeight: "600",
-  },
+  genderText: { fontSize: 14, color: MUTED, fontWeight: "600" },
 
-  // ─── Date ───
   dateInput: {
     backgroundColor: CARD,
     borderRadius: 16,
@@ -530,14 +472,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 1,
   },
-  dateText: {
-    flex: 1,
-    fontSize: 14,
-    color: TEXT,
-    textAlign: "right",
-  },
+  dateText: { flex: 1, fontSize: 14, color: TEXT, textAlign: "right" },
 
-  // ─── Save Button ───
   nextButton: {
     flexDirection: "row-reverse",
     backgroundColor: PRIMARY,
@@ -554,9 +490,5 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  nextButtonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  nextButtonText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
 });

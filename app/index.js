@@ -123,7 +123,11 @@ export default function TestIndex() {
     {
       title: "⚙️ الإعدادات",
       pages: [
-        { label: "الإعدادات", icon: "settings-outline", path: "/setting" },
+        {
+          label: "الإعدادات",
+          icon: "settings-outline",
+          path: "/specialist/Settings",
+        },
       ],
     },
     {

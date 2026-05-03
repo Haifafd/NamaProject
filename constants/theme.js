@@ -1,40 +1,42 @@
 // constants/theme.js
 // ⭐ مصدر الحقيقة الواحد لكل ألوان وستايل التطبيق
-// لو تبغين تغيرين شي في الثيم، عدّلي هنا فقط
+// الثيم: سماوي فاتح طفولي راقي
 
 export const COLORS = {
-  // ========== الألوان الأساسية ==========
-  PRIMARY: "#5A8DEE", // الأزرق الأساسي (الهوية)
-  PRIMARY_LIGHT: "#EAF2FF", // أزرق فاتح (للأفاتار والخلفيات الخفيفة)
-  PRIMARY_BG: "#F1F6FF", // خلفية البابل والعناصر التفاعلية
+  // ========== الألوان الأساسية (السماوية) ==========
+  PRIMARY: "#79ccf8", // السماوي الأساسي (الهيدر، الأزرار)
+  PRIMARY_DARK: "#0288D1", // سماوي غامق (للنصوص فوق الأبيض)
+  PRIMARY_LIGHT: "#E1F5FE", // سماوي فاتح جداً (الخلفيات)
+  PRIMARY_BG: "#F1F9FE", // خلفية البابل والعناصر التفاعلية
 
   // ========== الخلفيات ==========
   WHITE: "#FFFFFF",
-  CARD_BG: "#F8FAFF", // خلفية البطاقات الأساسية
-  CARD_BG_ALT: "#F9FBFF", // خلفية البطاقات البديلة
-  SEARCH_BG: "#F6F8FB", // خلفية مربع البحث
+  BG: "#F0F4F8", // خلفية الشاشة الرئيسية (رمادي فاتح جداً)
+  CARD_BG: "#FFFFFF", // خلفية البطاقات (أبيض)
+  CARD_BG_ALT: "#F8FBFE", // خلفية البطاقات البديلة
 
   // ========== الحدود ==========
-  BORDER_LIGHT: "#EEF2FF", // حدود البطاقات
-  BORDER_GRAY: "#EEEEEE", // حدود عامة
+  BORDER_LIGHT: "#E1F5FE", // حدود فاتحة
+  BORDER_GRAY: "#EEEEEE", // حدود رمادية
 
   // ========== النصوص ==========
-  TEXT: "#000000", // النص الأساسي
-  TEXT_DARK: "#1A1A1A", // نص داكن
-  MUTED: "#777777", // نص خافت
-  MUTED_DARK: "#888888", // نص خافت أغمق
+  TEXT: "#1A1A1A", // النص الأساسي
+  TEXT_DARK: "#000000", // نص داكن
+  MUTED: "#757575", // نص خافت
+  MUTED_LIGHT: "#9E9E9E", // نص خافت فاتح
 
   // ========== حالات ==========
-  SUCCESS: "#2ECC71", // نجاح / تقدم ≥70%
-  INFO: "#5A8DEE", // معلومات / تقدم ≥50%
-  WARNING: "#F5A623", // تحذير / تقدم <50%
-  DANGER: "#FF4D4F", // خطر / إشعارات
+  SUCCESS: "#4CAF50", // أخضر نجاح / تقدم ≥70%
+  INFO: "#5A8DEE", // أزرق معلومات
+  WARNING: "#F5A623", // برتقالي تحذير
+  DANGER: "#FF4D4F", // أحمر خطر / إشعارات
 
   // ========== ألوان إضافية ==========
   YELLOW: "#fbc707", // أصفر الجرس
   WARNING_BG: "#FFF6E8", // خلفية بطاقات التحذير
   WARNING_BORDER: "#FFE2B5", // حدود بطاقات التحذير
-  ICON_BLUE: "#6E8FC8", // لون أيقونة الأفاتار
+  SUCCESS_BG: "#E8F5E9", // خلفية النجاح
+  SUCCESS_BORDER: "#C8E6C9", // حدود النجاح
 };
 
 // ========== ألوان فئات الأنشطة ==========
@@ -54,28 +56,46 @@ export const SCORE_COLORS = {
   5: "#F44336", // ضعيف جداً
 };
 
+// ========== التدرّجات (Gradients) ==========
+export const GRADIENTS = {
+  primary: ["#79ccf8", "#5BB5E8"], // التدرج الأساسي للأزرار
+  primaryLight: ["#E1F5FE", "#B3E5FC"], // تدرج خفيف
+  header: ["#79ccf8", "#5BB5E8"], // تدرج الهيدر
+};
+
 // ========== الظلال ==========
 export const SHADOWS = {
-  bubble: {
-    shadowColor: "#5A8DEE",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
+  // ظل بطاقة عادية
   card: {
-    shadowColor: "#4d76bd",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  light: {
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  // ظل سماوي للأزرار والبابل
+  bubble: {
+    shadowColor: "#79ccf8",
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  // ظل خفيف
+  light: {
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
+  },
+  // ظل قوي للهيدر
+  header: {
+    shadowColor: "#79ccf8",
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
 };
 
@@ -98,6 +118,7 @@ export const RADIUS = {
   lg: 16,
   xl: 18,
   xxl: 20,
+  xxxl: 28,
   full: 9999,
 };
 
@@ -129,11 +150,11 @@ export const getProgressColor = (progress) => {
   return COLORS.WARNING;
 };
 
-// تصدير الكل ك default للسهولة
 export default {
   COLORS,
   CATEGORY_COLORS,
   SCORE_COLORS,
+  GRADIENTS,
   SHADOWS,
   SPACING,
   RADIUS,

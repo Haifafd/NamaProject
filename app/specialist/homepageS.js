@@ -22,20 +22,23 @@ import {
 import { getCurrentUser } from "../../Services/UserService";
 import BottomNavBar from "../../components/BottomNavBar";
 
-// ─── ثيم سماوي مبهج ───
-const PRIMARY = "#79ccf8";
-const PRIMARY_DARK = "#0288D1";
-const PRIMARY_LIGHT = "#E1F5FE";
-const BG = "#F0F4F8";
-const CARD = "#FFFFFF";
-const BORDER = "#E0E0E0";
-const TEXT = "#1A1A1A";
-const MUTED = "#757575";
-const GREEN = "#4CAF50";
-const GREEN_LIGHT = "#E8F5E9";
-const AMBER = "#F5A623";
-const AMBER_LIGHT = "#FFF6E8";
-const RED = "#FF4D4F";
+// ─── 🎨 استيراد الثيم الموحد من constants/theme.js ───
+import { COLORS } from "../../constants/theme";
+
+// ربط الأسماء المحلية بالثيم الموحد (backward compatible)
+const PRIMARY = COLORS.PRIMARY;
+const PRIMARY_DARK = COLORS.PRIMARY_DARK;
+const PRIMARY_LIGHT = COLORS.PRIMARY_LIGHT;
+const BG = COLORS.BG;
+const CARD = COLORS.CARD_BG;
+const BORDER = COLORS.BORDER_GRAY;
+const TEXT = COLORS.TEXT;
+const MUTED = COLORS.MUTED;
+const GREEN = COLORS.SUCCESS;
+const GREEN_LIGHT = COLORS.SUCCESS_BG;
+const AMBER = COLORS.WARNING;
+const AMBER_LIGHT = COLORS.WARNING_BG;
+const RED = COLORS.DANGER;
 
 function getProgressColor(progress) {
   if (progress === null || progress === undefined) return MUTED;
@@ -257,9 +260,7 @@ export default function HomepageS() {
             </TouchableOpacity>
           )}
 
-          {/* ═══════════════════════════════════════════ */}
-          {/* ─── SECTION HEADER (عنوان يمين، زر يسار) ─── */}
-          {/* ═══════════════════════════════════════════ */}
+          {/* ─── SECTION HEADER ─── */}
           <View style={styles.sectionHeader}>
             <TouchableOpacity style={styles.addBtn} onPress={handleAddChild}>
               <Ionicons name="add" size={14} color="#fff" />
@@ -394,9 +395,7 @@ export default function HomepageS() {
           <View style={{ height: 110 }} />
         </ScrollView>
 
-        {/* ═══════════════════════════════════════════ */}
-        {/* ─── BOTTOM NAVBAR (Component مشترك) ─── */}
-        {/* ═══════════════════════════════════════════ */}
+        {/* ─── BOTTOM NAVBAR ─── */}
         <BottomNavBar />
       </SafeAreaView>
     </View>
@@ -585,7 +584,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  // Section Header (row-reverse - عنوان يمين، زر يسار)
+  // Section Header
   sectionHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
