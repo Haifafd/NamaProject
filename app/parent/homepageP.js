@@ -1,362 +1,633 @@
+import { useEffect, useState } from "react";
 import {
-  Dimensions,
-  Image,
+  ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { getChildrenByParentEmail } from "../../Services/ChildrenService";
+import { getCurrentUser } from "../../Services/UserService";
+import BottomNavBar from "../../components/BottomNavBar";
+import { COLORS } from "../../constants/theme";
 
-// 🔥 استيراد Firebase
-import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../FirebaseConfig";
+const PRIMARY = COLORS.PRIMARY;
+const PRIMARY_DARK = COLORS.PRIMARY_DARK;
+const PRIMARY_LIGHT = COLORS.PRIMARY_LIGHT;
+const BG = COLORS.BG;
+const CARD = COLORS.CARD_BG;
+const TEXT = COLORS.TEXT;
+const MUTED = COLORS.MUTED;
+const GREEN = COLORS.SUCCESS;
+const GREEN_LIGHT = COLORS.SUCCESS_BG;
+const AMBER = COLORS.WARNING;
+const AMBER_LIGHT = COLORS.WARNING_BG;
+const RED = COLORS.DANGER;
 
-const { width } = Dimensions.get("window");
+function getProgressColor(progress) {
+  if (progress === null || progress === undefined) return MUTED;
+  if (progress >= 70) return GREEN;
+  if (progress >= 50) return PRIMARY_DARK;
+  return AMBER;
+}
 
-// --- المكونات الفرعية ---
+function getProgressLightColor(progress) {
+  if (progress === null || progress === undefined) return BG;
+  if (progress >= 70) return GREEN_LIGHT;
+  if (progress >= 50) return PRIMARY_LIGHT;
+  return AMBER_LIGHT;
+}
 
-const ProgressCard = ({ percentage, improvement }) => (
-  <View style={styles.card}>
-    <View style={styles.progressRow}>
-      <View style={styles.progressTextContainer}>
-        <Text style={styles.cardTitle}>متوسط التحسن العام لطفلك</Text>
-        <Text style={styles.cardSubTitle}>
-          تحسن طفلك بنسبة{" "}
-          <Text style={{ color: "#4CAF50", fontWeight: "bold" }}>
-            {improvement}
-          </Text>{" "}
-          عن الشهر الماضي
-        </Text>
-      </View>
-      <View style={styles.circleProgress}>
-        <Text style={styles.percentageText}>{percentage}%</Text>
-      </View>
-    </View>
-  </View>
-);
+function getGenderIcon(gender) {
+  const g = (gender || "").toString().toLowerCase();
+  if (g === "male" || g === "ذكر" || g === "ولد") {
+    return { name: "face-man", color: "#0288D1" };
+  }
+  if (g === "female" || g === "أنثى" || g === "انثى" || g === "بنت") {
+    return { name: "face-woman", color: "#E91E63" };
+  }
+  return { name: "baby-face-outline", color: MUTED };
+}
 
-const DoctorCard = ({ name, message, time }) => (
-  <View style={[styles.card, styles.doctorCard]}>
-    <View style={styles.doctorInfo}>
-      <Image
-        source={{ uri: "https://via.placeholder.com/50" }}
-        style={styles.avatar}
-      />
-      <View style={{ marginRight: 10 }}>
-        <Text style={styles.doctorName}>{name}</Text>
-        <Text style={styles.timeText}>{time}</Text>
-      </View>
-    </View>
-    <Text style={styles.messageText}>{message}</Text>
-    <TouchableOpacity style={styles.viewButton}>
-      <Text style={styles.viewButtonText}>عرض {">"}</Text>
-    </TouchableOpacity>
-  </View>
-);
-
-// --- الواجهة الرئيسية ---
-
-export default function App() {
+export default function HomepageP() {
   const router = useRouter();
 
-  // 🔥 جلب بيانات الوالد
-  const auth = getAuth();
-  const [parentData, setParentData] = useState(null);
+  const [user, setUser] = useState(null);
+  const [children, setChildren] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const [userData, childrenData] = await Promise.all([
+        getCurrentUser(),
+        getChildrenByParentEmail(),
+      ]);
+      setUser(userData);
+      setChildren(childrenData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchParentData = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      // 🔥 الحل الأول: نجيب البيانات من Users
-      const ref = doc(db, "Users", user.uid);
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        setParentData(snap.data());
-      }
-    };
-
-    fetchParentData();
+    loadData();
   }, []);
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const handleChildPress = (child) => {
+    router.push({
+      pathname: "/parent/ChildReport",
+      params: { childId: child.id, childName: child.name },
+    });
+  };
+
+  const handleActivities = () => router.push("/parent/Activities");
+  const handleAssessment = () => router.push("/parent/ParentAssessmentForm");
+  const handleChat = () => router.push("/parent/Chat");
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, styles.centerLoading]}>
+        <ActivityIndicator size="large" color={PRIMARY} />
+        <Text style={styles.loadingText}>جاري التحميل...</Text>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* الهيدر */}
-        <View style={styles.header}>
-          <TouchableOpacity>
-            <Text style={styles.bellIcon}>🔔</Text>
-          </TouchableOpacity>
-
-          {/* 🔥 اسم الوالد من الداتابيس */}
-          <Text style={styles.welcomeText}>
-            مرحباً، {parentData?.name || "الوالد"} 👋
-          </Text>
-        </View>
-
-        {/* 🔥 كارت التحسن من الداتابيس */}
-        <ProgressCard
-          percentage={parentData?.progress || 0}
-          improvement={parentData?.improvement || "0%"}
-        />
-
-        {/* كارت الطبيبة */}
-        <DoctorCard
-          name="دكتورة سارة"
-          time="اليوم 11:00 صباحاً"
-          message="تحسن ممتاز ماشاء الله..."
-        />
-
-        {/* زر تقييم الطفل */}
-        <TouchableOpacity
-          style={[styles.card, { alignItems: "center" }]}
-          onPress={() => router.push("/parent/ParentAssessmentForm")}
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[PRIMARY]}
+              tintColor={PRIMARY}
+            />
+          }
         >
-          <Text style={{ fontSize: 18, fontWeight: "bold" }}>تقييم الطفل</Text>
-        </TouchableOpacity>
+          {/* ─── HEADER ─── */}
+          <View style={styles.headerGradient}>
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
 
-        {/* قسم البطاقات الصغيرة */}
-        <View style={styles.row}>
-          <View style={[styles.card, styles.halfCard]}>
-            <Text style={styles.smallCardTitle}>عدد الجلسات الغير مكتمله</Text>
-            <Text style={styles.bigNumber}>2</Text>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.notificationBubble}>
+                <Ionicons name="notifications" size={20} color="#fff" />
+                <View style={styles.notificationDot} />
+              </TouchableOpacity>
+
+              <View style={styles.headerCenter}>
+                <Text style={styles.welcomeText}>مرحباً بعودتك</Text>
+                <Text style={styles.greeting}>{user?.name || "الوالد"}</Text>
+              </View>
+
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={20} color={PRIMARY_DARK} />
+              </View>
+            </View>
           </View>
 
-          <View style={[styles.card, styles.halfCard]}>
-            <Image
-              source={{ uri: "https://via.placeholder.com/40" }}
-              style={styles.childAvatar}
-            />
-
-            {/* 🔥 اسم الطفل من الداتابيس */}
-            <Text style={styles.childName}>
-              {parentData?.childName || "اسم الطفل"}
-            </Text>
-
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>تقدم في المهارات الحركية</Text>
+          {/* ─── WELCOME CARD ─── */}
+          <View style={styles.welcomeCard}>
+            <View style={styles.welcomeIconBox}>
+              <Ionicons name="heart" size={22} color={PRIMARY_DARK} />
             </View>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>عرض التقرير {">"}</Text>
+            <View style={styles.welcomeTextBox}>
+              <Text style={styles.welcomeTitle}>تابعي رحلة طفلك</Text>
+              <Text style={styles.welcomeSub}>
+                اكتشفي تطوره يوماً بعد يوم
+              </Text>
+            </View>
+          </View>
+
+          {/* ─── CHILDREN SECTION HEADER ─── */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              أطفالي{" "}
+              {children.length > 0 ? `(${children.length})` : ""}
+            </Text>
+          </View>
+
+          {/* ─── CHILDREN GRID / EMPTY ─── */}
+          {children.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconBox}>
+                <MaterialCommunityIcons
+                  name="baby-face-outline"
+                  size={42}
+                  color={PRIMARY_DARK}
+                />
+              </View>
+              <Text style={styles.emptyTitle}>
+                لا يوجد أطفال مرتبطين بحسابك
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                تواصلي مع الأخصائي لإضافة طفلك ومتابعة تطوره من هنا.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.childrenGrid}>
+              {children.map((child) => {
+                const color = getProgressColor(child.progress);
+                const lightColor = getProgressLightColor(child.progress);
+                const hasProgress =
+                  child.progress !== null && child.progress !== undefined;
+                const genderIcon = getGenderIcon(child.gender);
+
+                return (
+                  <TouchableOpacity
+                    key={child.id}
+                    style={styles.childCard}
+                    onPress={() => handleChildPress(child)}
+                    activeOpacity={0.7}
+                  >
+                    {hasProgress ? (
+                      <View
+                        style={[
+                          styles.progressBadge,
+                          { backgroundColor: lightColor },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.progressBadgeText, { color: color }]}
+                        >
+                          {child.progress}%
+                        </Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.progressBadge,
+                          { backgroundColor: PRIMARY_LIGHT },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.progressBadgeText,
+                            { color: PRIMARY_DARK },
+                          ]}
+                        >
+                          جديد
+                        </Text>
+                      </View>
+                    )}
+
+                    <View style={styles.childAvatar}>
+                      <MaterialCommunityIcons
+                        name={genderIcon.name}
+                        size={28}
+                        color={genderIcon.color}
+                      />
+                    </View>
+
+                    <Text style={styles.childName} numberOfLines={1}>
+                      {child.name}
+                    </Text>
+
+                    <Text style={styles.childAge}>
+                      العمر: {child.age} {child.age === 1 ? "سنة" : "سنوات"}
+                    </Text>
+
+                    {hasProgress ? (
+                      <View style={styles.progressBarContainer}>
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            {
+                              width: `${child.progress}%`,
+                              backgroundColor: color,
+                            },
+                          ]}
+                        />
+                      </View>
+                    ) : (
+                      <Text style={styles.noReportHint}>
+                        لا يوجد تقرير بعد
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* ─── QUICK ACTIONS SECTION ─── */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>إجراءات سريعة</Text>
+          </View>
+
+          <View style={styles.actionsCard}>
+            <TouchableOpacity
+              style={[styles.actionItem, styles.actionItemBorder]}
+              onPress={handleActivities}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.actionIconBox,
+                  { backgroundColor: PRIMARY_LIGHT },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="gamepad-variant"
+                  size={20}
+                  color={PRIMARY_DARK}
+                />
+              </View>
+              <View style={styles.actionTextBox}>
+                <Text style={styles.actionTitle}>ابدئي الأنشطة</Text>
+                <Text style={styles.actionSub}>ألعاب تنموية لطفلك</Text>
+              </View>
+              <Ionicons name="chevron-back" size={18} color={MUTED} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionItem, styles.actionItemBorder]}
+              onPress={handleAssessment}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.actionIconBox,
+                  { backgroundColor: AMBER_LIGHT },
+                ]}
+              >
+                <Ionicons
+                  name="clipboard-outline"
+                  size={20}
+                  color={AMBER}
+                />
+              </View>
+              <View style={styles.actionTextBox}>
+                <Text style={styles.actionTitle}>استمارة التقييم</Text>
+                <Text style={styles.actionSub}>أجيبي عن أسئلة المتابعة</Text>
+              </View>
+              <Ionicons name="chevron-back" size={18} color={MUTED} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleChat}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.actionIconBox,
+                  { backgroundColor: GREEN_LIGHT },
+                ]}
+              >
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={20}
+                  color={GREEN}
+                />
+              </View>
+              <View style={styles.actionTextBox}>
+                <Text style={styles.actionTitle}>تواصلي مع الأخصائي</Text>
+                <Text style={styles.actionSub}>محادثة مباشرة</Text>
+              </View>
+              <Ionicons name="chevron-back" size={18} color={MUTED} />
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* بنر الأنشطة */}
-        <TouchableOpacity
-          style={styles.banner}
-          onPress={() => router.push("/parent/IntroScreen")}
-        >
-          <View style={styles.bannerContent}>
-            <Text style={styles.bannerTitle}>الانتقال إلى وضع</Text>
-            <Text style={styles.bannerSubTitle}>الأنشطة</Text>
-          </View>
-          <View style={styles.arrowCircle}>
-            <Text style={{ color: "#fff", fontSize: 20 }}>→</Text>
-          </View>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+          <View style={{ height: 110 }} />
+        </ScrollView>
+
+        {/* ─── BOTTOM NAVBAR ─── */}
+        <BottomNavBar />
+      </SafeAreaView>
+    </View>
   );
 }
 
-// --- التنسيقات (نفس كودك بدون أي تغيير) ---
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
+  screen: { flex: 1, backgroundColor: BG },
+  centerLoading: { justifyContent: "center", alignItems: "center", gap: 12 },
+  loadingText: { color: MUTED, fontSize: 13 },
+
+  // Header
+  headerGradient: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 50,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: "hidden",
+    position: "relative",
   },
-  scrollContent: {
-    padding: 20,
-    alignItems: "flex-end",
+  decorCircle1: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
-  header: {
+  decorCircle2: {
+    position: "absolute",
+    bottom: -40,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  headerRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 25,
-    marginTop: 10,
   },
+  notificationBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 8,
+    right: 9,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: RED,
+    borderWidth: 2,
+    borderColor: PRIMARY,
+  },
+  headerCenter: { alignItems: "center" },
   welcomeText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 12,
+    color: "rgba(255,255,255,0.95)",
+    marginBottom: 2,
   },
-  bellIcon: {
-    fontSize: 24,
+  greeting: { fontSize: 20, fontWeight: "700", color: "#fff" },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 15,
-    width: "100%",
-    marginBottom: 15,
+
+  // Welcome Card
+  welcomeCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: CARD,
+    marginHorizontal: 20,
+    marginTop: -25,
+    padding: 16,
+    borderRadius: 18,
+    gap: 14,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  progressRow: {
+  welcomeIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: PRIMARY_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  welcomeTextBox: { flex: 1 },
+  welcomeTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: TEXT,
+    textAlign: "right",
+  },
+  welcomeSub: {
+    fontSize: 12,
+    color: MUTED,
+    marginTop: 2,
+    textAlign: "right",
+  },
+
+  // Section Header
+  sectionHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 22,
+    marginBottom: 12,
   },
-  progressTextContainer: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  cardTitle: {
+  sectionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#444",
-    marginBottom: 5,
-  },
-  cardSubTitle: {
-    fontSize: 13,
-    color: "#777",
+    fontWeight: "700",
+    color: TEXT,
     textAlign: "right",
   },
-  circleProgress: {
+
+  // Empty State
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 30,
+    paddingHorizontal: 30,
+    gap: 8,
+  },
+  emptyIconBox: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    borderWidth: 6,
-    borderColor: "#E0E0E0",
-    borderTopColor: "#4A90E2",
+    borderRadius: 24,
+    backgroundColor: PRIMARY_LIGHT,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
+    marginBottom: 8,
   },
-  percentageText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#444",
-  },
-  doctorCard: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  doctorInfo: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-  },
-  avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: "#EEE",
-  },
-  doctorName: {
-    fontWeight: "bold",
-    fontSize: 14,
-    textAlign: "right",
-  },
-  timeText: {
-    fontSize: 10,
-    color: "#AAA",
-    textAlign: "right",
-  },
-  messageText: {
-    fontSize: 12,
-    color: "#666",
-    flex: 1,
-    textAlign: "right",
-    marginHorizontal: 10,
-  },
-  viewButton: {
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  viewButtonText: {
-    color: "#4A90E2",
-    fontSize: 11,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  halfCard: {
-    width: "48%",
-    alignItems: "center",
-    minHeight: 140,
-  },
-  bigNumber: {
-    fontSize: 50,
-    color: "#4A90E2",
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  smallCardTitle: {
-    fontSize: 13,
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: TEXT,
+    marginTop: 4,
     textAlign: "center",
-    color: "#555",
   },
+  emptySubtitle: {
+    fontSize: 12,
+    color: MUTED,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 10,
+  },
+
+  // Children Grid
+  childrenGrid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  childCard: {
+    width: "48%",
+    backgroundColor: CARD,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#EEF2FF",
+    alignItems: "center",
+    position: "relative",
+    shadowColor: PRIMARY_DARK,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  progressBadge: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  progressBadgeText: { fontSize: 11, fontWeight: "800" },
   childAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginBottom: 5,
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: PRIMARY_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    marginTop: 4,
   },
   childName: {
-    fontSize: 14,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
+    color: TEXT,
+    textAlign: "center",
   },
-  badge: {
-    backgroundColor: "#E8F5E9",
-    padding: 4,
-    borderRadius: 5,
-    marginVertical: 5,
+  childAge: {
+    fontSize: 10,
+    color: MUTED,
+    marginTop: 2,
+    textAlign: "center",
   },
-  badgeText: {
-    fontSize: 9,
-    color: "#2E7D32",
-  },
-  linkText: {
-    color: "#4A90E2",
-    fontSize: 11,
-    marginTop: 5,
-  },
-  banner: {
-    width: "100%",
-    height: 120,
-    backgroundColor: "#4A90E2",
-    borderRadius: 25,
+  progressBarContainer: {
+    backgroundColor: BG,
+    height: 4,
+    borderRadius: 2,
     marginTop: 10,
-    padding: 20,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
+    width: "100%",
     overflow: "hidden",
   },
-  bannerTitle: {
-    color: "#FFF",
-    fontSize: 20,
-    textAlign: "right",
+  progressBarFill: { height: "100%", borderRadius: 2 },
+  noReportHint: {
+    fontSize: 10,
+    color: MUTED,
+    fontStyle: "italic",
+    marginTop: 8,
+    textAlign: "center",
   },
-  bannerSubTitle: {
-    color: "#FFF",
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "right",
+
+  // Quick Actions Card
+  actionsCard: {
+    backgroundColor: CARD,
+    marginHorizontal: 20,
+    borderRadius: 18,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  arrowCircle: {
+  actionItem: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  actionItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  actionIconBox: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    justifyContent: "center",
+    borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTextBox: { flex: 1 },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: TEXT,
+    textAlign: "right",
+  },
+  actionSub: {
+    fontSize: 11,
+    color: MUTED,
+    marginTop: 2,
+    textAlign: "right",
   },
 });

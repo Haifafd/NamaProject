@@ -150,3 +150,42 @@ export const getChildrenNeedingReview = (children) => {
     (c) => c.progress !== null && c.progress !== undefined && c.progress < 50
   );
 };
+
+// ─────────────────────────────────────────────
+// 👨‍👩 Get all children linked to current parent's email
+// Used in parent home page to show their children
+// ─────────────────────────────────────────────
+export const getChildrenByParentEmail = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser?.email) return [];
+
+    const q = query(
+      collection(db, "Children"),
+      where("parentEmail", "==", currentUser.email)
+    );
+
+    const snapshot = await getDocs(q);
+    const children = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    // Add age and progress to each child
+    const childrenWithDetails = await Promise.all(
+      children.map(async (child) => {
+        const progress = await getChildProgress(child.id);
+        return {
+          ...child,
+          age: calculateAge(child.birthDate),
+          progress: progress,
+        };
+      })
+    );
+
+    return childrenWithDetails;
+  } catch (error) {
+    console.error("Error fetching children by parent email:", error);
+    throw error;
+  }
+};
