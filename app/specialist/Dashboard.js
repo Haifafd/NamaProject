@@ -11,10 +11,12 @@ import {
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -112,6 +114,46 @@ export default function Dashboard() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  // ─────────────────────────────────────────────
+  // 📤 Share child report summary
+  // ─────────────────────────────────────────────
+  const handleShare = async () => {
+    if (!child) return;
+
+    try {
+      const totalActivities = results.length;
+
+      const memoryScore = calculateCategoryScore("memoryCategoryID");
+      const focusScore = calculateCategoryScore("focusCategoryID");
+      const thinkingScore = calculateCategoryScore("thinkingCategoryID");
+      const perceptionScore = calculateCategoryScore("perceptionCategoryID");
+
+      const formatScore = (score) =>
+        score === null ? "—" : `${score}/5 (${SCORE_LABELS[score] || ""})`;
+
+      const summary = `📊 تقرير الطفل - ${child.name}
+
+👶 العمر: ${calculateAge(child.birthDate)} سنوات
+📝 التشخيص: ${child.difficulty || "—"}
+🎯 الأنشطة المكتملة: ${totalActivities}
+
+─── تقييم الفئات ───
+🧠 الذاكرة: ${formatScore(memoryScore)}
+👁️ التركيز: ${formatScore(focusScore)}
+💡 التفكير: ${formatScore(thinkingScore)}
+🔷 الإدراك البصري: ${formatScore(perceptionScore)}
+
+📱 من تطبيق نماء`;
+
+      await Share.share({
+        message: summary,
+        title: `تقرير ${child.name}`,
+      });
+    } catch (error) {
+      Alert.alert("خطأ", "لم نتمكن من مشاركة التقرير");
+    }
   };
 
   const calculateAge = (birthDate) => {
@@ -285,7 +327,11 @@ export default function Dashboard() {
 
             <Text style={styles.headerTitle}>تقرير الطفل</Text>
 
-            <TouchableOpacity style={styles.exportButton}>
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={handleShare}
+              activeOpacity={0.7}
+            >
               <Ionicons name="share-outline" size={20} color="#fff" />
             </TouchableOpacity>
           </View>

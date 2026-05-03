@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   I18nManager,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -13,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 // --- استيراد Firebase ---
 import {
@@ -26,6 +28,7 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, db } from "../../FirebaseConfig";
+import { COLORS } from "../../constants/theme";
 
 // ── تفعيل RTL ─────────────────────────────────────────────
 I18nManager.allowRTL(true);
@@ -404,7 +407,7 @@ export default function SPForm() {
   if (isFetching) {
     return (
       <View style={[styles.container, { justifyContent: "center" }]}>
-        <ActivityIndicator size="large" color="#5BAD8A" />
+        <ActivityIndicator size="large" color={COLORS.PRIMARY} />
         <Text style={{ textAlign: "center", marginTop: 10 }}>
           جاري جلب تقييم الطفل...
         </Text>
@@ -423,9 +426,9 @@ export default function SPForm() {
           <TouchableOpacity
             style={[
               styles.nextBtn,
-              { backgroundColor: "#5BAD8A", marginTop: 30, width: "80%" },
+              { backgroundColor: COLORS.PRIMARY, marginTop: 30, width: "80%" },
             ]}
-            onPress={() => router.replace("/")}
+            onPress={() => router.replace("/specialist/homepageS")}
           >
             <Text style={styles.btnText}>العودة للرئيسية</Text>
           </TouchableOpacity>
@@ -436,23 +439,39 @@ export default function SPForm() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Text style={styles.backBtn}>رجوع</Text>
-        </TouchableOpacity>
-        <View
-          style={[styles.badge, { backgroundColor: currentPageData.badgeBg }]}
-        >
-          <Text
-            style={[styles.badgeText, { color: currentPageData.badgeText }]}
-          >
-            {currentPageData.section}
-          </Text>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.PRIMARY} />
+
+      <View style={styles.headerGradient}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backBtnNew} onPress={handleBack}>
+            <Ionicons name="chevron-forward" size={22} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>استمارة التقييم</Text>
+            <Text style={styles.headerSubtitle}>
+              صفحة {currentPage + 1} من {PAGES.length - 1}
+            </Text>
+          </View>
+
+          <View style={{ width: 38 }} />
         </View>
-        <Text style={styles.pageIndicator}>
-          {currentPage + 1} / {PAGES.length - 1}
-        </Text>
+
+        {/* Section badge - shown below header center */}
+        <View style={styles.badgeContainer}>
+          <View
+            style={[styles.badge, { backgroundColor: currentPageData.badgeBg }]}
+          >
+            <Text
+              style={[styles.badgeText, { color: currentPageData.badgeText }]}
+            >
+              {currentPageData.section}
+            </Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -508,7 +527,7 @@ export default function SPForm() {
         <TouchableOpacity
           style={[
             styles.nextBtn,
-            { backgroundColor: currentPageData.btnColor },
+            { backgroundColor: COLORS.PRIMARY },
           ]}
           onPress={handleNext}
           disabled={loading}
@@ -528,18 +547,74 @@ export default function SPForm() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9F9F9" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: "#FFF",
+
+  // Sky gradient header
+  headerGradient: {
+    backgroundColor: COLORS.PRIMARY,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: "hidden",
+    position: "relative",
   },
-  backBtn: { fontSize: 16, color: "#666" },
-  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  decorCircle1: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  decorCircle2: {
+    position: "absolute",
+    bottom: -40,
+    left: -20,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  headerRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1,
+  },
+  backBtnNew: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  badgeContainer: {
+    alignItems: "center",
+    marginTop: 12,
+    zIndex: 1,
+  },
+
+  badge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14 },
   badgeText: { fontSize: 12, fontWeight: "bold" },
-  pageIndicator: { fontSize: 14, color: "#999" },
   scrollContent: { padding: 20 },
   questionWrapper: {
     marginBottom: 30,
@@ -574,7 +649,10 @@ const styles = StyleSheet.create({
     minWidth: "22%",
     alignItems: "center",
   },
-  radioSelected: { backgroundColor: "#5BAD8A", borderColor: "#5BAD8A" },
+  radioSelected: {
+    backgroundColor: COLORS.PRIMARY,
+    borderColor: COLORS.PRIMARY,
+  },
   radioLabel: { fontSize: 13, color: "#666" },
   radioLabelSelected: { color: "#FFF", fontWeight: "bold" },
   textInput: {

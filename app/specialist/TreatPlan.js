@@ -10,8 +10,10 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { auth } from "../../FirebaseConfig";
 import {
   getAllActivities,
@@ -20,15 +22,17 @@ import {
   CATEGORIES,
   CATEGORY_INFO,
 } from "../../Services/ActivityService";
+import { COLORS } from "../../constants/theme";
 
-const PRIMARY = "#1565C0";
-const PRIMARY_LIGHT = "#E3F2FD";
-const BG = "#F0F4F8";
-const CARD = "#FFFFFF";
-const BORDER = "#E0E0E0";
-const TEXT = "#1A1A1A";
-const MUTED = "#757575";
-const GREEN = "#4CAF50";
+const PRIMARY = COLORS.PRIMARY;
+const PRIMARY_DARK = COLORS.PRIMARY_DARK;
+const PRIMARY_LIGHT = COLORS.PRIMARY_LIGHT;
+const BG = COLORS.BG;
+const CARD = COLORS.CARD_BG;
+const BORDER = COLORS.BORDER_GRAY;
+const TEXT = COLORS.TEXT;
+const MUTED = COLORS.MUTED;
+const GREEN = COLORS.SUCCESS;
 const RED = "#f56565";
 
 // فلاتر التصنيفات (الكل + 4 أنواع)
@@ -87,9 +91,9 @@ function Checkbox({ checked, onToggle, color = PRIMARY }) {
   );
 }
 
-export default function TherapyPlanScreen({ navigation, route }) {
-  // childId يجي من الصفحة السابقة (قائمة الأطفال)
-  const childId = route?.params?.childId || null;
+export default function TherapyPlanScreen() {
+  const router = useRouter();
+  const { childId, childName } = useLocalSearchParams();
 
   // ── الأهداف (تبدأ فاضية) ──
   const [goals, setGoals] = useState([]);
@@ -238,8 +242,12 @@ export default function TherapyPlanScreen({ navigation, route }) {
       });
 
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      Alert.alert("تم بنجاح", "تم حفظ الخطة العلاجية");
+      Alert.alert("تم بنجاح", "تم حفظ الخطة العلاجية", [
+        {
+          text: "حسناً",
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error) {
       Alert.alert("خطأ", "لم نتمكن من حفظ الخطة");
     } finally {
@@ -248,19 +256,30 @@ export default function TherapyPlanScreen({ navigation, route }) {
   };
 
   const handleBack = () => {
-    if (navigation) navigation.goBack();
+    router.back();
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor={CARD} />
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Ionicons name="chevron-forward" size={22} color={TEXT} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>الخطة العلاجية وإدارة الأنشطة</Text>
+      {/* Header with sky gradient */}
+      <View style={styles.headerGradient}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+            <Ionicons name="chevron-forward" size={22} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>الخطة العلاجية</Text>
+            <Text style={styles.headerSubtitle}>إدارة الأهداف والأنشطة</Text>
+          </View>
+
+          <View style={{ width: 38 }} />
+        </View>
       </View>
 
       <ScrollView
@@ -617,36 +636,65 @@ export default function TherapyPlanScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
+
+  // Sky gradient header
+  headerGradient: {
+    backgroundColor: PRIMARY,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: CARD,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: "hidden",
+    position: "relative",
+  },
+  decorCircle1: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  decorCircle2: {
+    position: "absolute",
+    bottom: -40,
+    left: -20,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  headerRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1,
   },
   backBtn: {
-    position: "absolute",
-    left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#F5F5F5",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: BORDER,
-    transform: [{ rotate: "180deg" }],
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 16,
-    color: TEXT,
-    textAlign: "right",
-    flex: 1,
-    paddingRight: 4,
     fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+    textAlign: "center",
   },
   scroll: { flex: 1 },
   content: { padding: 16, gap: 14 },

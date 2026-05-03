@@ -22,6 +22,11 @@ import {
   View,
 } from "react-native";
 import { db } from "../../FirebaseConfig";
+import {
+  getChildPlan,
+  getActivitiesByIds,
+  CATEGORY_INFO,
+} from "../../Services/ActivityService";
 import BottomNavBar from "../../components/BottomNavBar";
 
 // ─── 🎨 الثيم الموحد ───
@@ -65,6 +70,8 @@ export default function ChildReport() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [plan, setPlan] = useState(null);
+  const [planActivities, setPlanActivities] = useState([]);
 
   const calculateCategoryScore = (categoryId) => {
     const categoryResults = results.filter((r) => r.categoryId === categoryId);
@@ -98,6 +105,17 @@ export default function ChildReport() {
         ...doc.data(),
       }));
       setResults(resultsData);
+
+      // Fetch therapy plan
+      const planData = await getChildPlan(childId);
+      setPlan(planData);
+
+      if (planData?.activityIds?.length > 0) {
+        const activities = await getActivitiesByIds(planData.activityIds);
+        setPlanActivities(activities);
+      } else {
+        setPlanActivities([]);
+      }
     } catch (error) {
       console.error("Error loading dashboard:", error);
     } finally {
@@ -386,6 +404,158 @@ export default function ChildReport() {
             categoryId="perceptionCategoryID"
           />
 
+          {/* ─── Therapy Plan Section ─── */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>الخطة العلاجية</Text>
+            <Text style={styles.sectionSubtitle}>
+              الأهداف والأنشطة المخصصة لطفلك
+            </Text>
+          </View>
+
+          {plan ? (
+            <View style={styles.planCard}>
+              {/* Goals Sub-card */}
+              {plan.goals && plan.goals.length > 0 && (
+                <>
+                  <View style={styles.planSection}>
+                    <View style={styles.planSectionHeader}>
+                      <View
+                        style={[
+                          styles.planIconBox,
+                          { backgroundColor: "#FFF6E8" },
+                        ]}
+                      >
+                        <Ionicons name="flag" size={16} color="#F5A623" />
+                      </View>
+                      <Text style={styles.planSectionTitle}>
+                        الأهداف العلاجية
+                      </Text>
+                    </View>
+                    {plan.goals.map((goal, index) => (
+                      <View key={index} style={styles.goalRow}>
+                        <View style={styles.goalBullet} />
+                        <Text style={styles.goalText}>{goal}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.planDivider} />
+                </>
+              )}
+
+              {/* Dose Sub-card */}
+              <View style={styles.planSection}>
+                <View style={styles.planSectionHeader}>
+                  <View
+                    style={[
+                      styles.planIconBox,
+                      { backgroundColor: PRIMARY_LIGHT },
+                    ]}
+                  >
+                    <Ionicons name="medkit" size={16} color={PRIMARY_DARK} />
+                  </View>
+                  <Text style={styles.planSectionTitle}>الجرعة العلاجية</Text>
+                </View>
+                <View style={styles.doseGrid}>
+                  <View style={styles.doseItem}>
+                    <Text style={styles.doseNumber}>
+                      {plan.sessionsPerWeek || 0}
+                    </Text>
+                    <Text style={styles.doseLabel}>جلسات/أسبوع</Text>
+                  </View>
+                  <View style={styles.doseDivider} />
+                  <View style={styles.doseItem}>
+                    <Text style={styles.doseNumber}>
+                      {plan.activitiesPerSession || 0}
+                    </Text>
+                    <Text style={styles.doseLabel}>أنشطة/جلسة</Text>
+                  </View>
+                  <View style={styles.doseDivider} />
+                  <View style={styles.doseItem}>
+                    <Text style={styles.doseNumber}>
+                      {plan.duration || 0}
+                      <Text style={styles.doseUnit}> د</Text>
+                    </Text>
+                    <Text style={styles.doseLabel}>المدة</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Activities Sub-card */}
+              {planActivities.length > 0 && (
+                <>
+                  <View style={styles.planDivider} />
+                  <View style={styles.planSection}>
+                    <View style={styles.planSectionHeader}>
+                      <View
+                        style={[
+                          styles.planIconBox,
+                          { backgroundColor: "#E8F5E9" },
+                        ]}
+                      >
+                        <Ionicons name="list" size={16} color="#4CAF50" />
+                      </View>
+                      <Text style={styles.planSectionTitle}>
+                        الأنشطة المطلوبة ({planActivities.length})
+                      </Text>
+                    </View>
+                    {planActivities.map((activity) => {
+                      const catInfo = CATEGORY_INFO[activity.categoryId] || {
+                        name: "—",
+                        color: MUTED,
+                        lightColor: BG,
+                        icon: "help-circle",
+                      };
+                      return (
+                        <View
+                          key={activity.id}
+                          style={styles.planActivityRow}
+                        >
+                          <View
+                            style={[
+                              styles.planActivityIcon,
+                              { backgroundColor: catInfo.lightColor },
+                            ]}
+                          >
+                            <Ionicons
+                              name={catInfo.icon}
+                              size={14}
+                              color={catInfo.color}
+                            />
+                          </View>
+                          <Text style={styles.planActivityName}>
+                            {activity.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.planActivityCategory,
+                              { color: catInfo.color },
+                            ]}
+                          >
+                            {catInfo.name}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
+            </View>
+          ) : (
+            <View style={styles.emptyPlanCard}>
+              <Ionicons
+                name="document-text-outline"
+                size={32}
+                color={MUTED}
+              />
+              <Text style={styles.emptyPlanTitle}>
+                لم يتم إعداد خطة علاجية بعد
+              </Text>
+              <Text style={styles.emptyPlanSub}>
+                سيقوم الأخصائي بإعداد الخطة قريباً
+              </Text>
+            </View>
+          )}
+
           <View style={{ height: 110 }} />
         </ScrollView>
 
@@ -628,5 +798,151 @@ const styles = StyleSheet.create({
     color: MUTED,
     textAlign: "right",
     lineHeight: 16,
+  },
+
+  // Plan card
+  planCard: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  planSection: {
+    paddingVertical: 4,
+  },
+  planSectionHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  planIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planSectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: TEXT,
+  },
+  planDivider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginVertical: 12,
+  },
+
+  // Goals
+  goalRow: {
+    flexDirection: "row-reverse",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  goalBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: PRIMARY,
+    marginTop: 7,
+  },
+  goalText: {
+    flex: 1,
+    fontSize: 13,
+    color: TEXT,
+    textAlign: "right",
+    lineHeight: 22,
+  },
+
+  // Dose grid
+  doseGrid: {
+    flexDirection: "row-reverse",
+    backgroundColor: BG,
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  doseItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  doseDivider: {
+    width: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: 4,
+  },
+  doseNumber: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: PRIMARY_DARK,
+  },
+  doseUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  doseLabel: {
+    fontSize: 10,
+    color: MUTED,
+    marginTop: 2,
+    textAlign: "center",
+  },
+
+  // Plan activities
+  planActivityRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  planActivityIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planActivityName: {
+    flex: 1,
+    fontSize: 13,
+    color: TEXT,
+    textAlign: "right",
+    fontWeight: "600",
+  },
+  planActivityCategory: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  // Empty plan
+  emptyPlanCard: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    padding: 24,
+    alignItems: "center",
+    gap: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  emptyPlanTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: TEXT,
+    marginTop: 4,
+  },
+  emptyPlanSub: {
+    fontSize: 12,
+    color: MUTED,
+    textAlign: "center",
   },
 });
