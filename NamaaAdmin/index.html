@@ -264,6 +264,8 @@
       let parents = 0, specialists = 0;
       snap.forEach((d) => {
         const data = { id: d.id, ...d.data() };
+        // Skip admin accounts - they're system users, not regular users
+        if (data.role === "admin") return;
         users.push(data);
         if (data.role === "parent") parents++;
         else if (data.role === "specialist") specialists++;
