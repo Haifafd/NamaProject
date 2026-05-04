@@ -1,320 +1,491 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  Modal,
-  ScrollView,
+  Animated,
+  FlatList,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-import { auth, db } from "../../FirebaseConfig";
-
-// استيراد مكونات الثيم الموحد ومودال النتيجة
-import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import Svg, { Circle, Ellipse, Path } from "react-native-svg";
+import { saveActivityResult } from "../../Services/ActivityService";
 import ResultModal from "./Result";
+import {
+  GARDEN,
+  NoumiCompanion,
+  SpeechBubble,
+  SunSVG,
+  CloudSmall,
+  MiniFlower,
+  HAPPY_MESSAGES,
+  SAD_MESSAGES,
+  EXCITED_MESSAGES,
+  pickRandom,
+  sharedGameStyles,
+} from "./_GameComponents";
 
-const { width } = Dimensions.get("window");
+const ICONS = [
+  "tree",
+  "flower",
+  "butterfly",
+  "apple",
+  "sun",
+  "cloud",
+  "strawberry",
+  "bee",
+];
 
-const ALL_ICONS = ["🍩", "🍄", "⏰", "🐢", "🍎", "⭐", "🎈", "🎨", "🚀", "🌈"];
+function CardIcon({ type, size = 60 }) {
+  switch (type) {
+    case "tree":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Path d="M 27 50 L 27 38 L 33 38 L 33 50 Z" fill="#6D4C41" />
+          <Circle cx="30" cy="28" r="18" fill="#4CAF50" />
+          <Circle cx="20" cy="32" r="11" fill="#43A047" />
+          <Circle cx="40" cy="32" r="11" fill="#43A047" />
+          <Circle cx="30" cy="20" r="13" fill="#66BB6A" />
+        </Svg>
+      );
+    case "flower":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Path d="M 30 52 L 30 38" stroke="#388E3C" strokeWidth="3" strokeLinecap="round" />
+          <Circle cx="30" cy="20" r="9" fill="#EC407A" />
+          <Circle cx="20" cy="28" r="9" fill="#EC407A" />
+          <Circle cx="40" cy="28" r="9" fill="#EC407A" />
+          <Circle cx="30" cy="34" r="9" fill="#EC407A" />
+          <Circle cx="30" cy="26" r="6" fill="#FFCA28" />
+        </Svg>
+      );
+    case "butterfly":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Ellipse cx="30" cy="30" rx="2" ry="14" fill="#3E2723" />
+          <Ellipse cx="18" cy="22" rx="11" ry="9" fill="#FF7043" transform="rotate(-25 18 22)" />
+          <Ellipse cx="42" cy="22" rx="11" ry="9" fill="#FF7043" transform="rotate(25 42 22)" />
+          <Ellipse cx="20" cy="40" rx="9" ry="7" fill="#FFAB91" transform="rotate(20 20 40)" />
+          <Ellipse cx="40" cy="40" rx="9" ry="7" fill="#FFAB91" transform="rotate(-20 40 40)" />
+          <Circle cx="16" cy="20" r="2" fill="#FFFFFF" />
+          <Circle cx="44" cy="20" r="2" fill="#FFFFFF" />
+        </Svg>
+      );
+    case "apple":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Path d="M 30 12 Q 32 8 36 8" stroke="#388E3C" strokeWidth="3" strokeLinecap="round" fill="none" />
+          <Path d="M 32 14 Q 38 12 42 18" stroke="#4CAF50" strokeWidth="2" fill="#66BB6A" />
+          <Circle cx="30" cy="35" r="20" fill="#E53935" />
+          <Circle cx="22" cy="28" r="6" fill="#FFCDD2" opacity="0.6" />
+        </Svg>
+      );
+    case "sun":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Circle cx="30" cy="30" r="16" fill="#FFCA28" />
+          <Path d="M 30 4 L 30 12" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 30 48 L 30 56" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 4 30 L 12 30" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 48 30 L 56 30" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 12 12 L 17 17" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 43 43 L 48 48" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 12 48 L 17 43" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Path d="M 43 17 L 48 12" stroke="#FFCA28" strokeWidth="3" strokeLinecap="round" />
+          <Circle cx="25" cy="28" r="2" fill="#5D4037" />
+          <Circle cx="35" cy="28" r="2" fill="#5D4037" />
+          <Path d="M 25 35 Q 30 38 35 35" stroke="#5D4037" strokeWidth="2" strokeLinecap="round" fill="none" />
+        </Svg>
+      );
+    case "cloud":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Ellipse cx="18" cy="36" rx="13" ry="10" fill="#90CAF9" />
+          <Ellipse cx="35" cy="30" rx="16" ry="14" fill="#90CAF9" />
+          <Ellipse cx="48" cy="36" rx="11" ry="9" fill="#90CAF9" />
+          <Ellipse cx="32" cy="40" rx="22" ry="9" fill="#90CAF9" />
+        </Svg>
+      );
+    case "strawberry":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Path d="M 22 18 L 28 14 L 32 14 L 38 18 L 30 18 Z" fill="#43A047" />
+          <Path d="M 18 22 Q 30 14 42 22 L 38 50 Q 30 58 22 50 Z" fill="#E53935" />
+          <Circle cx="26" cy="30" r="1.5" fill="#FFEB3B" />
+          <Circle cx="34" cy="32" r="1.5" fill="#FFEB3B" />
+          <Circle cx="28" cy="40" r="1.5" fill="#FFEB3B" />
+          <Circle cx="36" cy="42" r="1.5" fill="#FFEB3B" />
+          <Circle cx="30" cy="35" r="1.5" fill="#FFEB3B" />
+        </Svg>
+      );
+    case "bee":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+          <Ellipse cx="30" cy="32" rx="18" ry="14" fill="#FFC107" />
+          <Path d="M 17 24 L 43 24" stroke="#3E2723" strokeWidth="4" />
+          <Path d="M 14 36 L 46 36" stroke="#3E2723" strokeWidth="4" />
+          <Ellipse cx="20" cy="22" rx="8" ry="6" fill="#FFFFFF" opacity="0.7" />
+          <Ellipse cx="40" cy="22" rx="8" ry="6" fill="#FFFFFF" opacity="0.7" />
+          <Circle cx="22" cy="30" r="2" fill="#3E2723" />
+          <Circle cx="38" cy="30" r="2" fill="#3E2723" />
+        </Svg>
+      );
+    default:
+      return null;
+  }
+}
 
-export default function MemoryGame({ navigation, route }) {
+const LEVEL_PAIRS = { 1: 2, 2: 3, 3: 4 };
+
+export default function MemoryCardGame() {
   const router = useRouter();
-  const activityId = route?.params?.activityId || "memory_game_01";
+  const { childId, activityId, activityTitle, category } =
+    useLocalSearchParams();
+
   const [level, setLevel] = useState(1);
   const [cards, setCards] = useState([]);
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedCards, setMatchedCards] = useState([]);
   const [isMemorizing, setIsMemorizing] = useState(true);
-  const [showModal, setShowModal] = useState({ visible: false, success: true });
-  const [showFinishedCard, setShowFinishedCard] = useState(false);
-  const [showReport, setShowReport] = useState(false);
   const [gameState, setGameState] = useState("playing");
+  const [finalStars, setFinalStars] = useState(0);
 
-  const [stats, setStats] = useState({ correctPairs: 0, wrongAttempts: 0, totalReactionTime: 0 });
-  const levelStartTime = useRef(Date.now());
+  const [noumiExpression, setNoumiExpression] = useState("idle");
+  const [bubbleText, setBubbleText] = useState("");
+  const [bubbleColor, setBubbleColor] = useState(GARDEN.bubbleHappy);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
 
-  const progressPercent = level === 1 ? 0 : level === 2 ? 50 : 100;
+  const noumiBounce = useRef(new Animated.Value(0)).current;
+  const noumiShake = useRef(new Animated.Value(0)).current;
+  const startTime = useRef(Date.now());
+  const correctMatches = useRef(0);
+  const wrongAttempts = useRef(0);
+  const bubbleTimerRef = useRef(null);
 
-  // تحديد حجم البطاقة وعدد الأعمدة بناءً على المستوى لمنع التداخل
-  const numColumns = level === 1 ? 2 : 3; 
-  const CARD_SIZE = (width * 0.8) / numColumns;
+  const numColumns = level === 1 ? 2 : level === 2 ? 3 : 3;
 
-  const saveMemoryResults = async (finalStats) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
+  const showSpeechBubble = (text, color, expression, duration = 1500) => {
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    setBubbleText(text);
+    setBubbleColor(color);
+    setNoumiExpression(expression);
+    setBubbleVisible(true);
 
-      await addDoc(collection(db, "ActivityResults"), {
-        activityId: activityId,
-        childId: user.uid,
-        vmiScore: parseInt(finalStats.vmi),
-        cpiScore: parseInt(finalStats.cpi),
-        avgReactionTime: parseFloat(finalStats.avgTime),
-        totalErrors: stats.wrongAttempts,
-        status: "completed",
-        createdAt: serverTimestamp(),
-      });
-    } catch (e) {
-      console.error("❌ خطأ في الحفظ: ", e);
+    if (expression === "happy" || expression === "excited") {
+      Animated.sequence([
+        Animated.timing(noumiBounce, { toValue: -8, duration: 200, useNativeDriver: true }),
+        Animated.timing(noumiBounce, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else if (expression === "sad") {
+      Animated.sequence([
+        Animated.timing(noumiShake, { toValue: -3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 0, duration: 100, useNativeDriver: true }),
+      ]).start();
     }
-  };
 
-  const calculateFinalStats = () => {
-    const totalActions = stats.correctPairs + stats.wrongAttempts;
-    const accuracy = stats.correctPairs / (totalActions || 1);
-    const avgTime = stats.totalReactionTime / (stats.correctPairs || 1);
-    const vmi = (accuracy * 70) + (Math.max(0, 1 - avgTime / 15000) * 30);
-    const cpi = (accuracy * 80) + (Math.max(0, 1 - stats.wrongAttempts * 0.1) * 20);
-    
-    return {
-      vmi: Math.min(98, vmi).toFixed(0),
-      cpi: Math.min(96, cpi).toFixed(0),
-      avgTime: (avgTime / 1000).toFixed(1)
-    };
+    bubbleTimerRef.current = setTimeout(() => {
+      setBubbleVisible(false);
+      setNoumiExpression("idle");
+    }, duration);
   };
 
   const initGame = useCallback(() => {
-    const pairsCount = level === 1 ? 2 : level === 2 ? 3 : 4;
-    const selectedIcons = ALL_ICONS.slice(0, pairsCount);
-    const gameIcons = [...selectedIcons, ...selectedIcons]
+    const pairsCount = LEVEL_PAIRS[level];
+    const selectedIcons = ICONS.slice(0, pairsCount);
+    const cardSet = [...selectedIcons, ...selectedIcons]
       .sort(() => Math.random() - 0.5)
-      .map((icon, index) => ({ id: index, icon, isFlipped: true }));
-
-    setCards(gameIcons);
-    setMatchedCards([]);
+      .map((icon, idx) => ({ id: idx, icon, isFlipped: true }));
+    setCards(cardSet);
     setFlippedCards([]);
+    setMatchedCards([]);
     setIsMemorizing(true);
+    startTime.current = Date.now();
+
+    showSpeechBubble("احفظي البطاقات!", GARDEN.bubbleHappy, "happy", 2500);
 
     setTimeout(() => {
+      setCards((prev) => prev.map((c) => ({ ...c, isFlipped: false })));
       setIsMemorizing(false);
-      setCards((prev) => prev.map((card) => ({ ...card, isFlipped: false })));
-      levelStartTime.current = Date.now();
-    }, 3000);
+      showSpeechBubble("ابحثي عن الأزواج!", GARDEN.bubbleHappy, "happy", 2000);
+    }, 3500);
   }, [level]);
 
-  useEffect(() => { if (level <= 3) initGame(); }, [level, initGame]);
+  useEffect(() => {
+    if (level <= 3) initGame();
+  }, [level, initGame]);
 
-  const handleCardPress = (index) => {
-    if (isMemorizing || cards[index].isFlipped || matchedCards.includes(index) || flippedCards.length === 2) return;
-    const reactionTime = Date.now() - levelStartTime.current;
-    
+  const handleCardPress = (idx) => {
+    if (
+      isMemorizing ||
+      cards[idx].isFlipped ||
+      matchedCards.includes(idx) ||
+      flippedCards.length === 2
+    )
+      return;
+
     const newCards = [...cards];
-    newCards[index].isFlipped = true;
+    newCards[idx].isFlipped = true;
     setCards(newCards);
-    const newFlipped = [...flippedCards, index];
+    const newFlipped = [...flippedCards, idx];
     setFlippedCards(newFlipped);
 
     if (newFlipped.length === 2) {
       const [first, second] = newFlipped;
       if (cards[first].icon === cards[second].icon) {
-        setStats(prev => ({ ...prev, correctPairs: prev.correctPairs + 1, totalReactionTime: prev.totalReactionTime + reactionTime }));
-        const updatedMatched = [...matchedCards, first, second];
-        setMatchedCards(updatedMatched);
+        correctMatches.current += 1;
+        showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+        const newMatched = [...matchedCards, first, second];
+        setMatchedCards(newMatched);
         setFlippedCards([]);
-        
-        if (updatedMatched.length === cards.length) {
+
+        if (newMatched.length === cards.length) {
           setTimeout(() => {
-            if (level === 3) { 
-              const finalStats = calculateFinalStats();
-              saveMemoryResults(finalStats);
-              setShowFinishedCard(true); 
-              setGameState("won");
+            if (level < 3) {
+              showSpeechBubble(
+                pickRandom(EXCITED_MESSAGES),
+                GARDEN.bubbleExcited,
+                "excited",
+                2500
+              );
+              setTimeout(() => setLevel(level + 1), 1500);
+            } else {
+              finishGame();
             }
-            else { setShowModal({ visible: true, success: true }); }
           }, 600);
         }
       } else {
-        setStats(prev => ({ ...prev, wrongAttempts: prev.wrongAttempts + 1 }));
+        wrongAttempts.current += 1;
+        showSpeechBubble(pickRandom(SAD_MESSAGES), GARDEN.bubbleSad, "sad", 1500);
         setTimeout(() => {
           newCards[first].isFlipped = false;
           newCards[second].isFlipped = false;
           setCards([...newCards]);
           setFlippedCards([]);
-          setShowModal({ visible: true, success: false });
-        }, 800);
+        }, 1000);
       }
     }
   };
 
-  const resetGame = () => {
-    setLevel(1);
-    setShowFinishedCard(false);
-    setShowReport(false);
-    setGameState("playing");
-    setStats({correctPairs:0, wrongAttempts:0, totalReactionTime:0});
+  const finishGame = async () => {
+    const duration = Math.round((Date.now() - startTime.current) / 1000);
+    const correct = correctMatches.current;
+    const wrong = wrongAttempts.current;
+    const total = correct + wrong;
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+    let stars = 1;
+    if (accuracy >= 80) stars = 3;
+    else if (accuracy >= 50) stars = 2;
+
+    setFinalStars(stars);
+    setGameState("won");
+
+    if (childId && activityId) {
+      await saveActivityResult({
+        childId,
+        activityId,
+        activityTitle: activityTitle || "بطاقات الذاكرة",
+        category: category || "memoryCategoryID",
+        level: 3,
+        correctAnswers: correct,
+        wrongAnswers: wrong,
+        totalAttempts: total,
+        durationSec: duration,
+      });
+    }
   };
 
-  const results = calculateFinalStats();
+  const handleReset = () => {
+    setLevel(1);
+    setGameState("playing");
+    setFinalStars(0);
+    correctMatches.current = 0;
+    wrongAttempts.current = 0;
+  };
+
+  const handleBackToPath = () => {
+    if (childId) {
+      router.replace({ pathname: "/child/Home", params: { childId } });
+    } else {
+      router.back();
+    }
+  };
+
+  const overallProgress =
+    (level - 1) / 3 + (matchedCards.length / cards.length / 3 || 0);
+
+  const renderCard = ({ item, index }) => {
+    const isVisible = item.isFlipped || matchedCards.includes(index);
+    const isMatched = matchedCards.includes(index);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.card,
+          isMatched && styles.cardMatched,
+          isVisible && styles.cardFlipped,
+        ]}
+        onPress={() => handleCardPress(index)}
+        disabled={isVisible || isMemorizing}
+        activeOpacity={0.85}
+      >
+        {isVisible ? (
+          <CardIcon type={item.icon} size={60} />
+        ) : (
+          <View style={styles.cardBack}>
+            <Svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <Circle cx="20" cy="14" r="3.5" fill="#FFFFFF" />
+              <Circle cx="11" cy="20" r="3.5" fill="#FFFFFF" />
+              <Circle cx="29" cy="20" r="3.5" fill="#FFFFFF" />
+              <Circle cx="20" cy="26" r="3.5" fill="#FFFFFF" />
+              <Circle cx="20" cy="20" r="3" fill="#FFD93D" />
+            </Svg>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <AppLayout navigation={navigation} activeTab="activities">
-      {!showReport && !showFinishedCard ? (
-        <View style={{ flex: 1 }}>
-          {/* الهيدر: الباك يسار والعنوان يمين */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => router.push("/parent/Activities")}>
-              <Ionicons name="arrow-back" size={24} color={PRIMARY} />
-            </TouchableOpacity>
-            
-            <View style={styles.titleBlock}>
-              <Text style={styles.mainTitle}>لعبة الذاكرة والمطابقة</Text>
-              <Text style={styles.levelSubtitle}>المستوى {level} . مهارة المعرفة</Text>
-            </View>
-          </View>
+    <View style={sharedGameStyles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={GARDEN.skyTop} />
 
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>مستوى التقدم {progressPercent}%</Text>
-            <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-            </View>
-          </View>
-
-          <View style={styles.gameArea}>
-            <Text style={styles.instructionText}>{isMemorizing ? "احفظ الأماكن! 👀" : "أين الصور المتطابقة؟ ✨"}</Text>
-            <View style={styles.grid}>
-              {cards.map((card, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  style={[styles.card, {width: CARD_SIZE, height: CARD_SIZE}, card.isFlipped && styles.cardActive]} 
-                  onPress={() => handleCardPress(index)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.cardEmoji, {fontSize: CARD_SIZE * 0.45}]}>{card.isFlipped ? card.icon : "❓"}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+      <View style={sharedGameStyles.skyLayer}>
+        <View style={sharedGameStyles.sun}>
+          <SunSVG size={55} />
         </View>
-      ) : showFinishedCard && !showReport ? (
-        <View style={styles.finishBox}>
-          <Text style={styles.finishIcon}>🏆</Text>
-          <Text style={styles.congratsText}>أحسنت يا بطل!</Text>
-          <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(true)}>
-            <Text style={styles.reportBtnText}>عرض مؤشرات الأداء 📊</Text>
-          </TouchableOpacity>
+        <View style={sharedGameStyles.cloud1}>
+          <CloudSmall size={50} />
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.reportArea}>
-          <Text style={styles.reportHeader}>نتائج تحليل المهارات</Text>
-          <View style={styles.indicesGrid}>
-            <View style={styles.indexItem}>
-               <Text style={styles.indexVal}>{results.vmi}%</Text>
-               <Text style={styles.indexLabel}>الإدراك البصري</Text>
-            </View>
-            <View style={[styles.indexItem, {borderBottomColor: '#3498DB'}]}>
-               <Text style={[styles.indexVal, {color: '#3498DB'}]}>{results.cpi}%</Text>
-               <Text style={styles.indexLabel}>المعالج المعرفي</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.retryBtn} onPress={resetGame}>
-            <Text style={styles.retryText}>إعادة التجربة 🔄</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.retryBtn, {marginTop: 10, backgroundColor: '#E2E8F0'}]} onPress={() => router.push("/parent/Activities")}>
-            <Text style={[styles.retryText, {color: '#1E293B'}]}>الخروج للرئيسية</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-
-      {/* المودال المرحلي */}
-      <Modal visible={showModal.visible} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { borderTopColor: showModal.success ? PRIMARY : "#FF6B6B" }]}>
-            <Text style={styles.modalStatusIcon}>{showModal.success ? "👏" : "☹️"}</Text>
-            <Text style={styles.modalText}>{showModal.success ? "ممتاز!" : "حاول مرة أخرى"}</Text>
-            <TouchableOpacity 
-              style={[styles.modalActionBtn, {backgroundColor: showModal.success ? PRIMARY : "#FF6B6B"}]} 
-              onPress={() => { setShowModal({visible: false}); if(showModal.success) setLevel(level+1); }}>
-              <Text style={styles.modalActionText}>{showModal.success ? "التالي" : "رجوع"}</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={sharedGameStyles.cloud2}>
+          <CloudSmall size={40} />
         </View>
-      </Modal>
+      </View>
+      <View style={sharedGameStyles.gardenBg} />
 
-      {/* مودال النتيجة النهائية */}
-      {gameState === "won" && (
-        <ResultModal 
-          visible={showFinishedCard && !showReport}
-          state="won"
-          onReset={resetGame}
-          onNavigateNext={() => router.push("/parent/Activities")}
+      <View style={sharedGameStyles.header}>
+        <TouchableOpacity style={sharedGameStyles.backBtn} onPress={handleBackToPath}>
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M 14 6 L 8 12 L 14 18"
+              stroke="#FFFFFF"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </Svg>
+        </TouchableOpacity>
+        <View style={sharedGameStyles.titleBlock}>
+          <Text style={sharedGameStyles.title}>بطاقات الذاكرة</Text>
+          <Text style={sharedGameStyles.subtitle}>المستوى {level} من 3</Text>
+        </View>
+        <View style={{ width: 44 }} />
+      </View>
+
+      <View style={sharedGameStyles.progressRow}>
+        <View style={sharedGameStyles.progressBg}>
+          <View
+            style={[
+              sharedGameStyles.progressFill,
+              { width: `${overallProgress * 100}%` },
+            ]}
+          />
+        </View>
+        <Text style={sharedGameStyles.progressPct}>
+          {Math.round(overallProgress * 100)}%
+        </Text>
+      </View>
+
+      <View style={sharedGameStyles.flowerTopLeft}>
+        <MiniFlower size={24} color={GARDEN.flowerPink} />
+      </View>
+      <View style={sharedGameStyles.flowerTopRight}>
+        <MiniFlower size={22} color={GARDEN.flowerYellow} />
+      </View>
+      <View style={sharedGameStyles.flowerBottomLeft}>
+        <MiniFlower size={20} color={GARDEN.flowerPurple} />
+      </View>
+      <View style={sharedGameStyles.flowerBottomRight}>
+        <MiniFlower size={20} color={GARDEN.flowerPink} />
+      </View>
+
+      <View style={styles.cardsArea}>
+        <FlatList
+          key={numColumns}
+          data={cards}
+          renderItem={renderCard}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={numColumns}
+          contentContainerStyle={styles.gridContent}
+          scrollEnabled={false}
         />
-      )}
-    </AppLayout>
+      </View>
+
+      <View style={sharedGameStyles.noumiCorner} pointerEvents="none">
+        <SpeechBubble text={bubbleText} color={bubbleColor} visible={bubbleVisible} />
+        <Animated.View
+          style={{
+            transform: [{ translateY: noumiBounce }, { translateX: noumiShake }],
+          }}
+        >
+          <NoumiCompanion size={110} expression={noumiExpression} />
+        </Animated.View>
+      </View>
+
+      <ResultModal
+        visible={gameState === "won"}
+        state="won"
+        stars={finalStars}
+        onReset={handleReset}
+        onBackToPath={handleBackToPath}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: 20, 
-    paddingTop: 15,
-    justifyContent: 'space-between' 
+  cardsArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  backBtn: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: CARD, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    elevation: 3 
+  gridContent: {
+    alignItems: "center",
   },
-  titleBlock: { alignItems: 'flex-end' },
-  mainTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
-  levelSubtitle: { color: PRIMARY, fontWeight: 'bold', fontSize: 12 },
-  progressContainer: { paddingHorizontal: 25, marginTop: 10 },
-  progressLabel: { textAlign: 'right', fontSize: 12, marginBottom: 5, color: MUTED },
-  progressBg: { height: 8, backgroundColor: BORDER, borderRadius: 4, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: PRIMARY },
-  gameArea: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'flex-start', // تبدأ من الأعلى لترك مساحة
-    paddingTop: 50,
-    paddingBottom: 20 
+  card: {
+    width: 90,
+    height: 110,
+    margin: 6,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
   },
-  instructionText: { fontSize: 22, fontWeight: 'bold', marginBottom: 25, color: '#1E293B' },
-  grid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    justifyContent: 'center', 
-    gap: 12, 
-    width: '100%',
-    paddingHorizontal: 15
+  cardFlipped: {
+    backgroundColor: "#FFF8E1",
+    borderColor: "#FFD54F",
   },
-  card: { 
-    backgroundColor: CARD, 
-    borderRadius: 20, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    elevation: 4, 
-    borderBottomWidth: 5, 
-    borderBottomColor: BORDER 
+  cardMatched: {
+    backgroundColor: "#C8E6C9",
+    borderColor: "#66BB6A",
   },
-  cardActive: { borderBottomColor: PRIMARY },
-  cardEmoji: { },
-  finishBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  finishIcon: { fontSize: 90 },
-  congratsText: { fontSize: 28, fontWeight: 'bold', color: PRIMARY, marginVertical: 20 },
-  reportBtn: { backgroundColor: PRIMARY, paddingHorizontal: 30, paddingVertical: 15, borderRadius: 20 },
-  reportBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  reportArea: { padding: 25, alignItems: 'center', paddingTop: 30 },
-  reportHeader: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, color: '#1E293B' },
-  indicesGrid: { flexDirection: 'row', gap: 15, marginBottom: 25 },
-  indexItem: { width: width * 0.4, padding: 20, backgroundColor: CARD, borderRadius: 20, alignItems: 'center', elevation: 4, borderBottomWidth: 6, borderBottomColor: PRIMARY },
-  indexVal: { fontSize: 28, fontWeight: 'bold', color: PRIMARY },
-  indexLabel: { fontSize: 11, color: MUTED, textAlign: 'center', marginTop: 5 },
-  retryBtn: { backgroundColor: PRIMARY, padding: 15, borderRadius: 15, width: '80%', alignItems: 'center' },
-  retryText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalBox: { width: '80%', backgroundColor: CARD, borderRadius: 30, padding: 30, alignItems: 'center', borderTopWidth: 10 },
-  modalStatusIcon: { fontSize: 70 },
-  modalText: { fontSize: 22, fontWeight: 'bold', marginVertical: 15 },
-  modalActionBtn: { width: '100%', padding: 15, borderRadius: 15, alignItems: 'center' },
-  modalActionText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  cardBack: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#EC407A",
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

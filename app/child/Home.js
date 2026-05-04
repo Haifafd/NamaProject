@@ -794,22 +794,29 @@ export default function ChildHome() {
     const gameRoutes = {
       pyramid: "/activities/Pyramid",
       pyramid_building: "/activities/Pyramid",
+      bubble: "/activities/BubbleActivity",
+      bubble_activity: "/activities/BubbleActivity",
+      xo: "/activities/XO-Activity",
+      memory: "/activities/MemoryCard",
+      memory_card: "/activities/MemoryCard",
+      color: "/activities/ColorActivity",
+      coloring: "/activities/ColorActivity",
     };
 
     let route = gameRoutes[activity.id];
 
     if (!route) {
-      const titleLower = (activity.title || "").toLowerCase();
-      if (titleLower.includes("هرم") || titleLower.includes("pyramid")) {
-        route = "/activities/Pyramid";
-      }
+      const t = (activity.title || "").toLowerCase();
+      if (t.includes("هرم") || t.includes("pyramid")) route = "/activities/Pyramid";
+      else if (t.includes("فقاع") || t.includes("bubble")) route = "/activities/BubbleActivity";
+      else if (t.includes("xo") || t.includes("ذكاء") || t.includes("إكس")) route = "/activities/XO-Activity";
+      else if (t.includes("ذاكرة") || t.includes("memory") || t.includes("بطاق")) route = "/activities/MemoryCard";
+      else if (t.includes("تلوين") || t.includes("لون") || t.includes("color")) route = "/activities/ColorActivity";
     }
 
     if (!route) {
       setTimeout(() => {
-        alert(
-          `اللعبة "${activity.title}" غير مربوطة بعد.\nسيتم ربطها في Phase 7C-2.`
-        );
+        alert(`اللعبة "${activity.title}" غير مربوطة بعد.`);
       }, 300);
       return;
     }

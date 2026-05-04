@@ -1,262 +1,419 @@
-import { useRouter } from "expo-router";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  Modal,
+  Animated,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-import { auth, db } from "../../FirebaseConfig";
-import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import Svg, { Path } from "react-native-svg";
+import { saveActivityResult } from "../../Services/ActivityService";
+import ResultModal from "./Result";
+import {
+  GARDEN,
+  NoumiCompanion,
+  SpeechBubble,
+  SunSVG,
+  CloudSmall,
+  MiniFlower,
+  sharedGameStyles,
+} from "./_GameComponents";
 
-const { width } = Dimensions.get("window");
+const PLAYER_COLOR = "#EF5350"; // X = red
+const COMPUTER_COLOR = "#42A5F5"; // O = blue
+
+const checkWinner = (board) => {
+  const lines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
+  ];
+  for (const [a, b, c] of lines) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return board[a];
+    }
+  }
+  if (board.every((c) => c)) return "draw";
+  return null;
+};
 
 export default function XOGame() {
-  const router = useRouter(); 
-  const [board, setBoard] = useState(Array(9).fill(null));
-  const [userChoice, setUserChoice] = useState(null);
-  const [currentPlayer, setCurrentPlayer] = useState("X");
-  const [gameState, setGameState] = useState("playing");
+  const router = useRouter();
+  const { childId, activityId, activityTitle, category } =
+    useLocalSearchParams();
 
-  const startTimeRef = useRef(null);
-  const movesCountRef = useRef(0);
+  const [round, setRound] = useState(1);
+  const [board, setBoard] = useState(Array(9).fill(""));
+  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  const [gameState, setGameState] = useState("playing");
+  const [finalStars, setFinalStars] = useState(0);
+
+  const [noumiExpression, setNoumiExpression] = useState("idle");
+  const [bubbleText, setBubbleText] = useState("");
+  const [bubbleColor, setBubbleColor] = useState(GARDEN.bubbleHappy);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
+
+  const noumiBounce = useRef(new Animated.Value(0)).current;
+  const noumiShake = useRef(new Animated.Value(0)).current;
+  const startTime = useRef(Date.now());
+  const wins = useRef(0);
+  const losses = useRef(0);
+  const draws = useRef(0);
+  const bubbleTimerRef = useRef(null);
 
   useEffect(() => {
-    if (userChoice && !startTimeRef.current) {
-      startTimeRef.current = Date.now();
-    }
-  }, [userChoice]);
+    showSpeechBubble("ضعي X أحمر في 3 صفّ!", GARDEN.bubbleHappy, "happy", 2500);
+  }, []);
 
-  const saveResultToFirebase = async (finalState) => {
-    try {
-      const user = auth.currentUser;
-      if (user && startTimeRef.current) {
-        const endTime = Date.now();
-        const elapsedSeconds = (endTime - startTimeRef.current) / 1000;
-        const score = finalState === "won" ? 100 : finalState === "draw" ? 70 : 40;
+  const showSpeechBubble = (text, color, expression, duration = 1500) => {
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    setBubbleText(text);
+    setBubbleColor(color);
+    setNoumiExpression(expression);
+    setBubbleVisible(true);
 
-        await addDoc(collection(db, "ActivityResults"), {
-          childId: user.uid,
-          activityId: "xo_planning_challenge",
-          totalScore: score,
-          status: finalState,
-          moves: movesCountRef.current,
-          timeSpent: parseFloat(elapsedSeconds.toFixed(1)),
-          createdAt: serverTimestamp(),
-        });
-      }
-    } catch (error) {
-      console.error("❌ Firebase Save Error:", error);
+    if (expression === "happy" || expression === "excited") {
+      Animated.sequence([
+        Animated.timing(noumiBounce, { toValue: -8, duration: 200, useNativeDriver: true }),
+        Animated.timing(noumiBounce, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else if (expression === "sad") {
+      Animated.sequence([
+        Animated.timing(noumiShake, { toValue: -3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 0, duration: 100, useNativeDriver: true }),
+      ]).start();
     }
+
+    bubbleTimerRef.current = setTimeout(() => {
+      setBubbleVisible(false);
+      setNoumiExpression("idle");
+    }, duration);
   };
 
-  const checkWinner = (squares) => {
-    const lines = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8],
-      [0, 3, 6], [1, 4, 7], [2, 5, 8],
-      [0, 4, 8], [2, 4, 6]
-    ];
-    for (let line of lines) {
-      const [a, b, c] = line;
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) return squares[a];
-    }
-    return squares.every((s) => s !== null) ? "draw" : null;
-  };
+  const handleCellPress = (i) => {
+    if (board[i] || !isPlayerTurn || gameState !== "playing") return;
 
-  const handlePress = (index) => {
-    if (!userChoice || board[index] || gameState !== "playing") return;
-    
-    movesCountRef.current += 1;
     const newBoard = [...board];
-    newBoard[index] = currentPlayer;
+    newBoard[i] = "X";
     setBoard(newBoard);
-    
-    const result = checkWinner(newBoard);
-    if (result) {
-      let finalState = result === "draw" ? "draw" : (result === userChoice ? "won" : "lost");
-      setGameState(finalState);
-      saveResultToFirebase(finalState);
+
+    const winner = checkWinner(newBoard);
+    if (winner) {
+      handleRoundEnd(winner);
+      return;
+    }
+    setIsPlayerTurn(false);
+  };
+
+  useEffect(() => {
+    if (!isPlayerTurn && gameState === "playing") {
+      const timer = setTimeout(() => {
+        const empty = board
+          .map((c, i) => (c === "" ? i : -1))
+          .filter((i) => i !== -1);
+        if (empty.length === 0) return;
+
+        let move = -1;
+        for (const i of empty) {
+          const test = [...board];
+          test[i] = "O";
+          if (checkWinner(test) === "O") {
+            move = i;
+            break;
+          }
+        }
+        if (move === -1) {
+          for (const i of empty) {
+            const test = [...board];
+            test[i] = "X";
+            if (checkWinner(test) === "X") {
+              move = i;
+              break;
+            }
+          }
+        }
+        if (move === -1) {
+          move = empty[Math.floor(Math.random() * empty.length)];
+        }
+
+        const newBoard = [...board];
+        newBoard[move] = "O";
+        setBoard(newBoard);
+
+        const winner = checkWinner(newBoard);
+        if (winner) {
+          handleRoundEnd(winner);
+        } else {
+          setIsPlayerTurn(true);
+        }
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlayerTurn, board, gameState]);
+
+  const handleRoundEnd = (winner) => {
+    if (winner === "X") {
+      wins.current += 1;
+      showSpeechBubble("فزتي!", GARDEN.bubbleHappy, "happy", 1800);
+    } else if (winner === "O") {
+      losses.current += 1;
+      showSpeechBubble("حاولي مرة ثانية!", GARDEN.bubbleSad, "sad", 1800);
     } else {
-      setCurrentPlayer(currentPlayer === "X" ? "O" : "X");
+      draws.current += 1;
+      showSpeechBubble("تعادل!", GARDEN.bubbleExcited, "idle", 1500);
+    }
+
+    setTimeout(() => {
+      if (round < 3) {
+        setRound(round + 1);
+        setBoard(Array(9).fill(""));
+        setIsPlayerTurn(true);
+      } else {
+        finishGame();
+      }
+    }, 2000);
+  };
+
+  const finishGame = async () => {
+    const duration = Math.round((Date.now() - startTime.current) / 1000);
+    const correct = wins.current;
+    const wrong = losses.current;
+    const total = 3;
+    const accuracy = Math.round((correct / total) * 100);
+
+    let stars = 1;
+    if (accuracy >= 67) stars = 3;
+    else if (accuracy >= 34) stars = 2;
+
+    setFinalStars(stars);
+    setGameState("won");
+
+    if (childId && activityId) {
+      await saveActivityResult({
+        childId,
+        activityId,
+        activityTitle: activityTitle || "تحدي الذكاء",
+        category: category || "thinkingCategoryID",
+        level: round,
+        correctAnswers: correct,
+        wrongAnswers: wrong,
+        totalAttempts: total,
+        durationSec: duration,
+      });
     }
   };
 
-  const resetGame = () => {
-    setBoard(Array(9).fill(null));
-    setUserChoice(null);
-    setCurrentPlayer("X");
+  const handleReset = () => {
+    setRound(1);
+    setBoard(Array(9).fill(""));
+    setIsPlayerTurn(true);
     setGameState("playing");
-    startTimeRef.current = null;
-    movesCountRef.current = 0;
+    setFinalStars(0);
+    wins.current = 0;
+    losses.current = 0;
+    draws.current = 0;
+    showSpeechBubble("هيا نبدأ من جديد!", GARDEN.bubbleHappy, "happy", 2000);
   };
 
-  // مستوى الإنجاز يبدأ من 0%
-  const completionRate = gameState === "won" ? "100%" : "0%";
+  const handleBackToPath = () => {
+    if (childId) {
+      router.replace({ pathname: "/child/Home", params: { childId } });
+    } else {
+      router.back();
+    }
+  };
 
   return (
-    <AppLayout activeTab="activities">
-      <StatusBar barStyle="dark-content" />
-      
-      {/* الهيدر المعدل */}
-      <View style={styles.header}>
-        {/* الزر الآن في أقصى اليسار */}
-        <TouchableOpacity 
-          style={styles.backBtn} 
-          onPress={() => router.back()} 
-        >
-          <Text style={styles.backArrow}>‹</Text> 
+    <View style={sharedGameStyles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={GARDEN.skyTop} />
+
+      <View style={sharedGameStyles.skyLayer}>
+        <View style={sharedGameStyles.sun}>
+          <SunSVG size={55} />
+        </View>
+        <View style={sharedGameStyles.cloud1}>
+          <CloudSmall size={50} />
+        </View>
+        <View style={sharedGameStyles.cloud2}>
+          <CloudSmall size={40} />
+        </View>
+      </View>
+      <View style={sharedGameStyles.gardenBg} />
+
+      <View style={sharedGameStyles.header}>
+        <TouchableOpacity style={sharedGameStyles.backBtn} onPress={handleBackToPath}>
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M 14 6 L 8 12 L 14 18"
+              stroke="#FFFFFF"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </Svg>
         </TouchableOpacity>
+        <View style={sharedGameStyles.titleBlock}>
+          <Text style={sharedGameStyles.title}>تحدي الذكاء</Text>
+          <Text style={sharedGameStyles.subtitle}>الجولة {round} من 3</Text>
+        </View>
+        <View style={{ width: 44 }} />
+      </View>
 
-        {/* النصوص الآن في أقصى اليمين */}
-        <View style={styles.headerTitles}>
-          <Text style={styles.mainTitle}>تحدي الذكاء XO</Text>
-          <Text style={styles.subTitle}>مستوى ٣ . مهارة التخطيط</Text>
+      <View style={styles.scoreRow}>
+        <View style={[styles.scoreBox, { backgroundColor: PLAYER_COLOR }]}>
+          <Text style={styles.scoreLabel}>X (أنتي)</Text>
+          <Text style={styles.scoreValue}>{wins.current}</Text>
+        </View>
+        <View style={[styles.scoreBox, { backgroundColor: COMPUTER_COLOR }]}>
+          <Text style={styles.scoreLabel}>O</Text>
+          <Text style={styles.scoreValue}>{losses.current}</Text>
         </View>
       </View>
 
-      <View style={styles.progressSection}>
-        <View style={styles.progressHeader}>
-           <Text style={styles.progressValue}>{completionRate}</Text>
-           <Text style={styles.progressLabel}>مستوى الإنجاز</Text>
-        </View>
-        <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: completionRate }]} />
-        </View>
+      <View style={sharedGameStyles.flowerTopLeft}>
+        <MiniFlower size={24} color={GARDEN.flowerPink} />
+      </View>
+      <View style={sharedGameStyles.flowerTopRight}>
+        <MiniFlower size={22} color={GARDEN.flowerYellow} />
+      </View>
+      <View style={sharedGameStyles.flowerBottomLeft}>
+        <MiniFlower size={20} color={GARDEN.flowerPurple} />
+      </View>
+      <View style={sharedGameStyles.flowerBottomRight}>
+        <MiniFlower size={20} color={GARDEN.flowerPink} />
       </View>
 
-      <View style={styles.gameContainer}>
-        <Text style={styles.instruction}>بطل نماء، اختر رمزك للبدء</Text>
-
-        <View style={styles.choicesRow}>
-          {["X", "O"].map((symbol) => (
+      <View style={styles.gridContainer}>
+        <View style={styles.grid}>
+          {board.map((cell, i) => (
             <TouchableOpacity
-              key={symbol}
-              disabled={board.some(cell => cell !== null)}
-              onPress={() => setUserChoice(symbol)}
+              key={i}
               style={[
-                styles.choiceCard, 
-                userChoice === symbol && styles.choiceCardActive
+                styles.cell,
+                i % 3 !== 2 && { borderRightWidth: 4 },
+                i < 6 && { borderBottomWidth: 4 },
               ]}
+              onPress={() => handleCellPress(i)}
+              activeOpacity={0.7}
+              disabled={!!cell || !isPlayerTurn || gameState !== "playing"}
             >
-              <Text style={[
-                styles.choiceSymbol, 
-                userChoice === symbol && styles.choiceSymbolActive
-              ]}>
-                {symbol}
-              </Text>
+              {cell === "X" && (
+                <Text style={[styles.cellText, { color: PLAYER_COLOR }]}>X</Text>
+              )}
+              {cell === "O" && (
+                <Text style={[styles.cellText, { color: COMPUTER_COLOR }]}>O</Text>
+              )}
             </TouchableOpacity>
           ))}
         </View>
-
-        <View style={styles.boardGrid}>
-          {board.map((cell, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={[
-                styles.gridCell,
-                index < 6 && { borderBottomWidth: 2, borderBottomColor: BORDER },
-                (index % 3 !== 2) && { borderRightWidth: 2, borderRightColor: BORDER }
-              ]} 
-              onPress={() => handlePress(index)}
-              activeOpacity={0.6}
-            >
-              <Text style={[
-                styles.cellText, 
-                cell === "X" ? styles.xStyle : styles.oStyle
-              ]}>
-                {cell}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        
-        {!userChoice && (
-          <View style={styles.hintBox}>
-             <Text style={styles.hintText}>💡 اختر X أو O لبدء التحدي</Text>
-          </View>
-        )}
       </View>
 
-      <Modal visible={gameState !== "playing"} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>
-               {gameState === "won" ? "🏆" : gameState === "lost" ? "💪" : "🤝"}
-            </Text>
-            <Text style={styles.modalTitle}>
-              {gameState === "won" ? "أحسنت يا بطل!" : gameState === "lost" ? "محاولة جيدة!" : "تعادل ذكي!"}
-            </Text>
-            <Text style={styles.modalSub}>
-              {gameState === "won" ? "لقد انتصرت بذكائك وتخطيطك" : "حاول مرة أخرى لتطوير مهارتك"}
-            </Text>
-            
-            <TouchableOpacity style={styles.retryBtn} onPress={resetGame}>
-              <Text style={styles.retryText}>إعادة التحدي 🔄</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </AppLayout>
+      <View style={styles.turnIndicator}>
+        <Text style={styles.turnText}>
+          {isPlayerTurn ? "دورك! ضعي X" : "دور الكمبيوتر..."}
+        </Text>
+      </View>
+
+      <View style={sharedGameStyles.noumiCorner} pointerEvents="none">
+        <SpeechBubble text={bubbleText} color={bubbleColor} visible={bubbleVisible} />
+        <Animated.View
+          style={{
+            transform: [{ translateY: noumiBounce }, { translateX: noumiShake }],
+          }}
+        >
+          <NoumiCompanion size={110} expression={noumiExpression} />
+        </Animated.View>
+      </View>
+
+      <ResultModal
+        visible={gameState === "won"}
+        state="won"
+        stars={finalStars}
+        onReset={handleReset}
+        onBackToPath={handleBackToPath}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { 
-    flexDirection: "row", // استخدام صف عادي
-    justifyContent: "space-between", // توزيع العناصر (واحد يمين وواحد يسار)
-    paddingHorizontal: 20, 
-    paddingTop: 50,
-    paddingBottom: 20,
+  scoreRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "center",
+    gap: 12,
+    paddingHorizontal: 24,
+    marginTop: 14,
+  },
+  scoreBox: {
+    flex: 1,
+    maxWidth: 130,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  backBtn: { 
-    width: 40, height: 40, borderRadius: 20, backgroundColor: CARD, 
-    justifyContent: "center", alignItems: "center", elevation: 4 
+  scoreLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    opacity: 0.9,
   },
-  backArrow: { fontSize: 35, color: PRIMARY, fontWeight: 'bold' },
-  headerTitles: { 
-    alignItems: "flex-end" // محاذاة محتوى النصوص لليمين
+  scoreValue: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
-  mainTitle: { fontSize: 18, fontWeight: "bold", color: "#1E293B" },
-  subTitle: { fontSize: 12, color: PRIMARY, fontWeight: '600' },
-  progressSection: { paddingHorizontal: 25, marginBottom: 20 },
-  progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 5 },
-  progressValue: { fontSize: 12, fontWeight: "bold", color: PRIMARY },
-  progressLabel: { fontSize: 13, color: MUTED },
-  progressBg: { height: 8, backgroundColor: "#E2E8F0", borderRadius: 4 },
-  progressFill: { height: "100%", backgroundColor: PRIMARY, borderRadius: 4 },
-  gameContainer: { flex: 1, alignItems: "center", paddingTop: 10 },
-  instruction: { fontSize: 17, fontWeight: "bold", marginBottom: 20, color: "#475569" },
-  choicesRow: { flexDirection: "row", marginBottom: 30, gap: 20 },
-  choiceCard: { 
-    width: 70, height: 70, backgroundColor: CARD, borderRadius: 20, 
-    justifyContent: "center", alignItems: "center", elevation: 3,
-    borderWidth: 2, borderColor: 'transparent'
+  gridContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
   },
-  choiceCardActive: { borderColor: PRIMARY, backgroundColor: "#F0FDF4" },
-  choiceSymbol: { fontSize: 28, color: MUTED, fontWeight: "900" },
-  choiceSymbolActive: { color: PRIMARY },
-  boardGrid: { 
-    width: width * 0.85, height: width * 0.85, flexDirection: "row", flexWrap: "wrap", 
-    backgroundColor: CARD, borderRadius: 30, padding: 15, elevation: 8
+  grid: {
+    width: 290,
+    height: 290,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
-  gridCell: { 
-    width: "33.33%", height: "33.33%", justifyContent: "center", alignItems: "center"
+  cell: {
+    width: "33.333%",
+    height: "33.333%",
+    justifyContent: "center",
+    alignItems: "center",
+    borderColor: "#A5D6A7",
   },
-  cellText: { fontSize: 50, fontWeight: "900" },
-  xStyle: { color: "#334155" },
-  oStyle: { color: PRIMARY },
-  hintBox: { marginTop: 20, padding: 10, backgroundColor: "#FEFCE8", borderRadius: 12 },
-  hintText: { color: "#854D0E", fontWeight: "bold" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(30, 41, 59, 0.7)", justifyContent: "center", alignItems: "center" },
-  modalCard: { backgroundColor: CARD, padding: 30, borderRadius: 40, alignItems: "center", width: "85%", elevation: 20 },
-  modalEmoji: { fontSize: 60, marginBottom: 10 },
-  modalTitle: { fontSize: 24, fontWeight: "bold", color: "#1E293B", marginBottom: 5 },
-  modalSub: { fontSize: 16, color: MUTED, marginBottom: 25 },
-  retryBtn: { backgroundColor: PRIMARY, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 20, elevation: 4 },
-  retryText: { color: "#FFF", fontWeight: "bold", fontSize: 17 },
+  cellText: {
+    fontSize: 56,
+    fontWeight: "900",
+  },
+  turnIndicator: {
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingBottom: 30,
+  },
+  turnText: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
 });
