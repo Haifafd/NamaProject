@@ -19,6 +19,8 @@ import {
   getAllActivities,
   getActivitiesByCategory,
   saveTherapeuticPlan,
+  updateTherapeuticPlan,
+  getChildPlan,
   CATEGORIES,
   CATEGORY_INFO,
 } from "../../Services/ActivityService";
@@ -118,12 +120,46 @@ export default function TherapyPlanScreen() {
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [savingPlan, setSavingPlan] = useState(false);
 
+  // ── خطة موجودة سابقاً (للتحديث بدلاً من التكرار) ──
+  const [existingPlanId, setExistingPlanId] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
+
   // ─────────────────────────────────────────────
   // 📥 جلب الأنشطة
   // ─────────────────────────────────────────────
   useEffect(() => {
     fetchActivities();
   }, [activeFilter]);
+
+  // ─────────────────────────────────────────────
+  // 📥 جلب الخطة الموجودة (لو موجودة)
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    loadExistingPlan();
+  }, [childId]);
+
+  const loadExistingPlan = async () => {
+    if (!childId) {
+      setLoadingPlan(false);
+      return;
+    }
+
+    try {
+      const existingPlan = await getChildPlan(childId);
+      if (existingPlan) {
+        setExistingPlanId(existingPlan.id);
+        setGoals(existingPlan.goals || []);
+        setSessions(existingPlan.sessionsPerWeek ?? 1);
+        setActivitiesCount(existingPlan.activitiesPerSession ?? 1);
+        setDuration(existingPlan.duration ?? 20);
+        setSelectedActivities(existingPlan.activityIds || []);
+      }
+    } catch (error) {
+      console.error("Error loading plan:", error);
+    } finally {
+      setLoadingPlan(false);
+    }
+  };
 
   const fetchActivities = async () => {
     try {
@@ -231,7 +267,8 @@ export default function TherapyPlanScreen() {
 
     try {
       setSavingPlan(true);
-      await saveTherapeuticPlan({
+
+      const planData = {
         childId: childId,
         createdBy: specialistId,
         activityIds: selectedActivities,
@@ -239,16 +276,27 @@ export default function TherapyPlanScreen() {
         sessionsPerWeek: sessions,
         activitiesPerSession: activitiesCount,
         duration: duration,
-      });
+      };
+
+      let alertTitle;
+      if (existingPlanId) {
+        await updateTherapeuticPlan(existingPlanId, planData);
+        alertTitle = "تم تحديث الخطة العلاجية";
+      } else {
+        const newId = await saveTherapeuticPlan(planData);
+        setExistingPlanId(newId);
+        alertTitle = "تم حفظ الخطة العلاجية";
+      }
 
       setSaved(true);
-      Alert.alert("تم بنجاح", "تم حفظ الخطة العلاجية", [
+      Alert.alert("تم بنجاح", alertTitle, [
         {
           text: "حسناً",
           onPress: () => router.back(),
         },
       ]);
     } catch (error) {
+      console.error(error);
       Alert.alert("خطأ", "لم نتمكن من حفظ الخطة");
     } finally {
       setSavingPlan(false);
@@ -258,6 +306,23 @@ export default function TherapyPlanScreen() {
   const handleBack = () => {
     router.back();
   };
+
+  if (loadingPlan) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color={PRIMARY} />
+          <Text style={{ marginTop: 12, color: MUTED }}>جاري تحميل الخطة...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -625,7 +690,11 @@ export default function TherapyPlanScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.saveBtnText}>
-              {saved ? "✓ تم الحفظ" : "حفظ الخطة"}
+              {saved
+                ? "✓ تم الحفظ"
+                : existingPlanId
+                  ? "تحديث الخطة"
+                  : "حفظ الخطة"}
             </Text>
           )}
         </TouchableOpacity>
