@@ -286,7 +286,7 @@ export default function HomepageP() {
     });
   };
 
-  const handleActivities = () => router.push("/parent/IntroScreen");
+  const handleActivities = () => router.push("/child/ChildModeSplash");
 
   const handleOpenChat = async () => {
     if (children.length === 1) {
