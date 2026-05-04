@@ -1,3 +1,4 @@
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Svg, {
   Circle,
   Defs,
@@ -28,11 +28,11 @@ import {
   getActivitiesByIds,
   getChildPlan,
 } from "../../Services/ActivityService";
+import { stopBackgroundMusic } from "../../Services/MusicService";
 import {
   computeStationStates,
   getChildProgress,
 } from "../../Services/ProgressService";
-import { stopBackgroundMusic } from "../../Services/MusicService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -218,7 +218,14 @@ function StationIcon({ theme, status, size = 80 }) {
             <Path d="M 40 56 L 38 70" stroke="#3E2723" strokeWidth="1.5" />
             <Path d="M 40 60 L 36 68 L 44 68 Z" fill="#3E2723" opacity="0.3" />
             <Ellipse cx="40" cy="36" rx="18" ry="22" fill="#9C27B0" />
-            <Ellipse cx="34" cy="28" rx="6" ry="9" fill="#CE93D8" opacity="0.6" />
+            <Ellipse
+              cx="34"
+              cy="28"
+              rx="6"
+              ry="9"
+              fill="#CE93D8"
+              opacity="0.6"
+            />
             <Path d="M 40 58 L 38 60 L 42 60 Z" fill="#9C27B0" />
           </>
         )}
@@ -336,8 +343,20 @@ function TreasureChest({ size = 100, unlocked = false }) {
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       {unlocked && (
         <>
-          <Circle cx="50" cy="55" r="48" fill={GARDEN.treasureGold} opacity="0.3" />
-          <Circle cx="50" cy="55" r="38" fill={GARDEN.treasureGold} opacity="0.5" />
+          <Circle
+            cx="50"
+            cy="55"
+            r="48"
+            fill={GARDEN.treasureGold}
+            opacity="0.3"
+          />
+          <Circle
+            cx="50"
+            cy="55"
+            r="38"
+            fill={GARDEN.treasureGold}
+            opacity="0.5"
+          />
         </>
       )}
       <Path d="M 18 50 L 18 80 L 82 80 L 82 50 Z" fill="#8D6E63" />
@@ -358,7 +377,12 @@ function TreasureChest({ size = 100, unlocked = false }) {
         fill="none"
       />
       <Path d="M 14 50 L 86 50" stroke="#FFD700" strokeWidth="3" />
-      <Path d="M 14 65 L 86 65" stroke="#FFD700" strokeWidth="2" opacity="0.7" />
+      <Path
+        d="M 14 65 L 86 65"
+        stroke="#FFD700"
+        strokeWidth="2"
+        opacity="0.7"
+      />
       {!unlocked && (
         <>
           <Path d="M 45 56 L 55 56 L 55 64 L 45 64 Z" fill="#FFD700" />
@@ -675,7 +699,7 @@ export default function ChildHome() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [childId])
+    }, [childId]),
   );
 
   const loadData = async () => {
@@ -705,7 +729,7 @@ export default function ChildHome() {
 
       const stationStates = computeStationStates(
         childPlan.activityIds,
-        progressMap
+        progressMap,
       );
       setStations(stationStates);
     } catch (error) {
@@ -730,7 +754,7 @@ export default function ChildHome() {
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     Animated.loop(
@@ -747,7 +771,7 @@ export default function ChildHome() {
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     const floatButterfly = (anim, dx, dy, duration) => {
@@ -765,7 +789,7 @@ export default function ChildHome() {
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     };
     floatButterfly(butterfly1Anim, 30, -20, 4000);
@@ -791,35 +815,90 @@ export default function ChildHome() {
     const activity = selectedStation.activity;
     setSelectedStation(null);
 
+    console.log("🎮 Activity tapped:", {
+      id: activity.id,
+      title: activity.title,
+      categoryId: activity.categoryId,
+    });
+
     const gameRoutes = {
       pyramid: "/activities/Pyramid",
       pyramid_building: "/activities/Pyramid",
       bubble: "/activities/BubbleActivity",
       bubble_activity: "/activities/BubbleActivity",
+      bubbles: "/activities/BubbleActivity",
       xo: "/activities/XO-Activity",
+      "xo-activity": "/activities/XO-Activity",
       memory: "/activities/MemoryCard",
       memory_card: "/activities/MemoryCard",
+      memorycard: "/activities/MemoryCard",
       color: "/activities/ColorActivity",
       coloring: "/activities/ColorActivity",
+      colors: "/activities/ColorActivity",
+      coloractivity: "/activities/ColorActivity",
     };
 
-    let route = gameRoutes[activity.id];
+    const idLower = (activity.id || "").toLowerCase();
+    let route = gameRoutes[idLower];
 
     if (!route) {
-      const t = (activity.title || "").toLowerCase();
-      if (t.includes("هرم") || t.includes("pyramid")) route = "/activities/Pyramid";
-      else if (t.includes("فقاع") || t.includes("bubble")) route = "/activities/BubbleActivity";
-      else if (t.includes("xo") || t.includes("ذكاء") || t.includes("إكس")) route = "/activities/XO-Activity";
-      else if (t.includes("ذاكرة") || t.includes("memory") || t.includes("بطاق")) route = "/activities/MemoryCard";
-      else if (t.includes("تلوين") || t.includes("لون") || t.includes("color")) route = "/activities/ColorActivity";
+      const t = (activity.title || "").toLowerCase().trim();
+
+      if (t.includes("هرم") || t.includes("pyramid") || t.includes("بناء")) {
+        route = "/activities/Pyramid";
+      }
+      else if (t.includes("فقاع") || t.includes("bubble")) {
+        route = "/activities/BubbleActivity";
+      }
+      else if (
+        t.includes("xo") ||
+        t.includes("x o") ||
+        t.includes("ذكاء") ||
+        t.includes("إكس") ||
+        t.includes("اكس") ||
+        t.includes("تحدي")
+      ) {
+        route = "/activities/XO-Activity";
+      }
+      else if (
+        t.includes("ذاكرة") ||
+        t.includes("memory") ||
+        t.includes("بطاق")
+      ) {
+        route = "/activities/MemoryCard";
+      }
+      else if (
+        t.includes("تلوين") ||
+        t.includes("لون") ||
+        t.includes("الوان") ||
+        t.includes("ألوان") ||
+        t.includes("الألوان") ||
+        t.includes("رسم") ||
+        t.includes("color") ||
+        t.includes("paint") ||
+        t.includes("draw")
+      ) {
+        route = "/activities/ColorActivity";
+      }
+    }
+
+    if (!route && activity.categoryId) {
+      if (activity.categoryId === "perceptionCategoryID") {
+        route = "/activities/ColorActivity";
+      }
     }
 
     if (!route) {
+      console.log("❌ No route matched for activity:", activity);
       setTimeout(() => {
-        alert(`اللعبة "${activity.title}" غير مربوطة بعد.`);
+        alert(
+          `اللعبة "${activity.title}" غير مربوطة بعد.\n\nID: ${activity.id}\nالفئة: ${activity.categoryId}\n\nسيتم ربطها لاحقاً.`
+        );
       }, 300);
       return;
     }
+
+    console.log("✅ Routing to:", route);
 
     setTimeout(() => {
       router.push({
@@ -842,7 +921,9 @@ export default function ChildHome() {
     );
   }
 
-  const completedCount = stations.filter((s) => s.status === "completed").length;
+  const completedCount = stations.filter(
+    (s) => s.status === "completed",
+  ).length;
   const totalCount = stations.length;
   const allDone = completedCount === totalCount && totalCount > 0;
 
@@ -852,7 +933,8 @@ export default function ChildHome() {
   const totalHeight = treasureY + 200;
 
   const activeIdx = stations.findIndex((s) => s.status === "active");
-  const lastCompletedIdx = activeIdx === -1 ? stations.length - 1 : activeIdx - 1;
+  const lastCompletedIdx =
+    activeIdx === -1 ? stations.length - 1 : activeIdx - 1;
 
   return (
     <View style={styles.container}>
@@ -963,19 +1045,29 @@ export default function ChildHome() {
         <View style={[styles.miniFlower, { top: totalHeight * 0.1, left: 30 }]}>
           <MiniFlower size={20} color={GARDEN.flowerYellow} />
         </View>
-        <View style={[styles.miniFlower, { top: totalHeight * 0.18, right: 40 }]}>
+        <View
+          style={[styles.miniFlower, { top: totalHeight * 0.18, right: 40 }]}
+        >
           <MiniFlower size={18} color={GARDEN.flowerPink} />
         </View>
-        <View style={[styles.miniFlower, { top: totalHeight * 0.32, left: 50 }]}>
+        <View
+          style={[styles.miniFlower, { top: totalHeight * 0.32, left: 50 }]}
+        >
           <MiniFlower size={22} color={GARDEN.flowerWhite} />
         </View>
-        <View style={[styles.miniFlower, { top: totalHeight * 0.5, right: 30 }]}>
+        <View
+          style={[styles.miniFlower, { top: totalHeight * 0.5, right: 30 }]}
+        >
           <MiniFlower size={20} color={GARDEN.flowerPurple} />
         </View>
-        <View style={[styles.miniFlower, { top: totalHeight * 0.65, left: 35 }]}>
+        <View
+          style={[styles.miniFlower, { top: totalHeight * 0.65, left: 35 }]}
+        >
           <MiniFlower size={22} color={GARDEN.flowerYellow} />
         </View>
-        <View style={[styles.miniFlower, { top: totalHeight * 0.78, right: 50 }]}>
+        <View
+          style={[styles.miniFlower, { top: totalHeight * 0.78, right: 50 }]}
+        >
           <MiniFlower size={18} color={GARDEN.flowerOrange} />
         </View>
 
@@ -983,13 +1075,17 @@ export default function ChildHome() {
         <View style={[styles.grassTuft, { top: totalHeight * 0.12, left: 60 }]}>
           <GrassTuft size={24} />
         </View>
-        <View style={[styles.grassTuft, { top: totalHeight * 0.28, right: 60 }]}>
+        <View
+          style={[styles.grassTuft, { top: totalHeight * 0.28, right: 60 }]}
+        >
           <GrassTuft size={28} />
         </View>
         <View style={[styles.grassTuft, { top: totalHeight * 0.55, left: 70 }]}>
           <GrassTuft size={26} />
         </View>
-        <View style={[styles.grassTuft, { top: totalHeight * 0.72, right: 70 }]}>
+        <View
+          style={[styles.grassTuft, { top: totalHeight * 0.72, right: 70 }]}
+        >
           <GrassTuft size={24} />
         </View>
 
@@ -1089,7 +1185,11 @@ export default function ChildHome() {
                   onPress={() => handleStationPress(station, idx)}
                   disabled={station.status === "locked"}
                 >
-                  <StationIcon theme={theme} status={station.status} size={100} />
+                  <StationIcon
+                    theme={theme}
+                    status={station.status}
+                    size={100}
+                  />
                 </TouchableOpacity>
               </Animated.View>
 
@@ -1148,9 +1248,7 @@ export default function ChildHome() {
         >
           <TreasureChest size={120} unlocked={allDone} />
           {allDone && (
-            <Text style={styles.treasureText}>
-              أحسنت! أنجزت كل المغامرة!
-            </Text>
+            <Text style={styles.treasureText}>أحسنت! أنجزت كل المغامرة!</Text>
           )}
         </View>
       </ScrollView>
@@ -1183,7 +1281,8 @@ export default function ChildHome() {
                 </Text>
 
                 {(() => {
-                  const cat = CATEGORY_INFO[selectedStation.activity.categoryId];
+                  const cat =
+                    CATEGORY_INFO[selectedStation.activity.categoryId];
                   if (!cat) return null;
                   return (
                     <View
