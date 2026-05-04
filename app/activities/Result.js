@@ -23,77 +23,121 @@ const GARDEN = {
   rabbitPink: "#FFB6C1",
 };
 
-function ResultNoumi({ size = 110 }) {
+function ResultNoumi({ size = 130 }) {
   return (
-    <Svg width={size} height={size * 1.1} viewBox="0 0 100 110" fill="none">
-      <Ellipse cx="50" cy="105" rx="28" ry="4" fill="#000" opacity="0.15" />
-      <Ellipse cx="38" cy="20" rx="7" ry="18" fill="#FFFFFF" />
-      <Ellipse
-        cx="38"
-        cy="22"
-        rx="4"
-        ry="14"
-        fill={GARDEN.rabbitPink}
-        opacity="0.7"
-      />
-      <Ellipse cx="62" cy="20" rx="7" ry="18" fill="#FFFFFF" />
-      <Ellipse
-        cx="62"
-        cy="22"
-        rx="4"
-        ry="14"
-        fill={GARDEN.rabbitPink}
-        opacity="0.7"
-      />
-      <Circle cx="50" cy="50" r="28" fill="#FFFFFF" />
-      <Circle cx="34" cy="58" r="5" fill={GARDEN.rabbitPink} opacity="0.7" />
-      <Circle cx="66" cy="58" r="5" fill={GARDEN.rabbitPink} opacity="0.7" />
+    <Svg width={size} height={size * 1.1} viewBox="0 0 130 145" fill="none">
+      {/* Sparkle stars decoration */}
       <Path
-        d="M 38 47 Q 41 50 44 47"
+        d="M 15 25 L 17 30 L 22 32 L 17 34 L 15 39 L 13 34 L 8 32 L 13 30 Z"
+        fill="#FFD700"
+      />
+      <Path
+        d="M 110 30 L 112 35 L 117 37 L 112 39 L 110 44 L 108 39 L 103 37 L 108 35 Z"
+        fill="#FFD700"
+      />
+      <Path
+        d="M 108 100 L 110 104 L 114 106 L 110 108 L 108 112 L 106 108 L 102 106 L 106 104 Z"
+        fill="#FFCA28"
+      />
+
+      {/* Shadow */}
+      <Ellipse cx="65" cy="138" rx="32" ry="4" fill="#000" opacity="0.15" />
+
+      {/* Ears */}
+      <Ellipse cx="50" cy="32" rx="8" ry="20" fill="#FFFFFF" />
+      <Ellipse cx="50" cy="34" rx="4.5" ry="16" fill="#FFB6C1" opacity="0.7" />
+      <Ellipse cx="80" cy="32" rx="8" ry="20" fill="#FFFFFF" />
+      <Ellipse cx="80" cy="34" rx="4.5" ry="16" fill="#FFB6C1" opacity="0.7" />
+
+      {/* Head */}
+      <Circle cx="65" cy="65" r="32" fill="#FFFFFF" />
+
+      {/* Cheeks */}
+      <Circle cx="46" cy="74" r="6" fill="#FF6B9D" opacity="0.85" />
+      <Circle cx="84" cy="74" r="6" fill="#FF6B9D" opacity="0.85" />
+
+      {/* Closed-eye smile */}
+      <Path
+        d="M 50 62 Q 55 66 60 62"
         stroke="#2C2C2C"
-        strokeWidth="2"
+        strokeWidth="2.5"
         strokeLinecap="round"
         fill="none"
       />
       <Path
-        d="M 56 47 Q 59 50 62 47"
+        d="M 70 62 Q 75 66 80 62"
         stroke="#2C2C2C"
-        strokeWidth="2"
+        strokeWidth="2.5"
         strokeLinecap="round"
         fill="none"
       />
+
+      {/* Nose */}
       <Path
-        d="M 50 56 Q 47 54 47 58 Q 47 61 50 63 Q 53 61 53 58 Q 53 54 50 56 Z"
+        d="M 65 71 Q 61 69 61 73 Q 61 76 65 79 Q 69 76 69 73 Q 69 69 65 71 Z"
         fill="#FF6B9D"
       />
+
+      {/* Big open mouth (laughing) */}
+      <Ellipse cx="65" cy="83" rx="9" ry="6" fill="#3E2723" />
+      <Ellipse cx="65" cy="82" rx="5" ry="2" fill="#FF6B9D" />
       <Path
-        d="M 50 64 Q 44 70 40 67"
-        stroke="#3E2723"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M 62 86 Q 65 89 68 86 Q 68 83 65 83 Q 62 83 62 86 Z"
+        fill="#FF8FA3"
       />
+
+      {/* Body */}
+      <Ellipse cx="65" cy="115" rx="28" ry="20" fill="#FFFFFF" />
+
+      {/* Pink scarf */}
       <Path
-        d="M 50 64 Q 56 70 60 67"
-        stroke="#3E2723"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M 42 102 Q 65 110 88 102 Q 88 107 65 115 Q 42 107 42 102 Z"
+        fill="#EC407A"
       />
+
+      {/* Clapping hands raised up */}
+      <Circle cx="38" cy="92" r="9" fill="#FFFFFF" />
+      <Circle cx="38" cy="92" r="6" fill="#FFB6C1" opacity="0.5" />
+      <Circle cx="92" cy="92" r="9" fill="#FFFFFF" />
+      <Circle cx="92" cy="92" r="6" fill="#FFB6C1" opacity="0.5" />
+
+      {/* Action lines (motion) */}
       <Path
-        d="M 44 65 Q 50 72 56 65"
+        d="M 28 88 L 24 86"
         stroke="#3E2723"
         strokeWidth="1.5"
         strokeLinecap="round"
-        fill="none"
       />
-      <Ellipse cx="50" cy="88" rx="22" ry="16" fill="#FFFFFF" />
       <Path
-        d="M 32 78 Q 50 85 68 78 Q 68 82 50 88 Q 32 82 32 78 Z"
-        fill={GARDEN.scarfPink}
+        d="M 28 92 L 23 92"
+        stroke="#3E2723"
+        strokeWidth="1.5"
+        strokeLinecap="round"
       />
-      <Circle cx="32" cy="82" r="6" fill="#FFFFFF" />
-      <Circle cx="68" cy="82" r="6" fill="#FFFFFF" />
+      <Path
+        d="M 28 96 L 24 98"
+        stroke="#3E2723"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 102 88 L 106 86"
+        stroke="#3E2723"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 102 92 L 107 92"
+        stroke="#3E2723"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 102 96 L 106 98"
+        stroke="#3E2723"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }
@@ -205,7 +249,7 @@ export default function ResultModal({
               isWon && { transform: [{ translateY: noumiBounce }] },
             ]}
           >
-            <ResultNoumi size={120} />
+            <ResultNoumi size={130} />
           </Animated.View>
           {isWon && (
             <View style={styles.starsRow}>
@@ -262,14 +306,30 @@ const styles = StyleSheet.create({
   },
   cornerFlower1: { position: "absolute", top: 16, right: 18 },
   cornerFlower2: { position: "absolute", top: 22, left: 22 },
-  noumiWrap: { marginBottom: 12, marginTop: 8 },
+  noumiWrap: {
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: "#A5D6A7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    marginTop: 8,
+    shadowColor: "#388E3C",
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+  },
   starsRow: { flexDirection: "row-reverse", gap: 10, marginBottom: 14 },
   message: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "900",
     color: GARDEN.textDark,
     textAlign: "center",
-    marginBottom: 22,
+    marginBottom: 24,
   },
   primaryBtn: {
     width: "100%",
@@ -283,7 +343,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  primaryBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "900" },
+  primaryBtnText: { color: "#FFFFFF", fontSize: 18, fontWeight: "900" },
   secondaryBtn: {
     width: "100%",
     paddingVertical: 14,
@@ -292,5 +352,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F5F5F5",
   },
-  secondaryBtnText: { color: GARDEN.textDark, fontSize: 14, fontWeight: "700" },
+  secondaryBtnText: { color: GARDEN.textDark, fontSize: 15, fontWeight: "700" },
 });

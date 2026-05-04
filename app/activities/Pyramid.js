@@ -49,7 +49,7 @@ const generateRings = (count) =>
   Array.from({ length: count }, (_, i) => ({
     id: `ring-${i}`,
     color: RING_COLORS[i] || "#333",
-    size: 80 - i * 10,
+    size: 95 - i * 11,
     placed: false,
     label: RING_LABELS[i],
   }));
@@ -269,7 +269,8 @@ function SpeechBubble({ text, color = GARDEN.bubbleHappy, visible }) {
       pointerEvents="none"
     >
       <Text style={styles.bubbleText}>{text}</Text>
-      <View style={[styles.bubbleTail, { borderTopColor: color }]} />
+      {/* Tail pointing up to Noumi */}
+      <View style={[styles.bubbleTail, { borderBottomColor: color }]} />
     </Animated.View>
   );
 }
@@ -620,7 +621,7 @@ export default function PyramidScreen() {
                   styles.staticRing,
                   {
                     width: ring.size * 1.8,
-                    height: 30,
+                    height: 36,
                     backgroundColor: ring.color,
                   },
                 ]}
@@ -655,7 +656,7 @@ export default function PyramidScreen() {
             ],
           }}
         >
-          <NoumiCompanion size={95} expression={noumiExpression} />
+          <NoumiCompanion size={110} expression={noumiExpression} />
         </Animated.View>
       </View>
 
@@ -699,7 +700,7 @@ function RingItem({ ring, onDrop }) {
         styles.ring,
         {
           width: ring.size * 1.8,
-          height: 40,
+          height: 50,
           backgroundColor: ring.color,
           transform: pan.getTranslateTransform(),
         },
@@ -765,7 +766,7 @@ const styles = StyleSheet.create({
   },
   titleBlock: { flex: 1, alignItems: "center" },
   title: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "900",
     color: "#FFFFFF",
     textShadowColor: "rgba(0, 0, 0, 0.3)",
@@ -773,7 +774,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.95)",
     fontWeight: "700",
     marginTop: 2,
@@ -800,13 +801,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   progressPct: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "800",
     color: "#FFFFFF",
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-    minWidth: 40,
+    minWidth: 50,
   },
 
   flowerLeft: { position: "absolute", top: "30%", left: 16, zIndex: 2 },
@@ -822,8 +823,8 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   pegBase: {
-    width: 180,
-    height: 18,
+    width: 200,
+    height: 22,
     borderRadius: 12,
     backgroundColor: "#5D4037",
     shadowColor: "#000",
@@ -833,12 +834,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   pegStick: {
-    width: 12,
-    height: 200,
+    width: 14,
+    height: 220,
     borderRadius: 6,
     backgroundColor: "#795548",
     position: "absolute",
-    bottom: 18,
+    bottom: 22,
   },
   placedRingsContainer: {
     position: "absolute",
@@ -857,15 +858,15 @@ const styles = StyleSheet.create({
   },
 
   ringsArea: {
-    paddingBottom: 30,
+    paddingBottom: 50,
     paddingTop: 10,
     alignItems: "center",
     zIndex: 3,
   },
   hintText: {
-    fontSize: 14,
+    fontSize: 17,
     color: "#FFFFFF",
-    marginBottom: 14,
+    marginBottom: 18,
     fontWeight: "700",
     textShadowColor: "rgba(0, 0, 0, 0.25)",
     textShadowOffset: { width: 0, height: 1 },
@@ -892,7 +893,7 @@ const styles = StyleSheet.create({
   ringLabel: {
     color: "white",
     fontWeight: "900",
-    fontSize: 18,
+    fontSize: 22,
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -900,7 +901,7 @@ const styles = StyleSheet.create({
 
   noumiCorner: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 30 : 20,
+    top: Platform.OS === "ios" ? 145 : 115,
     left: 12,
     zIndex: 20,
     alignItems: "flex-start",
@@ -908,13 +909,13 @@ const styles = StyleSheet.create({
 
   bubble: {
     position: "absolute",
-    top: -55,
-    left: 60,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    minWidth: 110,
-    maxWidth: 200,
+    top: 110,
+    left: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 18,
+    minWidth: 130,
+    maxWidth: 220,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -922,20 +923,21 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   bubbleText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "800",
     color: GARDEN.textDark,
     textAlign: "center",
   },
   bubbleTail: {
     position: "absolute",
-    bottom: -8,
+    top: -8,
     left: 18,
     width: 0,
     height: 0,
     borderLeftWidth: 8,
     borderRightWidth: 8,
-    borderTopWidth: 10,
+    borderBottomWidth: 10,
+    borderTopWidth: 0,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
   },
