@@ -6,7 +6,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -116,45 +115,44 @@ export default function SpecialistChatRoom() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
-        <SafeAreaView style={{ flex: 1 }}>
-          {/* ─── HEADER ─── */}
-          <View style={styles.header}>
-            <View style={styles.decorCircle} />
-            <View style={styles.headerInner}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <Ionicons name="chevron-forward" size={22} color="#fff" />
-              </TouchableOpacity>
+      {/* ─── HEADER (stays put, outside KeyboardAvoidingView) ─── */}
+      <View style={styles.header}>
+        <View style={styles.decorCircle} />
+        <View style={styles.headerInner}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-forward" size={22} color="#fff" />
+          </TouchableOpacity>
 
-              <View style={styles.headerCenter}>
-                <View style={styles.headerAvatar}>
-                  <MaterialCommunityIcons
-                    name="baby-face-outline"
-                    size={20}
-                    color={PRIMARY_DARK}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.headerTitle} numberOfLines={1}>
-                    {childName || "—"}
-                  </Text>
-                  <Text style={styles.headerSub} numberOfLines={1}>
-                    ولي الأمر: {parentName || "—"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={{ width: 38 }} />
+          <View style={styles.headerCenter}>
+            <View style={styles.headerAvatar}>
+              <MaterialCommunityIcons
+                name="baby-face-outline"
+                size={20}
+                color={PRIMARY_DARK}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {childName || "—"}
+              </Text>
+              <Text style={styles.headerSub} numberOfLines={1}>
+                ولي الأمر: {parentName || "—"}
+              </Text>
             </View>
           </View>
 
+          <View style={{ width: 38 }} />
+        </View>
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
           {/* ─── MESSAGES (tap-to-dismiss keyboard) ─── */}
           {loading ? (
             <View style={styles.centerLoading}>
@@ -231,7 +229,6 @@ export default function SpecialistChatRoom() {
               )}
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -248,7 +245,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: PRIMARY,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 10 : 16,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
     paddingBottom: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,

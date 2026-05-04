@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   RefreshControl,
@@ -14,11 +15,76 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import { getChildrenByParentEmail } from "../../Services/ChildrenService";
 import { getCurrentUser } from "../../Services/UserService";
 import { hasParentAssessedChild } from "../../Services/AssessmentService";
 import BottomNavBar from "../../components/BottomNavBar";
 import { COLORS } from "../../constants/theme";
+
+// Small plant decoration for the activities button
+function MiniPlant({ size = 60 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+      <Path
+        d="M 30 50 Q 30 35 30 22"
+        stroke="#558B2F"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path d="M 30 40 Q 18 38 14 44 Q 20 48 30 44 Z" fill="#7CB342" />
+      <Path d="M 30 35 Q 42 33 46 39 Q 40 43 30 39 Z" fill="#8BC34A" />
+      <Circle cx="30" cy="20" r="6" fill="#9CCC65" />
+      <Circle cx="24" cy="16" r="4" fill="#AED581" />
+      <Circle cx="36" cy="16" r="4" fill="#AED581" />
+      <Circle cx="30" cy="13" r="3" fill="#C5E1A5" />
+    </Svg>
+  );
+}
+
+// Tiny butterfly decoration
+function MiniButterfly({ size = 26 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 30 30" fill="none">
+      <Ellipse cx="15" cy="15" rx="1" ry="7" fill="#3E2723" />
+      <Ellipse
+        cx="9"
+        cy="11"
+        rx="6"
+        ry="5"
+        fill="#FFB74D"
+        transform="rotate(-20 9 11)"
+      />
+      <Ellipse
+        cx="21"
+        cy="11"
+        rx="6"
+        ry="5"
+        fill="#FFB74D"
+        transform="rotate(20 21 11)"
+      />
+      <Ellipse
+        cx="10"
+        cy="19"
+        rx="5"
+        ry="4"
+        fill="#FFE0B2"
+        transform="rotate(20 10 19)"
+      />
+      <Ellipse
+        cx="20"
+        cy="19"
+        rx="5"
+        ry="4"
+        fill="#FFE0B2"
+        transform="rotate(-20 20 19)"
+      />
+      <Circle cx="8" cy="10" r="0.8" fill="white" />
+      <Circle cx="22" cy="10" r="0.8" fill="white" />
+    </Svg>
+  );
+}
 
 const PRIMARY = COLORS.PRIMARY;
 const PRIMARY_DARK = COLORS.PRIMARY_DARK;
@@ -162,8 +228,44 @@ export default function HomepageP() {
     });
   };
 
-  const handleActivities = () => router.push("/parent/Activities");
-  const handleChat = () => router.push("/parent/Chat");
+  const handleActivities = () => router.push("/parent/IntroScreen");
+
+  const handleOpenChat = async () => {
+    if (children.length === 1) {
+      const child = children[0];
+      if (!child.specialistId) {
+        Alert.alert("تنبيه", "لم يتم ربط أخصائي بعد لطفلك");
+        return;
+      }
+      try {
+        const { getOrCreateChat } = await import(
+          "../../Services/ChatService"
+        );
+        const chat = await getOrCreateChat({
+          childId: child.id,
+          childName: child.name,
+          parentId: child.parentId,
+          parentName: child.parentName || "",
+          specialistId: child.specialistId,
+          specialistName: child.specialistName || "الأخصائي",
+        });
+
+        router.push({
+          pathname: "/parent/ChatRoom",
+          params: {
+            chatId: chat.id,
+            childName: child.name,
+            specialistName: child.specialistName || "الأخصائي",
+          },
+        });
+      } catch (error) {
+        console.error("Error opening chat:", error);
+        router.push("/parent/Chat");
+      }
+    } else {
+      router.push("/parent/Chat");
+    }
+  };
 
   if (loading) {
     return (
@@ -384,60 +486,58 @@ export default function HomepageP() {
             </View>
           )}
 
-          {/* ─── QUICK ACTIONS SECTION ─── */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>إجراءات سريعة</Text>
-          </View>
+          {/* ─── Activities Hero Button (big, colorful) ─── */}
+          <TouchableOpacity
+            style={styles.activitiesHero}
+            activeOpacity={0.85}
+            onPress={handleActivities}
+          >
+            <View style={styles.heroDecor1} />
+            <View style={styles.heroDecor2} />
+            <View style={styles.heroDecor3} />
 
-          <View style={styles.actionsCard}>
-            <TouchableOpacity
-              style={[styles.actionItem, styles.actionItemBorder]}
-              onPress={handleActivities}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIconBox,
-                  { backgroundColor: PRIMARY_LIGHT },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="gamepad-variant"
-                  size={20}
-                  color={PRIMARY_DARK}
-                />
-              </View>
-              <View style={styles.actionTextBox}>
-                <Text style={styles.actionTitle}>ابدئي الأنشطة</Text>
-                <Text style={styles.actionSub}>ألعاب تنموية لطفلك</Text>
-              </View>
-              <Ionicons name="chevron-back" size={18} color={MUTED} />
-            </TouchableOpacity>
+            <View style={styles.heroPlant}>
+              <MiniPlant size={70} />
+            </View>
 
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={handleChat}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIconBox,
-                  { backgroundColor: GREEN_LIGHT },
-                ]}
-              >
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={20}
-                  color={GREEN}
-                />
+            <View style={styles.heroButterfly}>
+              <MiniButterfly size={28} />
+            </View>
+
+            <View style={styles.heroContent}>
+              <View style={styles.heroBadge}>
+                <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+                <Text style={styles.heroBadgeText}>عالم طفلك</Text>
               </View>
-              <View style={styles.actionTextBox}>
-                <Text style={styles.actionTitle}>تواصلي مع الأخصائي</Text>
-                <Text style={styles.actionSub}>محادثة مباشرة</Text>
+              <Text style={styles.heroTitle}>لنبدأ رحلة المرح!</Text>
+              <Text style={styles.heroSubtitle}>
+                أنشطة ممتعة لتنمية مهارات طفلك
+              </Text>
+
+              <View style={styles.heroCTA}>
+                <Text style={styles.heroCTAText}>ادخلي الآن</Text>
+                <Ionicons name="arrow-back" size={16} color="#FFFFFF" />
               </View>
-              <Ionicons name="chevron-back" size={18} color={MUTED} />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* ─── Chat Button (separate, smaller) ─── */}
+          <TouchableOpacity
+            style={styles.chatButton}
+            activeOpacity={0.85}
+            onPress={handleOpenChat}
+          >
+            <View style={styles.chatIconBox}>
+              <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
+            </View>
+            <View style={styles.chatContent}>
+              <Text style={styles.chatTitle}>تواصلي مع الأخصائي</Text>
+              <Text style={styles.chatSubtitle}>
+                محادثة مباشرة لمتابعة طفلك
+              </Text>
+            </View>
+            <Ionicons name="chevron-back" size={20} color="#0288D1" />
+          </TouchableOpacity>
 
           <View style={{ height: 110 }} />
         </ScrollView>
@@ -764,6 +864,162 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
     textAlign: "center",
+  },
+
+  // ─── Activities Hero Button ───
+  activitiesHero: {
+    marginHorizontal: 16,
+    marginTop: 22,
+    marginBottom: 14,
+    height: 160,
+    borderRadius: 24,
+    backgroundColor: "#7CB342",
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: "#558B2F",
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+  },
+  heroDecor1: {
+    position: "absolute",
+    top: -40,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "#9CCC65",
+    opacity: 0.5,
+  },
+  heroDecor2: {
+    position: "absolute",
+    bottom: -50,
+    left: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#AED581",
+    opacity: 0.4,
+  },
+  heroDecor3: {
+    position: "absolute",
+    top: 30,
+    left: 60,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FFEB3B",
+    opacity: 0.3,
+  },
+  heroPlant: {
+    position: "absolute",
+    bottom: 8,
+    left: 16,
+    zIndex: 2,
+  },
+  heroButterfly: {
+    position: "absolute",
+    top: 16,
+    left: 24,
+    zIndex: 2,
+  },
+  heroContent: {
+    flex: 1,
+    padding: 18,
+    paddingRight: 22,
+    alignItems: "flex-end",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  heroBadge: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+    textAlign: "right",
+    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.95)",
+    marginBottom: 12,
+    textAlign: "right",
+  },
+  heroCTA: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  heroCTAText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  // ─── Chat Button ───
+  chatButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "#E1F5FE",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  chatIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#0288D1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatContent: {
+    flex: 1,
+  },
+  chatTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1A1A1A",
+    textAlign: "right",
+    marginBottom: 2,
+  },
+  chatSubtitle: {
+    fontSize: 11,
+    color: "#666",
+    textAlign: "right",
   },
 
   // Quick Actions Card
