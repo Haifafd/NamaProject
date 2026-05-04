@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
   Animated,
@@ -9,7 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import Svg, {
   Circle,
   Defs,
@@ -19,26 +19,19 @@ import Svg, {
   RadialGradient,
   Stop,
 } from "react-native-svg";
-
-// Audio (graceful fallback if expo-av isn't installed or file missing)
-let Audio;
-try {
-  Audio = require("expo-av").Audio;
-} catch (e) {
-  Audio = null;
-}
+import { startBackgroundMusic } from "../../Services/MusicService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const GARDEN = {
   skyTop: "#87CEEB",
   skyMid: "#B3E5FC",
-  grass: "#66BB6A",
-  grassDark: "#4CAF50",
+  grass: "#92cb6a",
+  grassDark: "#558B2F",
   sunYellow: "#FFC93C",
   sunGlow: "#FFE082",
   cloudWhite: "#FFFFFF",
-  treeGreen: "#388E3C",
+  treeGreen: "#8ab968",
   treeBrown: "#6D4C41",
   flowerPink: "#EC407A",
   flowerYellow: "#FFCA28",
@@ -67,19 +60,65 @@ function SunSVG({ size = 90 }) {
       </Defs>
       <Circle cx="50" cy="50" r="48" fill="url(#sunGlow)" />
       <G opacity="0.85">
-        <Path d="M 50 8 L 50 18" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 50 82 L 50 92" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 8 50 L 18 50" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 82 50 L 92 50" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 22 22 L 28 28" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 72 72 L 78 78" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 22 78 L 28 72" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
-        <Path d="M 72 28 L 78 22" stroke={GARDEN.sunYellow} strokeWidth="3" strokeLinecap="round" />
+        <Path
+          d="M 50 8 L 50 18"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 50 82 L 50 92"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 8 50 L 18 50"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 82 50 L 92 50"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 22 22 L 28 28"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 72 72 L 78 78"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 22 78 L 28 72"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 72 28 L 78 22"
+          stroke={GARDEN.sunYellow}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
       </G>
       <Circle cx="50" cy="50" r="26" fill={GARDEN.sunYellow} />
       <Circle cx="42" cy="46" r="2.5" fill="#5D4037" />
       <Circle cx="58" cy="46" r="2.5" fill="#5D4037" />
-      <Path d="M 42 56 Q 50 62 58 56" stroke="#5D4037" strokeWidth="2" strokeLinecap="round" fill="none" />
+      <Path
+        d="M 42 56 Q 50 62 58 56"
+        stroke="#5D4037"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
       <Circle cx="38" cy="54" r="3" fill="#FF6B9D" opacity="0.5" />
       <Circle cx="62" cy="54" r="3" fill="#FF6B9D" opacity="0.5" />
     </Svg>
@@ -101,7 +140,11 @@ function TreeSVG({ size = 130 }) {
   return (
     <Svg width={size} height={size * 1.2} viewBox="0 0 100 120" fill="none">
       <Path d="M 45 110 L 45 70 L 55 70 L 55 110 Z" fill={GARDEN.treeBrown} />
-      <Path d="M 47 110 L 47 75 L 49 75 L 49 110 Z" fill="#8D6E63" opacity="0.6" />
+      <Path
+        d="M 47 110 L 47 75 L 49 75 L 49 110 Z"
+        fill="#8D6E63"
+        opacity="0.6"
+      />
       <Circle cx="50" cy="42" r="32" fill={GARDEN.treeGreen} />
       <Circle cx="32" cy="50" r="22" fill="#43A047" />
       <Circle cx="68" cy="50" r="22" fill="#43A047" />
@@ -121,8 +164,20 @@ function TreeSVG({ size = 130 }) {
 function FlowerSVG({ size = 30, color = GARDEN.flowerPink }) {
   return (
     <Svg width={size} height={size * 1.4} viewBox="0 0 30 42" fill="none">
-      <Path d="M 15 30 L 15 42" stroke={GARDEN.treeGreen} strokeWidth="2" strokeLinecap="round" />
-      <Ellipse cx="20" cy="36" rx="4" ry="2" fill={GARDEN.treeGreen} transform="rotate(30 20 36)" />
+      <Path
+        d="M 15 30 L 15 42"
+        stroke={GARDEN.treeGreen}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <Ellipse
+        cx="20"
+        cy="36"
+        rx="4"
+        ry="2"
+        fill={GARDEN.treeGreen}
+        transform="rotate(30 20 36)"
+      />
       <Circle cx="15" cy="10" r="6" fill={color} />
       <Circle cx="9" cy="16" r="6" fill={color} />
       <Circle cx="21" cy="16" r="6" fill={color} />
@@ -136,14 +191,56 @@ function ButterflySVG({ size = 36, color = GARDEN.butterflyOrange }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 40 40" fill="none">
       <Ellipse cx="20" cy="20" rx="1.2" ry="9" fill="#3E2723" />
-      <Ellipse cx="11" cy="14" rx="8" ry="6" fill={color} transform="rotate(-25 11 14)" />
-      <Ellipse cx="29" cy="14" rx="8" ry="6" fill={color} transform="rotate(25 29 14)" />
-      <Ellipse cx="12" cy="25" rx="6" ry="5" fill={color} opacity="0.75" transform="rotate(20 12 25)" />
-      <Ellipse cx="28" cy="25" rx="6" ry="5" fill={color} opacity="0.75" transform="rotate(-20 28 25)" />
+      <Ellipse
+        cx="11"
+        cy="14"
+        rx="8"
+        ry="6"
+        fill={color}
+        transform="rotate(-25 11 14)"
+      />
+      <Ellipse
+        cx="29"
+        cy="14"
+        rx="8"
+        ry="6"
+        fill={color}
+        transform="rotate(25 29 14)"
+      />
+      <Ellipse
+        cx="12"
+        cy="25"
+        rx="6"
+        ry="5"
+        fill={color}
+        opacity="0.75"
+        transform="rotate(20 12 25)"
+      />
+      <Ellipse
+        cx="28"
+        cy="25"
+        rx="6"
+        ry="5"
+        fill={color}
+        opacity="0.75"
+        transform="rotate(-20 28 25)"
+      />
       <Circle cx="10" cy="13" r="1.5" fill="#FFFFFF" opacity="0.9" />
       <Circle cx="30" cy="13" r="1.5" fill="#FFFFFF" opacity="0.9" />
-      <Path d="M 19 12 Q 17 6 14 6" stroke="#3E2723" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-      <Path d="M 21 12 Q 23 6 26 6" stroke="#3E2723" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+      <Path
+        d="M 19 12 Q 17 6 14 6"
+        stroke="#3E2723"
+        strokeWidth="0.8"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M 21 12 Q 23 6 26 6"
+        stroke="#3E2723"
+        strokeWidth="0.8"
+        strokeLinecap="round"
+        fill="none"
+      />
     </Svg>
   );
 }
@@ -156,9 +253,23 @@ function NoumiRabbit({ size = 200 }) {
     <Svg width={size} height={size * 1.1} viewBox="0 0 200 220" fill="none">
       <Ellipse cx="100" cy="210" rx="55" ry="6" fill="#000" opacity="0.15" />
       <Ellipse cx="78" cy="40" rx="14" ry="36" fill={GARDEN.rabbitWhite} />
-      <Ellipse cx="78" cy="42" rx="8" ry="28" fill={GARDEN.rabbitPink} opacity="0.7" />
+      <Ellipse
+        cx="78"
+        cy="42"
+        rx="8"
+        ry="28"
+        fill={GARDEN.rabbitPink}
+        opacity="0.7"
+      />
       <Ellipse cx="122" cy="40" rx="14" ry="36" fill={GARDEN.rabbitWhite} />
-      <Ellipse cx="122" cy="42" rx="8" ry="28" fill={GARDEN.rabbitPink} opacity="0.7" />
+      <Ellipse
+        cx="122"
+        cy="42"
+        rx="8"
+        ry="28"
+        fill={GARDEN.rabbitPink}
+        opacity="0.7"
+      />
       <Circle cx="100" cy="100" r="55" fill={GARDEN.rabbitWhite} />
       <Circle cx="70" cy="115" r="10" fill={GARDEN.rabbitPink} opacity="0.7" />
       <Circle cx="130" cy="115" r="10" fill={GARDEN.rabbitPink} opacity="0.7" />
@@ -172,14 +283,56 @@ function NoumiRabbit({ size = 200 }) {
         d="M 100 110 Q 95 108 95 113 Q 95 117 100 120 Q 105 117 105 113 Q 105 108 100 110 Z"
         fill="#FF6B9D"
       />
-      <Path d="M 100 122 Q 95 128 90 125" stroke="#3E2723" strokeWidth="2" strokeLinecap="round" fill="none" />
-      <Path d="M 100 122 Q 105 128 110 125" stroke="#3E2723" strokeWidth="2" strokeLinecap="round" fill="none" />
-      <Path d="M 60 117 L 50 115" stroke="#999" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M 60 120 L 48 120" stroke="#999" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M 60 123 L 50 125" stroke="#999" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M 140 117 L 150 115" stroke="#999" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M 140 120 L 152 120" stroke="#999" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M 140 123 L 150 125" stroke="#999" strokeWidth="1" strokeLinecap="round" />
+      <Path
+        d="M 100 122 Q 95 128 90 125"
+        stroke="#3E2723"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M 100 122 Q 105 128 110 125"
+        stroke="#3E2723"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M 60 117 L 50 115"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 60 120 L 48 120"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 60 123 L 50 125"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 140 117 L 150 115"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 140 120 L 152 120"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M 140 123 L 150 125"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
       <Ellipse cx="100" cy="175" rx="42" ry="32" fill={GARDEN.rabbitWhite} />
       <Path
         d="M 70 152 Q 100 162 130 152 Q 130 158 100 168 Q 70 158 70 152 Z"
@@ -199,7 +352,6 @@ function NoumiRabbit({ size = 200 }) {
 // ─────────────────────────────────────────────
 export default function ChildModeSplash() {
   const router = useRouter();
-  const soundRef = useRef(null);
 
   // Animation values
   const sunRotate = useRef(new Animated.Value(0)).current;
@@ -209,7 +361,9 @@ export default function ChildModeSplash() {
   const treeLeftSway = useRef(new Animated.Value(0)).current;
   const treeRightSway = useRef(new Animated.Value(0)).current;
 
-  const rabbitTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT * 0.4)).current;
+  const rabbitTranslateY = useRef(
+    new Animated.Value(SCREEN_HEIGHT * 0.4),
+  ).current;
   const rabbitOpacity = useRef(new Animated.Value(0)).current;
   const rabbitScale = useRef(new Animated.Value(0.7)).current;
   const rabbitJump = useRef(new Animated.Value(0)).current;
@@ -230,63 +384,18 @@ export default function ChildModeSplash() {
   const dot2Anim = useRef(new Animated.Value(0)).current;
   const dot3Anim = useRef(new Animated.Value(0)).current;
 
-  // Background music (graceful fallback)
-  useEffect(() => {
-    let isMounted = true;
-
-    const playMusic = async () => {
-      if (!Audio) {
-        console.log("expo-av not installed, skipping music");
-        return;
-      }
-
-      try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: true,
-        });
-
-        const { sound } = await Audio.Sound.createAsync(
-          require("../../assets/sounds/kids-music.mp3"),
-          {
-            isLooping: true,
-            volume: 0.35,
-            shouldPlay: true,
-          }
-        );
-
-        if (isMounted) {
-          soundRef.current = sound;
-        } else {
-          await sound.unloadAsync();
-        }
-      } catch (error) {
-        console.log("Music not available:", error.message);
-      }
-    };
-
-    playMusic();
-
-    return () => {
-      isMounted = false;
-      if (soundRef.current) {
-        soundRef.current.stopAsync().catch(() => {});
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-    };
-  }, []);
-
   // Animation orchestration
   useEffect(() => {
+    // Start background music when entering child mode (idempotent — safe to call)
+    startBackgroundMusic();
+
     Animated.loop(
       Animated.timing(sunRotate, {
         toValue: 1,
         duration: 30000,
         easing: Easing.linear,
         useNativeDriver: true,
-      })
+      }),
     ).start();
 
     Animated.loop(
@@ -303,7 +412,7 @@ export default function ChildModeSplash() {
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     const driftCloud = (anim, distance, duration) => {
@@ -321,7 +430,7 @@ export default function ChildModeSplash() {
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     };
     driftCloud(cloud1X, 25, 8000);
@@ -342,7 +451,7 @@ export default function ChildModeSplash() {
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     };
     swayTree(treeLeftSway, 0.02, 4000);
@@ -363,7 +472,7 @@ export default function ChildModeSplash() {
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     };
     bobFlower(flowerBob1, 1800);
@@ -385,7 +494,7 @@ export default function ChildModeSplash() {
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     };
     floatButterfly(butterfly1, 35, -30, 4000);
@@ -455,7 +564,7 @@ export default function ChildModeSplash() {
             useNativeDriver: true,
           }),
           Animated.delay(1400),
-        ])
+        ]),
       ).start();
     }, 1300);
 
@@ -473,7 +582,7 @@ export default function ChildModeSplash() {
             duration: 400,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     };
     pulseDot(dot1Anim, 0);
@@ -518,13 +627,19 @@ export default function ChildModeSplash() {
         <SunSVG size={100} />
       </Animated.View>
 
-      <Animated.View style={[styles.cloud1, { transform: [{ translateX: cloud1X }] }]}>
+      <Animated.View
+        style={[styles.cloud1, { transform: [{ translateX: cloud1X }] }]}
+      >
         <CloudSVG size={110} />
       </Animated.View>
-      <Animated.View style={[styles.cloud2, { transform: [{ translateX: cloud2X }] }]}>
+      <Animated.View
+        style={[styles.cloud2, { transform: [{ translateX: cloud2X }] }]}
+      >
         <CloudSVG size={80} />
       </Animated.View>
-      <Animated.View style={[styles.cloud3, { transform: [{ translateX: cloud1X }] }]}>
+      <Animated.View
+        style={[styles.cloud3, { transform: [{ translateX: cloud1X }] }]}
+      >
         <CloudSVG size={70} />
       </Animated.View>
 
@@ -569,10 +684,7 @@ export default function ChildModeSplash() {
       </Animated.View>
 
       <Animated.View
-        style={[
-          styles.treeLeft,
-          { transform: [{ rotate: treeLeftRotation }] },
-        ]}
+        style={[styles.treeLeft, { transform: [{ rotate: treeLeftRotation }] }]}
       >
         <TreeSVG size={140} />
       </Animated.View>

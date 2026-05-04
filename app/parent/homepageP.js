@@ -20,6 +20,7 @@ import { getChildrenByParentEmail } from "../../Services/ChildrenService";
 import { getChildPlan } from "../../Services/ActivityService";
 import { getCurrentUser } from "../../Services/UserService";
 import { hasParentAssessedChild } from "../../Services/AssessmentService";
+import { stopBackgroundMusic } from "../../Services/MusicService";
 import BottomNavBar from "../../components/BottomNavBar";
 import { COLORS } from "../../constants/theme";
 
@@ -217,6 +218,13 @@ export default function HomepageP() {
 
     checkPlans();
   }, [children]);
+
+  // Stop child-mode music whenever parent returns to home
+  useFocusEffect(
+    useCallback(() => {
+      stopBackgroundMusic();
+    }, [])
+  );
 
   // Re-check plans whenever home screen gets focus (catches new plans created elsewhere)
   useFocusEffect(
