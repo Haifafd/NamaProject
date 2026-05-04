@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,9 +14,10 @@ import {
   View,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import { getChildrenByParentEmail } from "../../Services/ChildrenService";
+import { getChildPlan } from "../../Services/ActivityService";
 import { getCurrentUser } from "../../Services/UserService";
 import { hasParentAssessedChild } from "../../Services/AssessmentService";
 import BottomNavBar from "../../components/BottomNavBar";
@@ -135,6 +136,10 @@ export default function HomepageP() {
   // Children who haven't been assessed yet by parent
   const [pendingAssessments, setPendingAssessments] = useState([]);
 
+  // Track if any child has a therapy plan
+  const [hasAnyPlan, setHasAnyPlan] = useState(false);
+  const [checkingPlans, setCheckingPlans] = useState(true);
+
   // Pulse animation for banners
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -182,6 +187,59 @@ export default function HomepageP() {
 
     checkAssessments();
   }, [children]);
+
+  // Check if any child has a therapy plan
+  useEffect(() => {
+    const checkPlans = async () => {
+      if (!children || children.length === 0) {
+        setHasAnyPlan(false);
+        setCheckingPlans(false);
+        return;
+      }
+
+      try {
+        let foundPlan = false;
+        for (const child of children) {
+          const plan = await getChildPlan(child.id);
+          if (plan && plan.activityIds && plan.activityIds.length > 0) {
+            foundPlan = true;
+            break;
+          }
+        }
+        setHasAnyPlan(foundPlan);
+      } catch (error) {
+        console.error("Error checking plans:", error);
+        setHasAnyPlan(false);
+      } finally {
+        setCheckingPlans(false);
+      }
+    };
+
+    checkPlans();
+  }, [children]);
+
+  // Re-check plans whenever home screen gets focus (catches new plans created elsewhere)
+  useFocusEffect(
+    useCallback(() => {
+      if (!children || children.length === 0) return;
+      const checkPlans = async () => {
+        try {
+          let foundPlan = false;
+          for (const child of children) {
+            const plan = await getChildPlan(child.id);
+            if (plan && plan.activityIds && plan.activityIds.length > 0) {
+              foundPlan = true;
+              break;
+            }
+          }
+          setHasAnyPlan(foundPlan);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      checkPlans();
+    }, [children])
+  );
 
   // Subtle pulse animation for pending banners
   useEffect(() => {
@@ -486,40 +544,42 @@ export default function HomepageP() {
             </View>
           )}
 
-          {/* ─── Activities Hero Button (big, colorful) ─── */}
-          <TouchableOpacity
-            style={styles.activitiesHero}
-            activeOpacity={0.85}
-            onPress={handleActivities}
-          >
-            <View style={styles.heroDecor1} />
-            <View style={styles.heroDecor2} />
-            <View style={styles.heroDecor3} />
+          {/* ─── Activities Hero Button — only when at least one child has a plan ─── */}
+          {hasAnyPlan && (
+            <TouchableOpacity
+              style={styles.activitiesHero}
+              activeOpacity={0.85}
+              onPress={handleActivities}
+            >
+              <View style={styles.heroDecor1} />
+              <View style={styles.heroDecor2} />
+              <View style={styles.heroDecor3} />
 
-            <View style={styles.heroPlant}>
-              <MiniPlant size={70} />
-            </View>
-
-            <View style={styles.heroButterfly}>
-              <MiniButterfly size={28} />
-            </View>
-
-            <View style={styles.heroContent}>
-              <View style={styles.heroBadge}>
-                <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-                <Text style={styles.heroBadgeText}>عالم طفلك</Text>
+              <View style={styles.heroPlant}>
+                <MiniPlant size={70} />
               </View>
-              <Text style={styles.heroTitle}>لنبدأ رحلة المرح!</Text>
-              <Text style={styles.heroSubtitle}>
-                أنشطة ممتعة لتنمية مهارات طفلك
-              </Text>
 
-              <View style={styles.heroCTA}>
-                <Text style={styles.heroCTAText}>ادخلي الآن</Text>
-                <Ionicons name="arrow-back" size={16} color="#FFFFFF" />
+              <View style={styles.heroButterfly}>
+                <MiniButterfly size={28} />
               </View>
-            </View>
-          </TouchableOpacity>
+
+              <View style={styles.heroContent}>
+                <View style={styles.heroBadge}>
+                  <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+                  <Text style={styles.heroBadgeText}>عالم طفلك</Text>
+                </View>
+                <Text style={styles.heroTitle}>لنبدأ رحلة المرح!</Text>
+                <Text style={styles.heroSubtitle}>
+                  أنشطة ممتعة لتنمية مهارات طفلك
+                </Text>
+
+                <View style={styles.heroCTA}>
+                  <Text style={styles.heroCTAText}>ادخلي الآن</Text>
+                  <Ionicons name="arrow-back" size={16} color="#FFFFFF" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* ─── Chat Button (separate, smaller) ─── */}
           <TouchableOpacity
