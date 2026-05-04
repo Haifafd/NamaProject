@@ -27,6 +27,7 @@ import {
   getActivitiesByIds,
   CATEGORY_INFO,
 } from "../../Services/ActivityService";
+import { hasParentAssessedChild } from "../../Services/AssessmentService";
 import BottomNavBar from "../../components/BottomNavBar";
 
 // ─── 🎨 الثيم الموحد ───
@@ -91,9 +92,27 @@ export default function ChildReport() {
 
     try {
       const childDoc = await getDoc(doc(db, "Children", childId));
-      if (childDoc.exists()) {
-        setChild({ id: childDoc.id, ...childDoc.data() });
+      if (!childDoc.exists()) {
+        setLoading(false);
+        return;
       }
+      const childData = { id: childDoc.id, ...childDoc.data() };
+
+      // 🚀 First-time visit: redirect to assessment splash
+      const hasAssessed = await hasParentAssessedChild(childId);
+      if (!hasAssessed) {
+        router.replace({
+          pathname: "/parent/AssessmentSplash",
+          params: {
+            childId,
+            childName: childData.name,
+            childGender: childData.gender || "",
+          },
+        });
+        return;
+      }
+
+      setChild(childData);
 
       const resultsQuery = query(
         collection(db, "ActivityResults"),
