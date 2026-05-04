@@ -3,7 +3,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import {
@@ -20,6 +19,7 @@ import {
   hasParentAssessedChild,
   getLatestParentAssessment,
 } from "../../Services/AssessmentService";
+import { COLORS } from "../../constants/theme";
 
 const ALL_QUESTIONS = [
   {
@@ -299,19 +299,18 @@ const SCALE_OPTIONS = [
   { label: "ابداً", value: 0 },
 ];
 
-const CATEGORY_COLORS = {
-  "المهارات الإدراكية والأكاديمية": "#D1F2EB",
-  "المهارات اللغوية": "#D6EAF8",
-  "المهارات الاجتماعية والانفعالية": "#FDEBD0",
-  "المهارات الحركية": "#FEF9E7",
-  "الاعتماد على النفس أو الاستقلالية": "#F5EEF8",
-  "ملاحظات عامة عن الطفل/ بالإضافة (المعززات)": "#EBF5FB",
-};
-
 export default function AssessmentApp() {
   const router = useRouter();
   const auth = getAuth();
   const { childId, childName } = useLocalSearchParams();
+
+  const [savedResult, setSavedResult] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [notesText, setNotesText] = useState("");
+  const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState(null);
+  const [validationError, setValidationError] = useState(false);
 
   useEffect(() => {
     const fetchSavedAssessment = async () => {
@@ -336,14 +335,6 @@ export default function AssessmentApp() {
       router.replace("/login");
     }
   }, []);
-  const [savedResult, setSavedResult] = useState(null);
-
-  const [currentPage, setCurrentPage] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [notesText, setNotesText] = useState("");
-  const [showResult, setShowResult] = useState(false);
-  const [result, setResult] = useState(null);
-  const [validationError, setValidationError] = useState(false);
 
   const questionsPerView = 3;
   const scaleQuestions = ALL_QUESTIONS.filter((q) => q.type === "scale");
@@ -352,7 +343,6 @@ export default function AssessmentApp() {
 
   const answeredCount = Object.keys(answers).length;
   const progressPercent = (answeredCount / totalScaleQuestions) * 100;
-  const remainingQuestions = totalScaleQuestions - answeredCount;
 
   const buildQuestionCategoryMap = () => {
     const map = {};
@@ -425,53 +415,62 @@ export default function AssessmentApp() {
     }
   };
 
-  if (savedResult) {
+  // ─────────────────────────────────────────────
+  // Single success screen for both "already submitted" and "just submitted"
+  // ─────────────────────────────────────────────
+  if (savedResult || (showResult && result)) {
+    const isFirstTime = showResult && result;
+
     return (
-      <View style={styles.successContainer}>
-        <Text style={styles.successText}>نتيجة التقييم السابقة</Text>
+      <View style={styles.successWrap}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.PRIMARY} />
 
-        <Text style={{ fontSize: 40, color: "#2ECC71", marginVertical: 10 }}>
-          {savedResult.percentage}%
-        </Text>
+        <View style={styles.successDecor1} />
+        <View style={styles.successDecor2} />
 
-        <Text style={{ fontSize: 22, marginBottom: 10 }}>
-          {savedResult.level}
-        </Text>
+        <View style={styles.successCard}>
+          <View style={styles.successIconBox}>
+            <Ionicons name="checkmark-circle" size={80} color="#FFFFFF" />
+          </View>
 
-        <Text style={{ color: "#555" }}>
-          مجموع النقاط: {savedResult.totalPoints} / {savedResult.maxPoints}
-        </Text>
+          <Text style={styles.successTitle}>
+            {isFirstTime ? "تم إرسال التقييم بنجاح!" : "تم تعبئة الاستمارة"}
+          </Text>
 
-        <TouchableOpacity
-          style={styles.finalButton}
-          onPress={() => router.replace("/parent/homepageP")}
-        >
-          <Text style={styles.buttonText}>رجوع</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+          <Text style={styles.successSubtitle}>
+            {isFirstTime
+              ? "شكراً لكِ، تم إرسال إجاباتكِ للأخصائي المختص للاطلاع عليها"
+              : "تم إرسال إجاباتكِ مسبقاً للأخصائي"}
+          </Text>
 
-  if (showResult && result) {
-    return (
-      <View style={styles.successContainer}>
-        <Text style={styles.successText}>نتيجة تقييم الطفل</Text>
-        <Text style={{ fontSize: 40, color: "#2ECC71", marginVertical: 10 }}>
-          {result.percentage}%
-        </Text>
-        <Text style={{ fontSize: 22, marginBottom: 10 }}>{result.level}</Text>
-        <Text style={{ color: "#555" }}>
-          مجموع النقاط: {result.totalPoints} / {result.maxPoints}
-        </Text>
+          <View style={styles.successInfoCard}>
+            <View style={styles.successInfoRow}>
+              <Ionicons
+                name="shield-checkmark"
+                size={18}
+                color={COLORS.PRIMARY_DARK}
+              />
+              <Text style={styles.successInfoText}>
+                النتائج تظل خاصة بالأخصائي
+              </Text>
+            </View>
+            <View style={styles.successInfoRow}>
+              <Ionicons name="people" size={18} color={COLORS.PRIMARY_DARK} />
+              <Text style={styles.successInfoText}>
+                سيتواصل معكِ الأخصائي بشأن خطة طفلكِ
+              </Text>
+            </View>
+          </View>
 
-        <TouchableOpacity
-          style={styles.finalButton}
-          onPress={() => {
-            router.replace("/parent/homepageP");
-          }}
-        >
-          <Text style={styles.buttonText}>تم</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.successButton}
+            onPress={() => router.replace("/parent/homepageP")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="home" size={18} color="#FFFFFF" />
+            <Text style={styles.successButtonText}>العودة للرئيسية</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -483,246 +482,541 @@ export default function AssessmentApp() {
     : scaleQuestions.slice(startIndex, startIndex + questionsPerView);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.formContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.PRIMARY} />
 
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => currentPage > 0 && setCurrentPage(currentPage - 1)}
-        >
-          <Text
-            style={[styles.backIcon, currentPage === 0 && { color: "#EEE" }]}
+      {/* Sky gradient header */}
+      <View style={styles.formHeader}>
+        <View style={styles.formDecor1} />
+        <View style={styles.formDecor2} />
+
+        <View style={styles.formHeaderRow}>
+          <TouchableOpacity
+            style={styles.formBackBtn}
+            onPress={() => router.back()}
           >
-            {"<"}
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>استمارة تقييم الطفل</Text>
-      </View>
-
-      <View style={styles.progressSection}>
-        <View style={styles.progressLabels}>
-          <Text style={styles.progressPercent}>{remainingQuestions} سؤال</Text>
-          <Text style={styles.progressText}>الأسئلة المتبقية</Text>
+            <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.formHeaderCenter}>
+            <Text style={styles.formHeaderTitle}>استمارة التقييم</Text>
+            {childName && (
+              <Text style={styles.formHeaderSubtitle}>{childName}</Text>
+            )}
+          </View>
+          <View style={{ width: 38 }} />
         </View>
-        <View style={styles.progressBarBg}>
-          <View
-            style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
-          />
+
+        <View style={styles.progressSection}>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+            />
+          </View>
+          <View style={styles.progressInfoRow}>
+            <Text style={styles.progressInfoText}>
+              {answeredCount} من {totalScaleQuestions}
+            </Text>
+            <Text style={styles.progressInfoPercent}>
+              {Math.round(progressPercent)}%
+            </Text>
+          </View>
         </View>
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {currentQuestions.map((q) => (
-            <View key={q.id} style={styles.questionCard}>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: CATEGORY_COLORS[q.category] },
-                ]}
-              >
-                <Text style={styles.badgeText}>{q.category}</Text>
-              </View>
-
-              <Text
-                style={[
-                  styles.qText,
-                  validationError &&
-                    answers[q.id] === undefined && { color: "red" },
-                ]}
-              >
-                {typeof q.id === "number" ? `${q.id}- ` : ""}
-                {q.text}
-              </Text>
-
-              {q.type === "scale" ? (
-                <View style={styles.optionsContainer}>
-                  {SCALE_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.label}
-                      style={styles.option}
-                      onPress={() =>
-                        setAnswers({ ...answers, [q.id]: opt.value })
-                      }
-                    >
-                      <View
-                        style={[
-                          styles.radio,
-                          answers[q.id] === opt.value && styles.radioSelected,
-                        ]}
-                      >
-                        {answers[q.id] === opt.value && (
-                          <View style={styles.innerRadio} />
-                        )}
-                      </View>
-                      <Text style={styles.optLabel}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+        <ScrollView
+          contentContainerStyle={styles.formScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {currentQuestions.map((q) => {
+            if (q.type === "notes") {
+              return (
+                <View key={q.id} style={styles.notesCard}>
+                  <View style={styles.categoryBadge}>
+                    <Ionicons
+                      name="create"
+                      size={14}
+                      color={COLORS.PRIMARY_DARK}
+                    />
+                    <Text style={styles.categoryBadgeText}>
+                      ملاحظات إضافية
+                    </Text>
+                  </View>
+                  <Text style={styles.notesLabel}>
+                    أضيفي أي ملاحظة عامة عن طفلكِ، أو معززات تساعد في فهمه أكثر
+                  </Text>
+                  <TextInput
+                    style={styles.notesInput}
+                    multiline
+                    placeholder="اكتبي ملاحظاتكِ هنا..."
+                    placeholderTextColor={COLORS.MUTED}
+                    value={notesText}
+                    onChangeText={setNotesText}
+                    textAlign="right"
+                  />
                 </View>
-              ) : (
-                <TextInput
-                  style={styles.notesInput}
-                  placeholder="اضف ملاحظة"
-                  multiline
-                  value={notesText}
-                  onChangeText={setNotesText}
-                  textAlign="right"
-                />
-              )}
-            </View>
-          ))}
+              );
+            }
+
+            const isUnanswered = validationError && answers[q.id] === undefined;
+
+            return (
+              <View key={q.id} style={styles.questionCard}>
+                <View style={styles.categoryBadge}>
+                  <Ionicons
+                    name="ribbon"
+                    size={14}
+                    color={COLORS.PRIMARY_DARK}
+                  />
+                  <Text style={styles.categoryBadgeText}>{q.category}</Text>
+                </View>
+
+                <Text
+                  style={[
+                    styles.questionText,
+                    isUnanswered && { color: COLORS.DANGER },
+                  ]}
+                >
+                  {typeof q.id === "number" ? `${q.id}- ` : ""}
+                  {q.text}
+                </Text>
+
+                <View style={styles.scaleRow}>
+                  {SCALE_OPTIONS.map((opt) => {
+                    const isSelected = answers[q.id] === opt.value;
+                    return (
+                      <TouchableOpacity
+                        key={opt.value}
+                        style={[
+                          styles.scaleBtn,
+                          isSelected && styles.scaleBtnActive,
+                        ]}
+                        onPress={() =>
+                          setAnswers({ ...answers, [q.id]: opt.value })
+                        }
+                        activeOpacity={0.85}
+                      >
+                        <Text
+                          style={[
+                            styles.scaleBtnText,
+                            isSelected && styles.scaleBtnTextActive,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })}
         </ScrollView>
 
-        <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-          <Text style={styles.buttonText}>{isNotesPage ? "تم" : "التالي"}</Text>
-        </TouchableOpacity>
+        {/* Sticky bottom navigation */}
+        <View style={styles.navBottom}>
+          <TouchableOpacity
+            style={[
+              styles.navBtnSecondary,
+              currentPage === 0 && styles.navBtnDisabled,
+            ]}
+            onPress={() =>
+              currentPage > 0 && setCurrentPage(currentPage - 1)
+            }
+            disabled={currentPage === 0}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={COLORS.PRIMARY_DARK}
+            />
+            <Text style={styles.navBtnSecondaryText}>السابق</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navBtnPrimary}
+            onPress={handleNext}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.navBtnPrimaryText}>
+              {currentPage === totalPages - 1 ? "إرسال" : "التالي"}
+            </Text>
+            <Ionicons
+              name={currentPage === totalPages - 1 ? "send" : "chevron-back"}
+              size={20}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF" },
-  header: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
+  // ─── Success screen ───
+  successWrap: {
+    flex: 1,
+    backgroundColor: COLORS.PRIMARY,
     alignItems: "center",
+    justifyContent: "center",
     padding: 20,
-  },
-  headerTitle: { fontSize: 16, fontWeight: "bold" },
-  backIcon: { fontSize: 25, color: "#85C1E9" },
-  progressSection: { paddingHorizontal: 20, marginBottom: 10 },
-  progressLabels: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  progressText: { fontSize: 14, fontWeight: "bold", color: "#333" },
-  progressPercent: { fontSize: 14, color: "#666" },
-  progressBarBg: {
-    height: 10,
-    backgroundColor: "#E5E8E8",
-    borderRadius: 5,
+    position: "relative",
     overflow: "hidden",
+  },
+  successDecor1: {
+    position: "absolute",
+    top: -60,
+    right: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  successDecor2: {
+    position: "absolute",
+    bottom: -80,
+    left: -50,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.13)",
+  },
+  successCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    padding: 28,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+    zIndex: 2,
+  },
+  successIconBox: {
+    width: 110,
+    height: 110,
+    borderRadius: 32,
+    backgroundColor: COLORS.PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.TEXT,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: COLORS.MUTED,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  successInfoCard: {
+    width: "100%",
+    backgroundColor: COLORS.PRIMARY_LIGHT,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+    gap: 10,
+  },
+  successInfoRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+  },
+  successInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.PRIMARY_DARK,
+    fontWeight: "600",
+    textAlign: "right",
+    lineHeight: 18,
+  },
+  successButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: COLORS.PRIMARY,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 14,
+    width: "100%",
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  successButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  // ─── Form ───
+  formContainer: {
+    flex: 1,
+    backgroundColor: COLORS.BG,
+  },
+
+  formHeader: {
+    backgroundColor: COLORS.PRIMARY,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: "hidden",
+  },
+  formDecor1: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  formDecor2: {
+    position: "absolute",
+    bottom: -40,
+    left: -20,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  formHeaderRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1,
+    marginBottom: 14,
+  },
+  formBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  formHeaderCenter: { flex: 1, alignItems: "center" },
+  formHeaderTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  formHeaderSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+
+  progressSection: {
+    zIndex: 1,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 4,
+    overflow: "hidden",
+    flexDirection: "row-reverse",
+    marginBottom: 8,
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#2ECC71",
-    borderRadius: 5,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 4,
   },
-  scrollContent: {
-    padding: 20,
+  progressInfoRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  progressInfoText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.95)",
+    fontWeight: "600",
+  },
+  progressInfoPercent: {
+    fontSize: 13,
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+
+  formScrollContent: {
+    padding: 16,
     paddingBottom: 100,
   },
 
   questionCard: {
-    marginBottom: 40,
+    backgroundColor: COLORS.CARD_BG,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
 
-  badge: {
+  categoryBadge: {
     alignSelf: "flex-end",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 15,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: COLORS.PRIMARY_LIGHT,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.PRIMARY_DARK,
   },
 
-  badgeText: {
-    fontSize: 13,
+  questionText: {
+    fontSize: 14,
+    color: COLORS.TEXT,
+    textAlign: "right",
+    lineHeight: 22,
+    marginBottom: 14,
     fontWeight: "600",
   },
 
-  qText: {
-    textAlign: "right",
-    fontSize: 16,
-    marginBottom: 25,
-    lineHeight: 24,
-  },
-
-  optionsContainer: {
+  scaleRow: {
     flexDirection: "row-reverse",
-    justifyContent: "space-around",
+    gap: 8,
+    flexWrap: "wrap",
   },
-
-  option: {
-    alignItems: "center",
-  },
-
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#D5DBDB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-
-  radioSelected: {
-    borderColor: "#85C1E9",
-  },
-
-  innerRadio: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#85C1E9",
-  },
-
-  optLabel: {
-    fontSize: 12,
-    color: "#7F8C8D",
-  },
-
-  notesInput: {
-    backgroundColor: "#F4F7F6",
-    borderRadius: 15,
-    padding: 15,
-    height: 100,
-    fontSize: 16,
-  },
-
-  nextBtn: {
-    position: "absolute",
-    bottom: 30,
-    left: 20,
-    right: 20,
-    backgroundColor: "#85C1E9",
-    padding: 18,
-    borderRadius: 15,
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  successContainer: {
+  scaleBtn: {
     flex: 1,
+    minWidth: 70,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.BG,
+    borderWidth: 2,
+    borderColor: "transparent",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+  },
+  scaleBtnActive: {
+    backgroundColor: COLORS.PRIMARY,
+    borderColor: COLORS.PRIMARY_DARK,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  scaleBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.MUTED,
+  },
+  scaleBtnTextActive: {
+    color: "#FFFFFF",
   },
 
-  successText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 30,
-    textAlign: "center",
+  notesCard: {
+    backgroundColor: COLORS.CARD_BG,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  notesLabel: {
+    fontSize: 13,
+    color: COLORS.MUTED,
+    textAlign: "right",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  notesInput: {
+    minHeight: 120,
+    borderWidth: 2,
+    borderColor: "#F0F0F0",
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 14,
+    color: COLORS.TEXT,
+    textAlignVertical: "top",
+    backgroundColor: COLORS.BG,
   },
 
-  finalButton: {
-    marginTop: 40,
-    backgroundColor: "#85C1E9",
-    width: "60%",
-    padding: 15,
-    borderRadius: 15,
+  navBottom: {
+    flexDirection: "row-reverse",
+    gap: 10,
+    padding: 16,
+    paddingBottom: Platform.OS === "ios" ? 30 : 16,
+    backgroundColor: COLORS.CARD_BG,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+  },
+  navBtnPrimary: {
+    flex: 2,
+    flexDirection: "row-reverse",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: COLORS.PRIMARY,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  navBtnPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  navBtnSecondary: {
+    flex: 1,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: COLORS.PRIMARY_LIGHT,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  navBtnSecondaryText: {
+    color: COLORS.PRIMARY_DARK,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  navBtnDisabled: {
+    opacity: 0.4,
   },
 });
