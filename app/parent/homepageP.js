@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -97,23 +96,6 @@ export default function HomepageP() {
   };
 
   const handleActivities = () => router.push("/parent/Activities");
-  const handleAssessment = () => {
-    if (children.length === 0) {
-      Alert.alert("تنبيه", "لا يوجد أطفال مرتبطين بحسابك بعد");
-      return;
-    }
-    if (children.length === 1) {
-      router.push({
-        pathname: "/parent/ParentAssessmentForm",
-        params: { childId: children[0].id, childName: children[0].name },
-      });
-    } else {
-      Alert.alert(
-        "اختاري الطفل",
-        "اضغطي على بطاقة الطفل لفتح صفحة تقريره ومنها يمكنكِ تعبئة الاستمارة"
-      );
-    }
-  };
   const handleChat = () => router.push("/parent/Chat");
 
   if (loading) {
@@ -312,30 +294,6 @@ export default function HomepageP() {
               <View style={styles.actionTextBox}>
                 <Text style={styles.actionTitle}>ابدئي الأنشطة</Text>
                 <Text style={styles.actionSub}>ألعاب تنموية لطفلك</Text>
-              </View>
-              <Ionicons name="chevron-back" size={18} color={MUTED} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionItem, styles.actionItemBorder]}
-              onPress={handleAssessment}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIconBox,
-                  { backgroundColor: AMBER_LIGHT },
-                ]}
-              >
-                <Ionicons
-                  name="clipboard-outline"
-                  size={20}
-                  color={AMBER}
-                />
-              </View>
-              <View style={styles.actionTextBox}>
-                <Text style={styles.actionTitle}>استمارة التقييم</Text>
-                <Text style={styles.actionSub}>أجيبي عن أسئلة المتابعة</Text>
               </View>
               <Ionicons name="chevron-back" size={18} color={MUTED} />
             </TouchableOpacity>
