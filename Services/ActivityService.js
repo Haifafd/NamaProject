@@ -10,6 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
+import { saveActivityProgress } from "./ProgressService";
 
 // ─────────────────────────────────────────────
 // أنواع الأنشطة (نفس IDs الموجودة في Firebase)
@@ -155,5 +156,63 @@ export const getChildPlan = async (childId) => {
   } catch (error) {
     console.error("Error fetching child plan:", error);
     throw error;
+  }
+};
+
+// ─────────────────────────────────────────────
+// 🎯 UNIFIED Activity Result Saver
+// ─────────────────────────────────────────────
+export const saveActivityResult = async ({
+  childId,
+  activityId,
+  activityTitle,
+  category,
+  level = 1,
+  correctAnswers = 0,
+  wrongAnswers = 0,
+  totalAttempts = 0,
+  reactionTime = 0,
+  durationSec = 0,
+}) => {
+  if (!childId || !activityId) {
+    console.error("Missing childId or activityId");
+    return null;
+  }
+
+  try {
+    const total = correctAnswers + wrongAnswers;
+    const accuracy = total > 0 ? Math.round((correctAnswers / total) * 100) : 0;
+
+    let stars = 1;
+    if (accuracy >= 80) stars = 3;
+    else if (accuracy >= 50) stars = 2;
+
+    await addDoc(collection(db, "ActivityResults"), {
+      childId,
+      activityId,
+      activityTitle: activityTitle || "",
+      category: category || "",
+      level,
+      correctAnswers,
+      wrongAnswers,
+      totalAttempts,
+      reactionTime,
+      durationSec,
+      accuracy,
+      stars,
+      completedAt: serverTimestamp(),
+    });
+
+    await saveActivityProgress({
+      childId,
+      activityId,
+      stars,
+      score: accuracy,
+    });
+
+    return { stars, accuracy };
+  } catch (error) {
+    console.error("Error saving activity result:", error);
+    return null;
   }
 };

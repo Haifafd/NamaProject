@@ -791,11 +791,40 @@ export default function ChildHome() {
     const activity = selectedStation.activity;
     setSelectedStation(null);
 
+    const gameRoutes = {
+      pyramid: "/activities/Pyramid",
+      pyramid_building: "/activities/Pyramid",
+    };
+
+    let route = gameRoutes[activity.id];
+
+    if (!route) {
+      const titleLower = (activity.title || "").toLowerCase();
+      if (titleLower.includes("هرم") || titleLower.includes("pyramid")) {
+        route = "/activities/Pyramid";
+      }
+    }
+
+    if (!route) {
+      setTimeout(() => {
+        alert(
+          `اللعبة "${activity.title}" غير مربوطة بعد.\nسيتم ربطها في Phase 7C-2.`
+        );
+      }, 300);
+      return;
+    }
+
     setTimeout(() => {
-      alert(
-        `اللعبة "${activity.title}" راح تفتح في Phase 7C\n(سيتم ربط الألعاب الفعلية لاحقاً)`
-      );
-    }, 300);
+      router.push({
+        pathname: route,
+        params: {
+          childId,
+          activityId: activity.id,
+          activityTitle: activity.title || "",
+          category: activity.categoryId || "",
+        },
+      });
+    }, 200);
   };
 
   if (loading) {
