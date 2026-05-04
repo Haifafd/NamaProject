@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -14,6 +16,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { getChildrenByParentEmail } from "../../Services/ChildrenService";
 import { getCurrentUser } from "../../Services/UserService";
+import { hasParentAssessedChild } from "../../Services/AssessmentService";
 import BottomNavBar from "../../components/BottomNavBar";
 import { COLORS } from "../../constants/theme";
 
@@ -63,6 +66,12 @@ export default function HomepageP() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Children who haven't been assessed yet by parent
+  const [pendingAssessments, setPendingAssessments] = useState([]);
+
+  // Pulse animation for banners
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   const loadData = async () => {
     try {
       const [userData, childrenData] = await Promise.all([
@@ -83,9 +92,67 @@ export default function HomepageP() {
     loadData();
   }, []);
 
+  // Check which children still need parent assessment
+  useEffect(() => {
+    const checkAssessments = async () => {
+      if (!children || children.length === 0) {
+        setPendingAssessments([]);
+        return;
+      }
+
+      try {
+        const pending = [];
+        for (const child of children) {
+          const hasAssessed = await hasParentAssessedChild(child.id);
+          if (!hasAssessed) {
+            pending.push(child);
+          }
+        }
+        setPendingAssessments(pending);
+      } catch (error) {
+        console.error("Error checking assessments:", error);
+      }
+    };
+
+    checkAssessments();
+  }, [children]);
+
+  // Subtle pulse animation for pending banners
+  useEffect(() => {
+    if (pendingAssessments.length === 0) return;
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.02,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [pendingAssessments.length]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleOpenAssessmentSplash = (child) => {
+    router.push({
+      pathname: "/parent/AssessmentSplash",
+      params: {
+        childId: child.id,
+        childName: child.name,
+        childGender: child.gender || "",
+      },
+    });
   };
 
   const handleChildPress = (child) => {
@@ -156,6 +223,55 @@ export default function HomepageP() {
               </Text>
             </View>
           </View>
+
+          {/* ─── Pending Assessment Banners ─── */}
+          {pendingAssessments.length > 0 && (
+            <View style={styles.bannersSection}>
+              <View style={styles.bannersSectionHeader}>
+                <Ionicons name="alert-circle" size={18} color="#F39C12" />
+                <Text style={styles.bannersSectionTitle}>
+                  استمارات بانتظار تعبئتك ({pendingAssessments.length})
+                </Text>
+              </View>
+
+              {pendingAssessments.map((child) => (
+                <Animated.View
+                  key={child.id}
+                  style={{ transform: [{ scale: pulseAnim }] }}
+                >
+                  <TouchableOpacity
+                    style={styles.assessmentBanner}
+                    activeOpacity={0.9}
+                    onPress={() => handleOpenAssessmentSplash(child)}
+                  >
+                    <View style={styles.bannerDecor1} />
+                    <View style={styles.bannerDecor2} />
+
+                    <View style={styles.bannerIconBox}>
+                      <Ionicons name="clipboard" size={26} color="#FFFFFF" />
+                    </View>
+
+                    <View style={styles.bannerContent}>
+                      <Text style={styles.bannerTitle}>
+                        استمارة {child.name} بانتظارك
+                      </Text>
+                      <Text style={styles.bannerSubtitle}>
+                        تساعد الأخصائي على متابعة طفلكِ
+                      </Text>
+                    </View>
+
+                    <View style={styles.bannerArrow}>
+                      <Ionicons
+                        name="chevron-back"
+                        size={20}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+          )}
 
           {/* ─── CHILDREN SECTION HEADER ─── */}
           <View style={styles.sectionHeader}>
@@ -408,6 +524,94 @@ const styles = StyleSheet.create({
   },
 
   // Welcome Card
+  // ─── Pending assessment banners ───
+  bannersSection: {
+    marginHorizontal: 16,
+    marginBottom: 18,
+    marginTop: 22,
+  },
+  bannersSectionHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  bannersSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.TEXT,
+  },
+
+  assessmentBanner: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: COLORS.PRIMARY,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 10,
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  bannerDecor1: {
+    position: "absolute",
+    top: -25,
+    right: -25,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  bannerDecor2: {
+    position: "absolute",
+    bottom: -30,
+    left: -10,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  bannerIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  bannerContent: {
+    flex: 1,
+    zIndex: 1,
+  },
+  bannerTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textAlign: "right",
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.9)",
+    textAlign: "right",
+  },
+  bannerArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+
   welcomeCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
