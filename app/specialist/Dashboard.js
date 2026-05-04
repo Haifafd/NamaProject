@@ -433,6 +433,53 @@ export default function Dashboard() {
             categoryId="perceptionCategoryID"
           />
 
+          {/* ─── أزرار الاستمارات ─── */}
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { backgroundColor: COLORS.PRIMARY_DARK, marginBottom: 10 },
+            ]}
+            activeOpacity={0.85}
+            onPress={() =>
+              router.push({
+                pathname: "/specialist/ParentAssessmentResults",
+                params: { childId: child.id, childName: child.name },
+              })
+            }
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="people" size={20} color="#fff" />
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>استمارة ولي الأمر</Text>
+              <Text style={styles.actionSubtitle}>عرض تقييم ولي الأمر للطفل</Text>
+            </View>
+            <Ionicons name="chevron-back" size={18} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { backgroundColor: "#16A085", marginBottom: 10 },
+            ]}
+            activeOpacity={0.85}
+            onPress={() =>
+              router.push({
+                pathname: "/specialist/SpecialistAssessmentList",
+                params: { childId: child.id, childName: child.name },
+              })
+            }
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="clipboard" size={20} color="#fff" />
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>استماراتي للطفل</Text>
+              <Text style={styles.actionSubtitle}>سجل التقييمات السابقة</Text>
+            </View>
+            <Ionicons name="chevron-back" size={18} color="#fff" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.actionButton}
             activeOpacity={0.85}
