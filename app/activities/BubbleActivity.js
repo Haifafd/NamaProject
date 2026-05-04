@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
   Dimensions,
+  Easing,
   Platform,
   StatusBar,
   StyleSheet,
@@ -21,41 +22,119 @@ import {
   CloudSmall,
   MiniFlower,
   HAPPY_MESSAGES,
-  SAD_MESSAGES,
   EXCITED_MESSAGES,
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
-const BUBBLE_COLORS = {
-  red: "#EF5350",
-  blue: "#42A5F5",
-  yellow: "#FFC107",
-  green: "#66BB6A",
-};
-const COLOR_NAMES = {
-  red: "حمراء",
-  blue: "زرقاء",
-  yellow: "صفراء",
-  green: "خضراء",
-};
+const BUBBLE_COLORS = [
+  "#EF5350",
+  "#42A5F5",
+  "#FFC107",
+  "#66BB6A",
+  "#AB47BC",
+  "#FF7043",
+  "#26C6DA",
+  "#EC407A",
+];
 
 const LEVEL_CONFIG = {
-  1: { bubbles: 5, colors: ["red"], target: "red", needed: 8 },
-  2: { bubbles: 6, colors: ["red", "blue"], target: "blue", needed: 12 },
-  3: { bubbles: 7, colors: ["red", "blue", "yellow"], target: "yellow", needed: 15 },
+  1: { needed: 8, spawnRate: 1500, lifespan: 5000, maxOnScreen: 3 },
+  2: { needed: 12, spawnRate: 1100, lifespan: 4000, maxOnScreen: 4 },
+  3: { needed: 15, spawnRate: 800, lifespan: 3000, maxOnScreen: 5 },
 };
+
+const GAME_TOP = Platform.OS === "ios" ? 280 : 250;
+const GAME_BOTTOM = height - 80;
+const SPAWN_Y = GAME_BOTTOM - 80;
+const FLOAT_DISTANCE = GAME_BOTTOM - GAME_TOP - 100;
+
+function FloatingBubble({ bubble, onTap, onMiss }) {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.3)).current;
+  const popScale = useRef(new Animated.Value(1)).current;
+  const [isPopped, setIsPopped] = useState(false);
+  const [hasMissed, setHasMissed] = useState(false);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 5, tension: 100, useNativeDriver: true }),
+    ]).start();
+
+    Animated.timing(translateY, {
+      toValue: -FLOAT_DISTANCE,
+      duration: bubble.lifespan,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished && !isPopped) {
+        setHasMissed(true);
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          onMiss(bubble.id);
+        });
+      }
+    });
+  }, []);
+
+  const handlePress = () => {
+    if (isPopped || hasMissed) return;
+    setIsPopped(true);
+
+    Animated.sequence([
+      Animated.timing(popScale, {
+        toValue: 1.5,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.parallel([
+        Animated.timing(popScale, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]),
+    ]).start(() => {
+      onTap(bubble.id);
+    });
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.bubbleWrap,
+        {
+          left: bubble.x,
+          top: SPAWN_Y,
+          opacity,
+          transform: [
+            { translateY },
+            { scale: Animated.multiply(scale, popScale) },
+          ],
+        },
+      ]}
+    >
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7} disabled={isPopped || hasMissed}>
+        <View style={[styles.bubble, { backgroundColor: bubble.color }]}>
+          <View style={styles.bubbleHighlight} />
+          <View style={styles.bubbleHighlightSmall} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export default function BubbleActivity() {
   const router = useRouter();
-  const { childId, activityId, activityTitle, category } =
-    useLocalSearchParams();
+  const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
   const [bubbles, setBubbles] = useState([]);
-  const [correctCount, setCorrectCount] = useState(0);
+  const [poppedThisLevel, setPoppedThisLevel] = useState(0);
   const [gameState, setGameState] = useState("playing");
   const [finalStars, setFinalStars] = useState(0);
 
@@ -65,46 +144,66 @@ export default function BubbleActivity() {
   const [bubbleVisible, setBubbleVisible] = useState(false);
 
   const noumiBounce = useRef(new Animated.Value(0)).current;
-  const noumiShake = useRef(new Animated.Value(0)).current;
+
   const startTime = useRef(Date.now());
-  const totalCorrect = useRef(0);
-  const totalErrors = useRef(0);
+  const totalPopped = useRef(0);
+  const totalMissed = useRef(0);
   const bubbleTimerRef = useRef(null);
+  const spawnIntervalRef = useRef(null);
+  const isPausedRef = useRef(false);
+  const onScreenCountRef = useRef(0);
 
   const config = LEVEL_CONFIG[level];
 
-  const generateBubbles = () => {
-    const newBubbles = [];
-    const cols = config.colors;
-    for (let i = 0; i < config.bubbles; i++) {
-      const colorKey = cols[Math.floor(Math.random() * cols.length)];
-      newBubbles.push({
-        id: `${Date.now()}-${i}`,
-        color: BUBBLE_COLORS[colorKey],
-        colorKey,
-        x: 30 + Math.random() * (width - 130),
-        y: 250 + Math.random() * 250,
-      });
-    }
-    setBubbles(newBubbles);
-  };
-
-  useEffect(() => {
-    generateBubbles();
-    setCorrectCount(0);
-    startTime.current = Date.now();
-  }, [level]);
-
   useEffect(() => {
     showSpeechBubble(
-      `اضغطي الفقاعات ${COLOR_NAMES[config.target]} فقط!`,
+      level === 1 ? "اضغطي الفقاعات!" : "هيا نكمل!",
       GARDEN.bubbleHappy,
       "happy",
-      2500
+      2000
     );
   }, [level]);
 
-  const showSpeechBubble = (text, color, expression, duration = 1500) => {
+  useEffect(() => {
+    if (gameState !== "playing") return;
+
+    isPausedRef.current = false;
+
+    const spawn = () => {
+      if (isPausedRef.current) return;
+      if (onScreenCountRef.current >= config.maxOnScreen) return;
+
+      const newBubble = {
+        id: `b-${Date.now()}-${Math.random()}`,
+        color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
+        x: 30 + Math.random() * (width - 110),
+        lifespan: config.lifespan,
+      };
+
+      onScreenCountRef.current += 1;
+      setBubbles((prev) => [...prev, newBubble]);
+    };
+
+    spawn();
+
+    spawnIntervalRef.current = setInterval(spawn, config.spawnRate);
+
+    return () => {
+      if (spawnIntervalRef.current) {
+        clearInterval(spawnIntervalRef.current);
+        spawnIntervalRef.current = null;
+      }
+    };
+  }, [level, gameState]);
+
+  useEffect(() => {
+    return () => {
+      if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+      if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    };
+  }, []);
+
+  const showSpeechBubble = (text, color, expression, duration = 1200) => {
     if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
     setBubbleText(text);
     setBubbleColor(color);
@@ -116,12 +215,6 @@ export default function BubbleActivity() {
         Animated.timing(noumiBounce, { toValue: -8, duration: 200, useNativeDriver: true }),
         Animated.timing(noumiBounce, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
-    } else if (expression === "sad") {
-      Animated.sequence([
-        Animated.timing(noumiShake, { toValue: -3, duration: 100, useNativeDriver: true }),
-        Animated.timing(noumiShake, { toValue: 3, duration: 100, useNativeDriver: true }),
-        Animated.timing(noumiShake, { toValue: 0, duration: 100, useNativeDriver: true }),
-      ]).start();
     }
 
     bubbleTimerRef.current = setTimeout(() => {
@@ -130,56 +223,64 @@ export default function BubbleActivity() {
     }, duration);
   };
 
-  const getTotalNeeded = () => {
-    let total = 0;
-    for (let i = 1; i <= level; i++) total += LEVEL_CONFIG[i].needed;
-    return total;
-  };
+  const handleBubbleTap = useCallback((bubbleId) => {
+    onScreenCountRef.current = Math.max(0, onScreenCountRef.current - 1);
+    totalPopped.current += 1;
+
+    setBubbles((prev) => prev.filter((b) => b.id !== bubbleId));
+    setPoppedThisLevel((c) => {
+      const newCount = c + 1;
+      if (newCount % 3 === 0 || newCount === config.needed) {
+        showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1000);
+      }
+
+      if (newCount >= config.needed) {
+        setTimeout(() => advanceLevel(), 600);
+      }
+
+      return newCount;
+    });
+  }, [config.needed]);
+
+  const handleBubbleMiss = useCallback((bubbleId) => {
+    onScreenCountRef.current = Math.max(0, onScreenCountRef.current - 1);
+    totalMissed.current += 1;
+
+    setBubbles((prev) => prev.filter((b) => b.id !== bubbleId));
+  }, []);
 
   const advanceLevel = () => {
+    isPausedRef.current = true;
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
+    setBubbles([]);
+    onScreenCountRef.current = 0;
+
     if (level < 3) {
       showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
-      setTimeout(() => setLevel(level + 1), 1500);
+      setTimeout(() => {
+        setPoppedThisLevel(0);
+        setLevel(level + 1);
+      }, 1800);
     } else {
       finishGame();
     }
   };
 
-  const handleBubbleTap = (bubble) => {
-    if (bubble.colorKey === config.target) {
-      totalCorrect.current += 1;
-      setCorrectCount((c) => c + 1);
-      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1000);
-
-      setBubbles((prev) => {
-        const filtered = prev.filter((b) => b.id !== bubble.id);
-        const colorKey = config.colors[Math.floor(Math.random() * config.colors.length)];
-        return [
-          ...filtered,
-          {
-            id: `${Date.now()}-${Math.random()}`,
-            color: BUBBLE_COLORS[colorKey],
-            colorKey,
-            x: 30 + Math.random() * (width - 130),
-            y: 250 + Math.random() * 250,
-          },
-        ];
-      });
-
-      if (totalCorrect.current >= getTotalNeeded()) {
-        setTimeout(() => advanceLevel(), 600);
-      }
-    } else {
-      totalErrors.current += 1;
-      showSpeechBubble(pickRandom(SAD_MESSAGES), GARDEN.bubbleSad, "sad", 1500);
-    }
-  };
-
   const finishGame = async () => {
+    isPausedRef.current = true;
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
+    setBubbles([]);
+
     const duration = Math.round((Date.now() - startTime.current) / 1000);
-    const correct = totalCorrect.current;
-    const wrong = totalErrors.current;
-    const total = correct + wrong;
+    const correct = totalPopped.current;
+    const missed = totalMissed.current;
+    const total = correct + missed;
     const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
 
     let stars = 1;
@@ -197,7 +298,7 @@ export default function BubbleActivity() {
         category: category || "focusCategoryID",
         level: 3,
         correctAnswers: correct,
-        wrongAnswers: wrong,
+        wrongAnswers: missed,
         totalAttempts: total,
         durationSec: duration,
       });
@@ -205,16 +306,22 @@ export default function BubbleActivity() {
   };
 
   const handleReset = () => {
+    isPausedRef.current = true;
+    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+    setBubbles([]);
+    onScreenCountRef.current = 0;
+    setPoppedThisLevel(0);
     setLevel(1);
-    setCorrectCount(0);
     setGameState("playing");
     setFinalStars(0);
-    totalCorrect.current = 0;
-    totalErrors.current = 0;
-    generateBubbles();
+    totalPopped.current = 0;
+    totalMissed.current = 0;
+    startTime.current = Date.now();
   };
 
   const handleBackToPath = () => {
+    isPausedRef.current = true;
+    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
     if (childId) {
       router.replace({ pathname: "/child/Home", params: { childId } });
     } else {
@@ -222,37 +329,23 @@ export default function BubbleActivity() {
     }
   };
 
-  const overallProgress =
-    (level - 1) / 3 + correctCount / config.needed / 3;
+  const overallProgress = ((level - 1) / 3) + ((poppedThisLevel / config.needed) / 3);
 
   return (
     <View style={sharedGameStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={GARDEN.skyTop} />
 
       <View style={sharedGameStyles.skyLayer}>
-        <View style={sharedGameStyles.sun}>
-          <SunSVG size={55} />
-        </View>
-        <View style={sharedGameStyles.cloud1}>
-          <CloudSmall size={50} />
-        </View>
-        <View style={sharedGameStyles.cloud2}>
-          <CloudSmall size={40} />
-        </View>
+        <View style={sharedGameStyles.sun}><SunSVG size={55} /></View>
+        <View style={sharedGameStyles.cloud1}><CloudSmall size={50} /></View>
+        <View style={sharedGameStyles.cloud2}><CloudSmall size={40} /></View>
       </View>
       <View style={sharedGameStyles.gardenBg} />
 
       <View style={sharedGameStyles.header}>
         <TouchableOpacity style={sharedGameStyles.backBtn} onPress={handleBackToPath}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M 14 6 L 8 12 L 14 18"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
+            <Path d="M 14 6 L 8 12 L 14 18" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </Svg>
         </TouchableOpacity>
         <View style={sharedGameStyles.titleBlock}>
@@ -264,60 +357,32 @@ export default function BubbleActivity() {
 
       <View style={sharedGameStyles.progressRow}>
         <View style={sharedGameStyles.progressBg}>
-          <View
-            style={[
-              sharedGameStyles.progressFill,
-              { width: `${overallProgress * 100}%` },
-            ]}
-          />
+          <View style={[sharedGameStyles.progressFill, { width: `${overallProgress * 100}%` }]} />
         </View>
-        <Text style={sharedGameStyles.progressPct}>
-          {Math.round(overallProgress * 100)}%
-        </Text>
+        <Text style={sharedGameStyles.progressPct}>{Math.round(overallProgress * 100)}%</Text>
       </View>
 
-      <View style={sharedGameStyles.flowerTopLeft}>
-        <MiniFlower size={26} color={GARDEN.flowerPink} />
-      </View>
-      <View style={sharedGameStyles.flowerTopRight}>
-        <MiniFlower size={24} color={GARDEN.flowerYellow} />
-      </View>
-      <View style={sharedGameStyles.flowerBottomLeft}>
-        <MiniFlower size={22} color={GARDEN.flowerPurple} />
-      </View>
-      <View style={sharedGameStyles.flowerBottomRight}>
-        <MiniFlower size={20} color={GARDEN.flowerPink} />
-      </View>
+      <View style={sharedGameStyles.flowerTopLeft}><MiniFlower size={26} color={GARDEN.flowerPink} /></View>
+      <View style={sharedGameStyles.flowerTopRight}><MiniFlower size={24} color={GARDEN.flowerYellow} /></View>
+      <View style={sharedGameStyles.flowerBottomLeft}><MiniFlower size={22} color={GARDEN.flowerPurple} /></View>
+      <View style={sharedGameStyles.flowerBottomRight}><MiniFlower size={20} color={GARDEN.flowerPink} /></View>
 
       <View style={styles.counterPill}>
-        <Text style={styles.counterText}>
-          {correctCount} / {config.needed}
-        </Text>
+        <Text style={styles.counterText}>{poppedThisLevel} / {config.needed}</Text>
       </View>
 
-      <View style={styles.gameArea}>
-        {bubbles.map((b) => (
-          <TouchableOpacity
-            key={b.id}
-            style={[
-              styles.bubble,
-              { backgroundColor: b.color, left: b.x, top: b.y },
-            ]}
-            onPress={() => handleBubbleTap(b)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.bubbleHighlight} />
-          </TouchableOpacity>
-        ))}
-      </View>
+      {bubbles.map((b) => (
+        <FloatingBubble
+          key={b.id}
+          bubble={b}
+          onTap={handleBubbleTap}
+          onMiss={handleBubbleMiss}
+        />
+      ))}
 
       <View style={sharedGameStyles.noumiCorner} pointerEvents="none">
         <SpeechBubble text={bubbleText} color={bubbleColor} visible={bubbleVisible} />
-        <Animated.View
-          style={{
-            transform: [{ translateY: noumiBounce }, { translateX: noumiShake }],
-          }}
-        >
+        <Animated.View style={{ transform: [{ translateY: noumiBounce }] }}>
           <NoumiCompanion size={110} expression={noumiExpression} />
         </Animated.View>
       </View>
@@ -350,16 +415,15 @@ const styles = StyleSheet.create({
     zIndex: 15,
   },
   counterText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "900",
     color: GARDEN.textDark,
   },
-  gameArea: {
-    flex: 1,
-    position: "relative",
+  bubbleWrap: {
+    position: "absolute",
+    zIndex: 5,
   },
   bubble: {
-    position: "absolute",
     width: 80,
     height: 80,
     borderRadius: 40,
@@ -368,7 +432,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
-    overflow: "hidden",
+    position: "relative",
   },
   bubbleHighlight: {
     position: "absolute",
@@ -377,6 +441,15 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
+  },
+  bubbleHighlightSmall: {
+    position: "absolute",
+    top: 38,
+    left: 22,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
   },
 });
