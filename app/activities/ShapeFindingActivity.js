@@ -1,225 +1,404 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Image,
-  ScrollView,
+  Animated,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import Svg, { Circle, Path, Polygon, Rect } from "react-native-svg";
+import { saveActivityResult } from "../../Services/ActivityService";
+import ResultModal from "./Result";
+import {
+  GARDEN,
+  NoumiCompanion,
+  SpeechBubble,
+  SunSVG,
+  CloudSmall,
+  MiniFlower,
+  HAPPY_MESSAGES,
+  EXCITED_MESSAGES,
+  pickRandom,
+  sharedGameStyles,
+} from "./_GameComponents";
 
-// استيراد إعدادات Firebase
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../../FirebaseConfig";
-
-// استيراد مكونات الثيم الموحد والـ ResultModal
-import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
-import ResultModal from "./Result"; // تأكد من مطابقة المسار لملف النتائج الموحد لديك
-
-// وظائف الحسابات لمؤشرات الأداء
-function calculateVisualMotorIndex(accuracy, speedScore, errorRate) {
-  return accuracy * 0.4 + speedScore * 0.3 + (1 - errorRate) * 0.3;
+function ShapeIcon({ type, color, size = 50 }) {
+  switch (type) {
+    case "circle":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 50 50">
+          <Circle cx="25" cy="25" r="20" fill={color} stroke="#1565C0" strokeWidth="2" />
+        </Svg>
+      );
+    case "square":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 50 50">
+          <Rect x="6" y="6" width="38" height="38" rx="5" fill={color} stroke="#B71C1C" strokeWidth="2" />
+        </Svg>
+      );
+    case "triangle":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 50 50">
+          <Polygon points="25,6 44,42 6,42" fill={color} stroke="#388E3C" strokeWidth="2" />
+        </Svg>
+      );
+    case "star":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 50 50">
+          <Path d="M 25 6 L 30 20 L 44 22 L 33 32 L 36 46 L 25 38 L 14 46 L 17 32 L 6 22 L 20 20 Z" fill={color} stroke="#F57F17" strokeWidth="2" />
+        </Svg>
+      );
+    default:
+      return null;
+  }
 }
 
-function calculateCognitiveIndex(accuracy, speedScore, consistency) {
-  return accuracy * 0.5 + speedScore * 0.3 + consistency * 0.2;
-}
+const SHAPE_NAMES = {
+  circle: "الدوائر",
+  square: "المربعات",
+  triangle: "المثلثات",
+  star: "النجوم",
+};
 
-export default function MatchGame() {
+const SHAPE_NAMES_SINGULAR = {
+  circle: "دائرة",
+  square: "مربع",
+  triangle: "مثلث",
+  star: "نجمة",
+};
+
+const SHAPES = ["circle", "square", "triangle", "star"];
+const COLORS = ["#EF5350", "#42A5F5", "#66BB6A", "#FFC93C", "#AB47BC"];
+
+const LEVEL_CONFIG = {
+  1: { totalShapes: 6, targetMin: 2, targetMax: 4 },
+  2: { totalShapes: 9, targetMin: 3, targetMax: 5 },
+  3: { totalShapes: 12, targetMin: 4, targetMax: 7 },
+};
+
+const PROBLEMS_PER_LEVEL = 3;
+
+const generateProblem = (level) => {
+  const config = LEVEL_CONFIG[level];
+  const targetShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  const targetCount = Math.floor(Math.random() * (config.targetMax - config.targetMin + 1)) + config.targetMin;
+
+  const items = [];
+  for (let i = 0; i < targetCount; i++) {
+    items.push({
+      shape: targetShape,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    });
+  }
+
+  const otherShapes = SHAPES.filter(s => s !== targetShape);
+  for (let i = 0; i < config.totalShapes - targetCount; i++) {
+    items.push({
+      shape: otherShapes[Math.floor(Math.random() * otherShapes.length)],
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    });
+  }
+
+  items.sort(() => Math.random() - 0.5);
+
+  const choices = new Set([targetCount]);
+  while (choices.size < 3) {
+    const offset = Math.floor(Math.random() * 4) - 2;
+    const num = targetCount + offset;
+    if (num >= 1 && num !== targetCount) choices.add(num);
+  }
+  const choicesArr = Array.from(choices).sort(() => Math.random() - 0.5);
+
+  return {
+    targetShape,
+    targetCount,
+    items,
+    choices: choicesArr,
+  };
+};
+
+export default function ShapeFindingActivity() {
   const router = useRouter();
-  const [selected, setSelected] = useState(null);
-  const [message, setMessage] = useState("");
-  const [completed, setCompleted] = useState(false);
-  const [gameState, setGameState] = useState("playing"); // playing, won
+  const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
-  const attemptsRef = useRef(0);
-  const wrongAttemptsRef = useRef(0);
-  const startTimeRef = useRef(Date.now());
-  const firstTryCorrectRef = useRef(false);
+  const [level, setLevel] = useState(1);
+  const [problemIdx, setProblemIdx] = useState(0);
+  const [problem, setProblem] = useState(() => generateProblem(1));
+  const [gameState, setGameState] = useState("playing");
+  const [finalStars, setFinalStars] = useState(0);
 
-  const correctAnswer = "apple";
+  const [noumiExpression, setNoumiExpression] = useState("idle");
+  const [bubbleText, setBubbleText] = useState("");
+  const [bubbleColor, setBubbleColor] = useState(GARDEN.bubbleHappy);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
 
-  // دالة حفظ النتائج في Firebase
-  const saveResultToFirebase = async (vmi, cpi, finalScore) => {
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        await addDoc(collection(db, "ActivityResults"), {
-          childId: user.uid,
-          activityId: "match_similar_shape",
-          vmiScore: Math.round(vmi * 100),
-          cpiScore: Math.round(cpi * 100),
-          totalScore: Math.round(finalScore),
-          errors: wrongAttemptsRef.current,
-          timeSpent: parseFloat(((Date.now() - startTimeRef.current) / 1000).toFixed(1)),
-          status: "completed",
-          createdAt: serverTimestamp(),
-        });
-      }
-    } catch (error) {
-      console.error("❌ Firebase Save Error:", error);
+  const noumiBounce = useRef(new Animated.Value(0)).current;
+  const noumiShake = useRef(new Animated.Value(0)).current;
+  const startTime = useRef(Date.now());
+  const correctAnswers = useRef(0);
+  const wrongAnswers = useRef(0);
+  const bubbleTimerRef = useRef(null);
+
+  useEffect(() => {
+    setProblem(generateProblem(level));
+    setProblemIdx(0);
+  }, [level]);
+
+  useEffect(() => {
+    showSpeechBubble(`عدّي ${SHAPE_NAMES[problem.targetShape]}!`, GARDEN.bubbleHappy, "happy", 2500);
+  }, [problem]);
+
+  const showSpeechBubble = (text, color, expression, duration = 1500) => {
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    setBubbleText(text);
+    setBubbleColor(color);
+    setNoumiExpression(expression);
+    setBubbleVisible(true);
+
+    if (expression === "happy" || expression === "excited") {
+      Animated.sequence([
+        Animated.timing(noumiBounce, { toValue: -8, duration: 200, useNativeDriver: true }),
+        Animated.timing(noumiBounce, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else if (expression === "sad") {
+      Animated.sequence([
+        Animated.timing(noumiShake, { toValue: -3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 0, duration: 100, useNativeDriver: true }),
+      ]).start();
+    }
+
+    bubbleTimerRef.current = setTimeout(() => {
+      setBubbleVisible(false);
+      setNoumiExpression("idle");
+    }, duration);
+  };
+
+  const handleAnswer = (choice) => {
+    if (choice === problem.targetCount) {
+      correctAnswers.current += 1;
+      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1500);
+
+      setTimeout(() => {
+        if (problemIdx < PROBLEMS_PER_LEVEL - 1) {
+          setProblemIdx(problemIdx + 1);
+          setProblem(generateProblem(level));
+        } else {
+          if (level < 3) {
+            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            setTimeout(() => setLevel(level + 1), 1500);
+          } else {
+            finishGame();
+          }
+        }
+      }, 1300);
+    } else {
+      wrongAnswers.current += 1;
+      showSpeechBubble("عدّي مرة ثانية!", GARDEN.bubbleSad, "sad", 1500);
     }
   };
 
-  const handleSelect = (type) => {
-    if (completed) return;
-    attemptsRef.current += 1;
+  const finishGame = async () => {
+    const duration = Math.round((Date.now() - startTime.current) / 1000);
+    const correct = correctAnswers.current;
+    const wrong = wrongAnswers.current;
+    const total = correct + wrong;
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
 
-    if (type === correctAnswer) {
-      setSelected(type);
-      setMessage("🎉 أحسنت يا بطل!");
-      setCompleted(true);
-      setGameState("won"); // تفعيل ظهور نافذة النتائج
+    let stars = 1;
+    if (accuracy >= 80) stars = 3;
+    else if (accuracy >= 50) stars = 2;
 
-      if (attemptsRef.current === 1) firstTryCorrectRef.current = true;
+    setFinalStars(stars);
+    setGameState("won");
 
-      const endTime = Date.now();
-      const elapsedSeconds = (endTime - startTimeRef.current) / 1000;
-      const speedScore = Math.max(0, Math.min(1, 1 - elapsedSeconds / 30));
-      const errorRate = wrongAttemptsRef.current / attemptsRef.current;
-      const consistency = firstTryCorrectRef.current ? 1 : Math.max(0, 1 - errorRate);
-
-      const vmi = calculateVisualMotorIndex(1, speedScore, errorRate);
-      const cpi = calculateCognitiveIndex(1, speedScore, consistency);
-      const finalScore = ((vmi + cpi) / 2) * 100;
-
-      saveResultToFirebase(vmi, cpi, finalScore);
-    } else {
-      wrongAttemptsRef.current += 1;
-      setMessage("❌ حاول مرة أخرى، أنت تستطيع!");
+    if (childId && activityId) {
+      await saveActivityResult({
+        childId, activityId,
+        activityTitle: activityTitle || "إيجاد الأشكال",
+        category: category || "perceptionCategoryID",
+        level: 3,
+        correctAnswers: correct, wrongAnswers: wrong, totalAttempts: total,
+        durationSec: duration,
+      });
     }
   };
 
   const handleReset = () => {
-    setSelected(null);
-    setMessage("");
-    setCompleted(false);
+    setLevel(1);
+    setProblemIdx(0);
+    correctAnswers.current = 0;
+    wrongAnswers.current = 0;
+    setProblem(generateProblem(1));
     setGameState("playing");
-    attemptsRef.current = 0;
-    wrongAttemptsRef.current = 0;
-    startTimeRef.current = Date.now();
+    setFinalStars(0);
   };
 
-  const progress = completed ? 100 : 0;
+  const handleBackToPath = () => {
+    if (childId) router.replace({ pathname: "/child/Home", params: { childId } });
+    else router.back();
+  };
+
+  const overallProgress = ((level - 1) * PROBLEMS_PER_LEVEL + problemIdx) / (3 * PROBLEMS_PER_LEVEL);
 
   return (
-    <AppLayout activeTab="activities">
-      {/* الهيدر: الزر يسار والنص يمين */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={PRIMARY} />
+    <View style={sharedGameStyles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={GARDEN.skyTop} />
+
+      <View style={sharedGameStyles.skyLayer}>
+        <View style={sharedGameStyles.sun}><SunSVG size={55} /></View>
+        <View style={sharedGameStyles.cloud1}><CloudSmall size={50} /></View>
+        <View style={sharedGameStyles.cloud2}><CloudSmall size={40} /></View>
+      </View>
+      <View style={sharedGameStyles.gardenBg} />
+
+      <View style={sharedGameStyles.header}>
+        <TouchableOpacity style={sharedGameStyles.backBtn} onPress={handleBackToPath}>
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <Path d="M 14 6 L 8 12 L 14 18" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </Svg>
         </TouchableOpacity>
-        
-        <View style={styles.titleBlock}>
-          <Text style={styles.mainTitle}>نشاط إيجاد الشكل المتماثل</Text>
-          <Text style={styles.levelSubtitle}>مستوى 1 . مهارة المعرفة</Text>
+        <View style={sharedGameStyles.titleBlock}>
+          <Text style={sharedGameStyles.title}>عدّ الأشكال</Text>
+          <Text style={sharedGameStyles.subtitle}>المستوى {level} • {problemIdx + 1} من {PROBLEMS_PER_LEVEL}</Text>
+        </View>
+        <View style={{ width: 44 }} />
+      </View>
+
+      <View style={sharedGameStyles.progressRow}>
+        <View style={sharedGameStyles.progressBg}>
+          <View style={[sharedGameStyles.progressFill, { width: `${overallProgress * 100}%` }]} />
+        </View>
+        <Text style={sharedGameStyles.progressPct}>{Math.round(overallProgress * 100)}%</Text>
+      </View>
+
+      <View style={sharedGameStyles.flowerTopLeft}><MiniFlower size={22} color={GARDEN.flowerPink} /></View>
+      <View style={sharedGameStyles.flowerTopRight}><MiniFlower size={20} color={GARDEN.flowerYellow} /></View>
+      <View style={sharedGameStyles.flowerBottomLeft}><MiniFlower size={20} color={GARDEN.flowerPurple} /></View>
+      <View style={sharedGameStyles.flowerBottomRight}><MiniFlower size={20} color={GARDEN.flowerPink} /></View>
+
+      <View style={styles.gameArea}>
+        <View style={styles.questionPill}>
+          <Text style={styles.questionText}>كم {SHAPE_NAMES_SINGULAR[problem.targetShape]} في الصورة؟</Text>
+        </View>
+
+        <View style={styles.scene}>
+          {problem.items.map((item, idx) => (
+            <View key={idx} style={styles.shapeCell}>
+              <ShapeIcon type={item.shape} color={item.color} size={50} />
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.choicesRow}>
+          {problem.choices.map((num, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={styles.numberBtn}
+              onPress={() => handleAnswer(num)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.numberText}>{num}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
-      <View style={styles.progressSection}>
-        <View style={styles.progressHeader}>
-           <Text style={styles.progressValue}>{progress}%</Text>
-           <Text style={styles.progressLabel}>مستوى التقدم</Text>
-        </View>
-        <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
-        </View>
+      <View style={sharedGameStyles.noumiCorner} pointerEvents="none">
+        <SpeechBubble text={bubbleText} color={bubbleColor} visible={bubbleVisible} />
+        <Animated.View style={{ transform: [{ translateY: noumiBounce }, { translateX: noumiShake }] }}>
+          <NoumiCompanion size={110} expression={noumiExpression} />
+        </Animated.View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.gameArea}>
-        <Text style={styles.instructionText}>
-          قم باختيار الشكل المتماثل من بين الأشكال الظاهرة
-        </Text>
-
-        <View style={styles.matchContainer}>
-          <View style={styles.imageWrapper}>
-            <Image source={require("../../assets/images/apples.png")} style={styles.matchImage} />
-          </View>
-          
-          <Ionicons name="reorder-two-outline" size={40} color={BORDER} style={{transform: [{rotate: '90deg'}]}} />
-
-          <View style={[styles.resultSlot, selected && {borderColor: PRIMARY}]}>
-            {selected ? (
-              <Image source={require("../../assets/images/applecor.png")} style={styles.matchImage} />
-            ) : (
-              <Ionicons name="help-circle" size={50} color={BORDER} />
-            )}
-          </View>
-        </View>
-
-        <View style={styles.optionsGrid}>
-          {!completed && (
-            <>
-              {["banana", "apple", "wrong"].map((type, index) => {
-                const images = {
-                  banana: require("../../assets/images/bnana.png"),
-                  apple: require("../../assets/images/applecor.png"),
-                  wrong: require("../../assets/images/rong.png"),
-                };
-                return (
-                  <TouchableOpacity key={index} style={styles.optionCard} onPress={() => handleSelect(type)}>
-                    <Image source={images[type]} style={styles.optionImg} resizeMode="contain" />
-                  </TouchableOpacity>
-                );
-              })}
-            </>
-          )}
-        </View>
-
-        <Text style={[styles.statusMessage, {color: completed ? PRIMARY : "#FF6B6B"}]}>{message}</Text>
-      </ScrollView>
-
-      {/* نافذة النتائج الموحدة */}
-      <ResultModal 
-        visible={gameState !== "playing"} 
-        state={gameState} 
-        onReset={handleReset} 
-        onNavigateNext={() => router.back()} // أو التوجه لنشاط محدد
+      <ResultModal
+        visible={gameState === "won"}
+        state="won"
+        stars={finalStars}
+        onReset={handleReset}
+        onBackToPath={handleBackToPath}
       />
-    </AppLayout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // تعديل الهيدر ليكون الزر يسار والنص يمين
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between',
-    paddingHorizontal: 20, 
-    paddingTop: 50,
-    paddingBottom: 20
+  gameArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 60,
+    paddingHorizontal: 16,
   },
-  backBtn: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: CARD, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    elevation: 2 
+  questionPill: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 22,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  titleBlock: { alignItems: 'flex-end' },
-  mainTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
-  levelSubtitle: { color: PRIMARY, fontWeight: 'bold', fontSize: 12 },
-  
-  progressSection: { paddingHorizontal: 25, marginBottom: 20 },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  progressLabel: { fontSize: 13, color: MUTED },
-  progressValue: { fontSize: 12, fontWeight: 'bold', color: PRIMARY },
-  progressBg: { height: 8, backgroundColor: BORDER, borderRadius: 4, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: PRIMARY },
-  
-  gameArea: { alignItems: 'center', paddingVertical: 10 },
-  instructionText: { fontSize: 16, fontWeight: 'bold', textAlign: 'center', color: '#475569', paddingHorizontal: 30, marginBottom: 25 },
-  matchContainer: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 40 },
-  imageWrapper: { width: 110, height: 140, backgroundColor: CARD, borderRadius: 20, padding: 10, elevation: 3 },
-  resultSlot: { width: 110, height: 140, backgroundColor: BORDER, borderRadius: 20, borderStyle: 'dashed', borderWidth: 2, borderColor: MUTED, justifyContent: 'center', alignItems: 'center' },
-  matchImage: { width: '100%', height: '100%', borderRadius: 15 },
-  optionsGrid: { flexDirection: 'row', gap: 15, justifyContent: 'center' },
-  optionCard: { width: 90, height: 120, backgroundColor: CARD, borderRadius: 15, padding: 10, elevation: 4, borderWidth: 1, borderColor: BORDER },
-  optionImg: { width: '100%', height: '100%' },
-  statusMessage: { marginTop: 25, fontSize: 18, fontWeight: 'bold' },
+  questionText: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: GARDEN.textDark,
+    textAlign: "center",
+  },
+  scene: {
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderRadius: 22,
+    padding: 14,
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 10,
+    justifyContent: "center",
+    maxWidth: 340,
+    minHeight: 180,
+    alignItems: "center",
+    marginBottom: 28,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  shapeCell: {
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  choicesRow: {
+    flexDirection: "row-reverse",
+    gap: 18,
+  },
+  numberBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#FFC93C",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#F57F17",
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+  },
+  numberText: {
+    fontSize: 36,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  },
 });

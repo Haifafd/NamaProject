@@ -1,206 +1,319 @@
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  Image,
+  Animated,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../../FirebaseConfig";
-import { AppLayout, BORDER, CARD, MUTED, PRIMARY } from "./ActivityStyle";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import Svg, { Circle, Path, Polygon, Rect } from "react-native-svg";
+import { saveActivityResult } from "../../Services/ActivityService";
 import ResultModal from "./Result";
+import {
+  GARDEN,
+  NoumiCompanion,
+  SpeechBubble,
+  SunSVG,
+  CloudSmall,
+  MiniFlower,
+  HAPPY_MESSAGES,
+  EXCITED_MESSAGES,
+  pickRandom,
+  sharedGameStyles,
+} from "./_GameComponents";
 
-const { width } = Dimensions.get("window");
-
-const FRUITS_DATA = [
-  { id: 1, uri: "https://cdn-icons-png.flaticon.com/512/415/415733.png" },
-  { id: 2, uri: "https://cdn-icons-png.flaticon.com/512/2909/2909761.png" },
-  { id: 3, uri: "https://cdn-icons-png.flaticon.com/512/1728/1728765.png" },
-  { id: 4, uri: "https://cdn-icons-png.flaticon.com/512/599/599502.png" },
-  { id: 5, uri: "https://cdn-icons-png.flaticon.com/512/2153/2153788.png" },
-  { id: 6, uri: "https://cdn-icons-png.flaticon.com/512/3137/3137044.png" },
-  { id: 7, uri: "https://cdn-icons-png.flaticon.com/512/2106/2106111.png" },
-  { id: 8, uri: "https://cdn-icons-png.flaticon.com/512/2224/2224115.png" },
-  { id: 9, uri: "https://cdn-icons-png.flaticon.com/512/2909/2909808.png" },
-  { id: 10, uri: "https://cdn-icons-png.flaticon.com/512/2909/2909841.png" },
-];
-
-function calculateCognitiveIndex(accuracy, speedScore, consistency) {
-  return (accuracy * 0.5) + (speedScore * 0.3) + (consistency * 0.2);
+function DiffShape({ type, color = "#42A5F5", size = 80 }) {
+  switch (type) {
+    case "circle":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 80 80">
+          <Circle cx="40" cy="40" r="32" fill={color} />
+        </Svg>
+      );
+    case "square":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 80 80">
+          <Rect x="10" y="10" width="60" height="60" rx="8" fill={color} />
+        </Svg>
+      );
+    case "triangle":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 80 80">
+          <Polygon points="40,8 72,68 8,68" fill={color} />
+        </Svg>
+      );
+    case "star":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 80 80">
+          <Path d="M 40 10 L 48 30 L 70 32 L 53 47 L 58 70 L 40 58 L 22 70 L 27 47 L 10 32 L 32 30 Z" fill={color} />
+        </Svg>
+      );
+    case "heart":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 80 80">
+          <Path d="M 40 65 L 12 38 Q 8 18 22 18 Q 32 18 40 32 Q 48 18 58 18 Q 72 18 68 38 Z" fill={color} />
+        </Svg>
+      );
+    default:
+      return null;
+  }
 }
 
-export default function FindDifferentGame({ navigation, route }) {
+const LEVELS = {
+  1: [
+    { items: [{ shape: "circle", color: "#EF5350" }, { shape: "circle", color: "#EF5350" }, { shape: "circle", color: "#EF5350" }, { shape: "square", color: "#EF5350" }], correct: 3 },
+    { items: [{ shape: "triangle", color: "#42A5F5" }, { shape: "triangle", color: "#42A5F5" }, { shape: "star", color: "#42A5F5" }, { shape: "triangle", color: "#42A5F5" }], correct: 2 },
+    { items: [{ shape: "heart", color: "#EC407A" }, { shape: "circle", color: "#EC407A" }, { shape: "heart", color: "#EC407A" }, { shape: "heart", color: "#EC407A" }], correct: 1 },
+  ],
+  2: [
+    { items: [{ shape: "circle", color: "#EF5350" }, { shape: "circle", color: "#EF5350" }, { shape: "circle", color: "#42A5F5" }, { shape: "circle", color: "#EF5350" }], correct: 2 },
+    { items: [{ shape: "star", color: "#FFC93C" }, { shape: "star", color: "#66BB6A" }, { shape: "star", color: "#FFC93C" }, { shape: "star", color: "#FFC93C" }], correct: 1 },
+    { items: [{ shape: "square", color: "#AB47BC" }, { shape: "square", color: "#AB47BC" }, { shape: "square", color: "#AB47BC" }, { shape: "square", color: "#FF7043" }], correct: 3 },
+  ],
+  3: [
+    { items: [{ shape: "triangle", color: "#42A5F5" }, { shape: "circle", color: "#EF5350" }, { shape: "triangle", color: "#42A5F5" }, { shape: "triangle", color: "#42A5F5" }], correct: 1 },
+    { items: [{ shape: "heart", color: "#EC407A" }, { shape: "heart", color: "#EC407A" }, { shape: "heart", color: "#EC407A" }, { shape: "star", color: "#FFC93C" }], correct: 3 },
+    { items: [{ shape: "star", color: "#66BB6A" }, { shape: "square", color: "#AB47BC" }, { shape: "star", color: "#66BB6A" }, { shape: "star", color: "#66BB6A" }], correct: 1 },
+    { items: [{ shape: "circle", color: "#FFC93C" }, { shape: "circle", color: "#FFC93C" }, { shape: "triangle", color: "#FF7043" }, { shape: "circle", color: "#FFC93C" }], correct: 2 },
+  ],
+};
+
+export default function DifferentShapeActivity() {
   const router = useRouter();
-  const activityId = route?.params?.activityId || "7uE1Wl6s17R2t4pMOA9Z"; 
+  const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
-  const [gameState, setGameState] = useState("playing"); 
-  const [showFinalResult, setShowFinalResult] = useState(false); // حالة جديدة للتحكم في ظهور المودال النهائي
-  const [gameItems, setGameItems] = useState([]);
-  const [progress, setProgress] = useState(0); 
-  const [currentExercise, setCurrentExercise] = useState(1);
-  const TOTAL_EXERCISES = 5;
+  const [level, setLevel] = useState(1);
+  const [problemIdx, setProblemIdx] = useState(0);
+  const [gameState, setGameState] = useState("playing");
+  const [finalStars, setFinalStars] = useState(0);
 
-  const exerciseStartTime = useRef(Date.now());
-  const totalCorrect = useRef(0);
-  const totalAttempts = useRef(0);
-  const responseTimes = useRef([]); 
+  const [noumiExpression, setNoumiExpression] = useState("idle");
+  const [bubbleText, setBubbleText] = useState("");
+  const [bubbleColor, setBubbleColor] = useState(GARDEN.bubbleHappy);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
 
-  const generateLevel = useCallback(() => {
-    const mainFruit = FRUITS_DATA[Math.floor(Math.random() * FRUITS_DATA.length)];
-    let diffFruit;
-    do {
-      diffFruit = FRUITS_DATA[Math.floor(Math.random() * FRUITS_DATA.length)];
-    } while (diffFruit.id === mainFruit.id);
+  const noumiBounce = useRef(new Animated.Value(0)).current;
+  const noumiShake = useRef(new Animated.Value(0)).current;
+  const startTime = useRef(Date.now());
+  const correctAnswers = useRef(0);
+  const wrongAnswers = useRef(0);
+  const bubbleTimerRef = useRef(null);
 
-    const items = [
-      { uri: mainFruit.uri, isCorrect: false },
-      { uri: mainFruit.uri, isCorrect: false },
-      { uri: mainFruit.uri, isCorrect: false },
-      { uri: diffFruit.uri, isCorrect: true },
-    ];
-
-    setGameItems(items.sort(() => Math.random() - 0.5));
-    setGameState("playing");
-    exerciseStartTime.current = Date.now(); 
-  }, []);
+  const problems = LEVELS[level];
+  const problem = problems[problemIdx];
 
   useEffect(() => {
-    generateLevel();
-  }, [generateLevel]);
+    showSpeechBubble("اختاري الشكل المختلف!", GARDEN.bubbleHappy, "happy", 2200);
+  }, [level, problemIdx]);
 
-  const saveToDatabase = async () => {
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        const accuracy = totalCorrect.current / totalAttempts.current;
-        const avgTime = responseTimes.current.reduce((a, b) => a + b, 0) / TOTAL_EXERCISES;
-        const speedScore = Math.max(0, 1 - avgTime / 5);
-        const variance = responseTimes.current.reduce((a, b) => a + Math.pow(b - avgTime, 2), 0) / TOTAL_EXERCISES;
-        const consistency = Math.max(0, 1 - Math.sqrt(variance) / 2);
-        const cpi = calculateCognitiveIndex(accuracy, speedScore, consistency);
+  const showSpeechBubble = (text, color, expression, duration = 1500) => {
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    setBubbleText(text);
+    setBubbleColor(color);
+    setNoumiExpression(expression);
+    setBubbleVisible(true);
 
-        await addDoc(collection(db, "ActivityResults"), {
-          childId: user.uid,
-          activityId: activityId,
-          cognitiveProcessingIndex: parseFloat(cpi.toFixed(2)),
-          totalExercises: TOTAL_EXERCISES,
-          status: "completed",
-          createdAt: serverTimestamp(),
-        });
-      }
-    } catch (error) {
-      console.error("❌ Firebase Save Error:", error);
+    if (expression === "happy" || expression === "excited") {
+      Animated.sequence([
+        Animated.timing(noumiBounce, { toValue: -8, duration: 200, useNativeDriver: true }),
+        Animated.timing(noumiBounce, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else if (expression === "sad") {
+      Animated.sequence([
+        Animated.timing(noumiShake, { toValue: -3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 3, duration: 100, useNativeDriver: true }),
+        Animated.timing(noumiShake, { toValue: 0, duration: 100, useNativeDriver: true }),
+      ]).start();
     }
+
+    bubbleTimerRef.current = setTimeout(() => {
+      setBubbleVisible(false);
+      setNoumiExpression("idle");
+    }, duration);
   };
 
-  const handleChoice = (isCorrect) => {
-    if (gameState !== "playing") return;
-    
-    totalAttempts.current += 1;
-    const timeTaken = (Date.now() - exerciseStartTime.current) / 1000;
-
-    if (isCorrect) {
-      totalCorrect.current += 1;
-      responseTimes.current.push(timeTaken);
-      
-      const newProgress = (currentExercise / TOTAL_EXERCISES) * 100;
-      setProgress(newProgress);
-
-      if (currentExercise < TOTAL_EXERCISES) {
-        // بدلاً من إظهار المودال، ننتقل فوراً للمرحلة التالية
-        setCurrentExercise(prev => prev + 1);
-        generateLevel();
-      } else {
-        // وصلنا لنهاية الخمس تمارين
-        saveToDatabase();
-        setGameState("won");
-        setShowFinalResult(true); // الآن فقط يظهر المودال
-      }
+  const handlePick = (idx) => {
+    if (idx === problem.correct) {
+      correctAnswers.current += 1;
+      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+      setTimeout(() => {
+        if (problemIdx < problems.length - 1) {
+          setProblemIdx(problemIdx + 1);
+        } else {
+          if (level < 3) {
+            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            setTimeout(() => {
+              setLevel(level + 1);
+              setProblemIdx(0);
+            }, 1500);
+          } else {
+            finishGame();
+          }
+        }
+      }, 1000);
     } else {
-      // إذا أخطأ، يمكننا إما إعادة المرحلة أو إظهار مودال المحاولة مرة أخرى
-      setGameState("lost");
-      setShowFinalResult(true);
+      wrongAnswers.current += 1;
+      showSpeechBubble("شوفي بدقة!", GARDEN.bubbleSad, "sad", 1500);
     }
   };
+
+  const finishGame = async () => {
+    const duration = Math.round((Date.now() - startTime.current) / 1000);
+    const correct = correctAnswers.current;
+    const wrong = wrongAnswers.current;
+    const total = correct + wrong;
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+    let stars = 1;
+    if (accuracy >= 80) stars = 3;
+    else if (accuracy >= 50) stars = 2;
+
+    setFinalStars(stars);
+    setGameState("won");
+
+    if (childId && activityId) {
+      await saveActivityResult({
+        childId, activityId,
+        activityTitle: activityTitle || "الشكل المختلف",
+        category: category || "perceptionCategoryID",
+        level: 3,
+        correctAnswers: correct, wrongAnswers: wrong, totalAttempts: total,
+        durationSec: duration,
+      });
+    }
+  };
+
+  const handleReset = () => {
+    setLevel(1);
+    setProblemIdx(0);
+    correctAnswers.current = 0;
+    wrongAnswers.current = 0;
+    setGameState("playing");
+    setFinalStars(0);
+  };
+
+  const handleBackToPath = () => {
+    if (childId) router.replace({ pathname: "/child/Home", params: { childId } });
+    else router.back();
+  };
+
+  const totalProblems = LEVELS[1].length + LEVELS[2].length + LEVELS[3].length;
+  const completed =
+    (level === 1 ? problemIdx : LEVELS[1].length) +
+    (level === 2 ? problemIdx : level > 2 ? LEVELS[2].length : 0) +
+    (level === 3 ? problemIdx : 0);
+  const overallProgress = completed / totalProblems;
 
   return (
-    <AppLayout activeTab="activities">
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backArrow}>‹</Text>
+    <View style={sharedGameStyles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={GARDEN.skyTop} />
+
+      <View style={sharedGameStyles.skyLayer}>
+        <View style={sharedGameStyles.sun}><SunSVG size={55} /></View>
+        <View style={sharedGameStyles.cloud1}><CloudSmall size={50} /></View>
+        <View style={sharedGameStyles.cloud2}><CloudSmall size={40} /></View>
+      </View>
+      <View style={sharedGameStyles.gardenBg} />
+
+      <View style={sharedGameStyles.header}>
+        <TouchableOpacity style={sharedGameStyles.backBtn} onPress={handleBackToPath}>
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <Path d="M 14 6 L 8 12 L 14 18" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </Svg>
         </TouchableOpacity>
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>إيجاد الشكل المختلف</Text>
-          <Text style={styles.subtitle}>تمرين {currentExercise} من {TOTAL_EXERCISES}</Text>
+        <View style={sharedGameStyles.titleBlock}>
+          <Text style={sharedGameStyles.title}>الشكل المختلف</Text>
+          <Text style={sharedGameStyles.subtitle}>المستوى {level} من 3</Text>
         </View>
+        <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.progressRow}>
-        <Text style={styles.progressLabel}>مستوى التقدم</Text>
-        <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+      <View style={sharedGameStyles.progressRow}>
+        <View style={sharedGameStyles.progressBg}>
+          <View style={[sharedGameStyles.progressFill, { width: `${overallProgress * 100}%` }]} />
         </View>
-        <Text style={styles.progressPct}>{Math.round(progress)}%</Text>
+        <Text style={sharedGameStyles.progressPct}>{Math.round(overallProgress * 100)}%</Text>
       </View>
 
-      <View style={styles.questionSection}>
-        <Text style={styles.questionTitle}>أين الشكل المختلف؟</Text>
-        <Text style={styles.questionSub}>ركز جيداً واختر الصورة المختلفة</Text>
-      </View>
+      <View style={sharedGameStyles.flowerTopLeft}><MiniFlower size={22} color={GARDEN.flowerPink} /></View>
+      <View style={sharedGameStyles.flowerTopRight}><MiniFlower size={20} color={GARDEN.flowerYellow} /></View>
+      <View style={sharedGameStyles.flowerBottomLeft}><MiniFlower size={20} color={GARDEN.flowerPurple} /></View>
+      <View style={sharedGameStyles.flowerBottomRight}><MiniFlower size={20} color={GARDEN.flowerPink} /></View>
 
-      <View style={styles.gridContainer}>
-        <View style={styles.gridRow}>
-          {gameItems.map((item, idx) => (
+      <View style={styles.gameArea}>
+        <Text style={styles.label}>أيهم مختلف؟</Text>
+        <View style={styles.grid}>
+          {problem.items.map((item, idx) => (
             <TouchableOpacity
               key={idx}
-              style={styles.imageCard}
-              onPress={() => handleChoice(item.isCorrect)}
+              style={styles.shapeBtn}
+              onPress={() => handlePick(idx)}
+              activeOpacity={0.85}
             >
-              <Image source={{ uri: item.uri }} style={styles.gameImg} />
+              <DiffShape type={item.shape} color={item.color} size={80} />
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      {/* المودال يظهر فقط عند الخسارة أو عند إتمام الـ 5 مراحل */}
-      <ResultModal 
-        visible={showFinalResult} 
-        state={gameState} 
-        onReset={() => {
-          if (gameState === "lost") {
-            setShowFinalResult(false);
-            generateLevel();
-          } else {
-            router.back();
-          }
-        }} 
-        onNavigateNext={() => router.back()} 
+      <View style={sharedGameStyles.noumiCorner} pointerEvents="none">
+        <SpeechBubble text={bubbleText} color={bubbleColor} visible={bubbleVisible} />
+        <Animated.View style={{ transform: [{ translateY: noumiBounce }, { translateX: noumiShake }] }}>
+          <NoumiCompanion size={110} expression={noumiExpression} />
+        </Animated.View>
+      </View>
+
+      <ResultModal
+        visible={gameState === "won"}
+        state="won"
+        stars={finalStars}
+        onReset={handleReset}
+        onBackToPath={handleBackToPath}
       />
-    </AppLayout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 50, paddingBottom: 16, justifyContent: 'space-between' },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: CARD, alignItems: "center", justifyContent: "center" },
-  backArrow: { fontSize: 32, color: PRIMARY, fontWeight: 'bold' },
-  titleBlock: { alignItems: "flex-end" },
-  title: { fontSize: 18, fontWeight: "700", color: "#2d2d2d" },
-  subtitle: { fontSize: 12, color: PRIMARY, fontWeight: '600' },
-  progressRow: { flexDirection: "row-reverse", alignItems: "center", gap: 8, paddingHorizontal: 20, marginBottom: 10 },
-  progressLabel: { fontSize: 13, color: MUTED, width: 85, textAlign: 'right' },
-  progressBg: { flex: 1, height: 12, borderRadius: 6, backgroundColor: BORDER, overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: PRIMARY, borderRadius: 6 },
-  progressPct: { fontSize: 13, fontWeight: "700", color: PRIMARY, width: 40, textAlign: 'left' },
-  questionSection: { alignItems: "center", marginTop: 20, paddingHorizontal: 20 },
-  questionTitle: { fontSize: 22, fontWeight: "bold", color: "#333" },
-  questionSub: { fontSize: 14, color: MUTED, textAlign: "center", marginTop: 5 },
-  gridContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  gridRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 15 },
-  imageCard: { width: width * 0.4, aspectRatio: 1, backgroundColor: CARD, borderRadius: 20, justifyContent: "center", alignItems: "center", elevation: 4 },
-  gameImg: { width: "70%", height: "70%", resizeMode: "contain" },
-}); 
+  gameArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 60,
+    paddingHorizontal: 16,
+  },
+  label: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    marginBottom: 24,
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  grid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 14,
+    justifyContent: "center",
+    maxWidth: 320,
+  },
+  shapeBtn: {
+    width: 130,
+    height: 130,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+  },
+});

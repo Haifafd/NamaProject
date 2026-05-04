@@ -836,6 +836,22 @@ export default function ChildHome() {
       coloring: "/activities/ColorActivity",
       colors: "/activities/ColorActivity",
       coloractivity: "/activities/ColorActivity",
+      matching: "/activities/MatchingGame",
+      matching_game: "/activities/MatchingGame",
+      matchinggame: "/activities/MatchingGame",
+      findball: "/activities/FindBallActivity",
+      findballactivity: "/activities/FindBallActivity",
+      find_ball: "/activities/FindBallActivity",
+      story: "/activities/StoryCompletionActivity",
+      storycompletion: "/activities/StoryCompletionActivity",
+      storycompletionactivity: "/activities/StoryCompletionActivity",
+      different: "/activities/DifferentShapeActivity",
+      differentshape: "/activities/DifferentShapeActivity",
+      differentshapeactivity: "/activities/DifferentShapeActivity",
+      finding: "/activities/ShapeFindingActivity",
+      shape_finding: "/activities/ShapeFindingActivity",
+      shapefinding: "/activities/ShapeFindingActivity",
+      shapefindingactivity: "/activities/ShapeFindingActivity",
     };
 
     const idLower = (activity.id || "").toLowerCase();
@@ -846,28 +862,13 @@ export default function ChildHome() {
 
       if (t.includes("هرم") || t.includes("pyramid") || t.includes("بناء")) {
         route = "/activities/Pyramid";
-      }
-      else if (t.includes("فقاع") || t.includes("bubble")) {
+      } else if (t.includes("فقاع") || t.includes("bubble")) {
         route = "/activities/BubbleActivity";
-      }
-      else if (
-        t.includes("xo") ||
-        t.includes("x o") ||
-        t.includes("ذكاء") ||
-        t.includes("إكس") ||
-        t.includes("اكس") ||
-        t.includes("تحدي")
-      ) {
+      } else if (t.includes("xo") || t.includes("x o") || t.includes("إكس") || t.includes("اكس")) {
         route = "/activities/XO-Activity";
-      }
-      else if (
-        t.includes("ذاكرة") ||
-        t.includes("memory") ||
-        t.includes("بطاق")
-      ) {
+      } else if (t.includes("ذاكرة") || t.includes("memory") || t.includes("بطاق")) {
         route = "/activities/MemoryCard";
-      }
-      else if (
+      } else if (
         t.includes("تلوين") ||
         t.includes("لون") ||
         t.includes("الوان") ||
@@ -879,6 +880,26 @@ export default function ChildHome() {
         t.includes("draw")
       ) {
         route = "/activities/ColorActivity";
+      } else if (t.includes("مطابق") || t.includes("توصيل") || t.includes("matching")) {
+        route = "/activities/MatchingGame";
+      } else if (t.includes("كرة") || t.includes("ابحث") || t.includes("ball") || t.includes("find")) {
+        route = "/activities/FindBallActivity";
+      } else if (t.includes("قصة") || t.includes("إكمال") || t.includes("اكمال") || t.includes("ترتيب") || t.includes("story")) {
+        route = "/activities/StoryCompletionActivity";
+      } else if (t.includes("مختلف") || t.includes("different")) {
+        route = "/activities/DifferentShapeActivity";
+      } else if (
+        t.includes("إيجاد") ||
+        t.includes("ايجاد") ||
+        t.includes("دوّر") ||
+        t.includes("دور") ||
+        t.includes("finding") ||
+        t.includes("عد") ||
+        t.includes("count")
+      ) {
+        route = "/activities/ShapeFindingActivity";
+      } else if (t.includes("ذكاء") || t.includes("تحدي")) {
+        route = "/activities/XO-Activity";
       }
     }
 
@@ -892,7 +913,7 @@ export default function ChildHome() {
       console.log("❌ No route matched for activity:", activity);
       setTimeout(() => {
         alert(
-          `اللعبة "${activity.title}" غير مربوطة بعد.\n\nID: ${activity.id}\nالفئة: ${activity.categoryId}\n\nسيتم ربطها لاحقاً.`
+          `اللعبة "${activity.title}" غير مربوطة بعد.\n\nID: ${activity.id}\nالفئة: ${activity.categoryId}`
         );
       }, 300);
       return;
@@ -1240,17 +1261,27 @@ export default function ChildHome() {
         })}
 
         {/* TREASURE AT TOP */}
-        <View
+        <TouchableOpacity
           style={[
             styles.treasureWrap,
             { left: SCREEN_WIDTH / 2 - 60, top: treasureY - 60 },
           ]}
+          onPress={() => {
+            if (allDone) {
+              router.push({
+                pathname: "/child/TreasureSplash",
+                params: { childId },
+              });
+            }
+          }}
+          disabled={!allDone}
+          activeOpacity={0.85}
         >
           <TreasureChest size={120} unlocked={allDone} />
           {allDone && (
-            <Text style={styles.treasureText}>أحسنت! أنجزت كل المغامرة!</Text>
+            <Text style={styles.treasureText}>اضغطي للاحتفال!</Text>
           )}
-        </View>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* MODAL */}
