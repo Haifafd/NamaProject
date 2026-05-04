@@ -13,12 +13,13 @@ import {
   View,
 } from "react-native";
 
-import { getDocs } from "firebase/firestore";
-
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "../../FirebaseConfig";
+import {
+  saveParentAssessment,
+  hasParentAssessedChild,
+  getLatestParentAssessment,
+} from "../../Services/AssessmentService";
 
 const ALL_QUESTIONS = [
   {
@@ -310,24 +311,25 @@ const CATEGORY_COLORS = {
 export default function AssessmentApp() {
   const router = useRouter();
   const auth = getAuth();
+  const { childId, childName } = useLocalSearchParams();
 
   useEffect(() => {
     const fetchSavedAssessment = async () => {
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user || !childId) return;
 
-      const snapshot = await getDocs(
-        collection(db, "ParentAssessments", user.uid, "assessments"),
-      );
-
-      if (!snapshot.empty) {
-        const last = snapshot.docs[snapshot.docs.length - 1].data();
-        setSavedResult(last.result);
+      try {
+        const latest = await getLatestParentAssessment(childId);
+        if (latest && latest.parentId === user.uid) {
+          setSavedResult(latest.result);
+        }
+      } catch (error) {
+        console.error("Error fetching saved assessment:", error);
       }
     };
 
     fetchSavedAssessment();
-  }, []);
+  }, [childId]);
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -352,53 +354,50 @@ export default function AssessmentApp() {
   const progressPercent = (answeredCount / totalScaleQuestions) * 100;
   const remainingQuestions = totalScaleQuestions - answeredCount;
 
-  const saveAssessmentToFirestore = async (finalResult) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
+  const buildQuestionCategoryMap = () => {
+    const map = {};
+    ALL_QUESTIONS.forEach((q) => {
+      if (q.type === "scale") {
+        map[String(q.id)] = q.category;
+      }
+    });
+    return map;
+  };
 
-      await addDoc(
-        collection(db, "ParentAssessments", user.uid, "assessments"),
-        {
-          answers,
-          notes: notesText,
-          result: finalResult,
-          createdAt: new Date(),
-        },
+  const calculateResult = async () => {
+    if (!childId) {
+      Alert.alert(
+        "خطأ",
+        "لم يتم تحديد الطفل. الرجاء العودة والمحاولة مرة أخرى."
       );
+      return;
+    }
+
+    try {
+      const questionCategoryMap = buildQuestionCategoryMap();
+
+      const stringKeyAnswers = {};
+      Object.entries(answers).forEach(([k, v]) => {
+        stringKeyAnswers[String(k)] = v;
+      });
+
+      const finalResult = await saveParentAssessment({
+        childId,
+        childName: childName || "",
+        answers: stringKeyAnswers,
+        notes: notesText,
+        questionCategoryMap,
+      });
+
+      setResult(finalResult);
+      setShowResult(true);
     } catch (error) {
-      console.log("Firestore Error:", error);
+      console.error(error);
+      Alert.alert("خطأ", "لم نتمكن من حفظ التقييم. حاولي مرة أخرى.");
     }
   };
 
-  const calculateResult = () => {
-    let totalPoints = 0;
-    let maxPoints = totalScaleQuestions * 3;
-
-    scaleQuestions.forEach((q) => {
-      totalPoints += answers[q.id] ?? 0;
-    });
-
-    const percentage = (totalPoints / maxPoints) * 100;
-
-    const finalResult = {
-      totalPoints,
-      maxPoints,
-      percentage: percentage.toFixed(1),
-      level:
-        percentage >= 60
-          ? "مستوى عالي"
-          : percentage >= 40
-            ? "مستوى متوسط"
-            : "مستوى منخفض",
-    };
-
-    setResult(finalResult);
-    setShowResult(true);
-    saveAssessmentToFirestore(finalResult);
-  };
-
-  const handleNext = () => {
+  const handleNext = async () => {
     const startIndex = currentPage * questionsPerView;
     const isNotesPage = currentPage === totalPages - 1;
 
@@ -422,7 +421,7 @@ export default function AssessmentApp() {
     if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     } else {
-      calculateResult();
+      await calculateResult();
     }
   };
 

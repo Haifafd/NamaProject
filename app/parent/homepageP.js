@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -96,7 +97,23 @@ export default function HomepageP() {
   };
 
   const handleActivities = () => router.push("/parent/Activities");
-  const handleAssessment = () => router.push("/parent/ParentAssessmentForm");
+  const handleAssessment = () => {
+    if (children.length === 0) {
+      Alert.alert("تنبيه", "لا يوجد أطفال مرتبطين بحسابك بعد");
+      return;
+    }
+    if (children.length === 1) {
+      router.push({
+        pathname: "/parent/ParentAssessmentForm",
+        params: { childId: children[0].id, childName: children[0].name },
+      });
+    } else {
+      Alert.alert(
+        "اختاري الطفل",
+        "اضغطي على بطاقة الطفل لفتح صفحة تقريره ومنها يمكنكِ تعبئة الاستمارة"
+      );
+    }
+  };
   const handleChat = () => router.push("/parent/Chat");
 
   if (loading) {

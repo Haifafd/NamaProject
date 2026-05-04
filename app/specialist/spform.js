@@ -18,16 +18,15 @@ import { Ionicons } from "@expo/vector-icons";
 
 // --- استيراد Firebase ---
 import {
-  addDoc,
   collection,
   getDocs,
   limit,
   orderBy,
   query,
-  serverTimestamp,
   where,
 } from "firebase/firestore";
 import { auth, db } from "../../FirebaseConfig";
+import { saveSpecialistAssessment } from "../../Services/AssessmentService";
 import { COLORS } from "../../constants/theme";
 
 // ── تفعيل RTL ─────────────────────────────────────────────
@@ -284,6 +283,25 @@ const PAGES = [
   },
 ];
 
+// Build a map: questionId → categorySection
+const buildQuestionCategoryMap = () => {
+  const map = {};
+  PAGES.forEach((page) => {
+    if (
+      page.questions &&
+      page.section !== "success" &&
+      page.section !== "أسئلة مفتوحة"
+    ) {
+      page.questions.forEach((q) => {
+        if (q.type === "radio") {
+          map[q.id] = page.section;
+        }
+      });
+    }
+  });
+  return map;
+};
+
 export default function SPForm() {
   const router = useRouter();
 
@@ -339,25 +357,25 @@ export default function SPForm() {
   // ── 2. حفظ البيانات لهذا الطفل تحديداً ──────────────────────
   const saveToFirebase = async () => {
     if (!childId) {
-      Alert.alert("خطأ", "لم يتم العثور على معرف الطفل.");
+      Alert.alert("خطأ", "لم يتم تحديد الطفل");
       return;
     }
 
-    setLoading(true);
     try {
-      const user = auth.currentUser;
+      setLoading(true);
 
-      const docData = {
-        childId: childId, // حفظ معرف الطفل الحقيقي الممرر للصفحة
-        specialistId: user ? user.uid : "anonymous",
-        createdAt: serverTimestamp(),
-        observations: answers,
-      };
+      const questionCategoryMap = buildQuestionCategoryMap();
 
-      await addDoc(collection(db, "SpecialistAssessments"), docData);
+      await saveSpecialistAssessment({
+        childId,
+        childName: "",
+        answers,
+        questionCategoryMap,
+      });
+
       setCurrentPage(PAGES.length - 1);
     } catch (error) {
-      console.error("Error saving to Firebase: ", error);
+      console.error("Error saving assessment: ", error);
       Alert.alert("خطأ", "حدث خطأ أثناء حفظ البيانات.");
     } finally {
       setLoading(false);
