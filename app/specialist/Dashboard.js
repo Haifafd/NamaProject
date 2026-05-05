@@ -209,12 +209,12 @@ export default function Dashboard() {
           })}
         </View>
         <View style={styles.scaleRow}>
-          <Text style={[styles.scaleLabel, { color: SCORE_COLORS[5] }]}>
-            ضعيف جداً
-          </Text>
-          <View style={styles.scaleLine} />
           <Text style={[styles.scaleLabel, { color: SCORE_COLORS[1] }]}>
             ممتاز
+          </Text>
+          <View style={styles.scaleLine} />
+          <Text style={[styles.scaleLabel, { color: SCORE_COLORS[5] }]}>
+            ضعيف جداً
           </Text>
         </View>
       </View>
