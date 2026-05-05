@@ -19,6 +19,7 @@ import {
   CloudSmall,
   MiniFlower,
 } from "../activities/_GameComponents";
+import { markSessionComplete } from "../../Services/SessionService";
 
 const { width, height } = Dimensions.get("window");
 
@@ -149,6 +150,10 @@ export default function TreasureSplash() {
   const buttonOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (childId) {
+      markSessionComplete(childId);
+    }
+
     Animated.sequence([
       Animated.spring(treasureScale, {
         toValue: 1,

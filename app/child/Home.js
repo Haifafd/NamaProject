@@ -33,6 +33,11 @@ import {
   computeStationStates,
   getChildProgress,
 } from "../../Services/ProgressService";
+import {
+  getChildSession,
+  getSessionState,
+  resetForFreshRound,
+} from "../../Services/SessionService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -687,6 +692,7 @@ export default function ChildHome() {
   const [progress, setProgress] = useState({});
   const [stations, setStations] = useState([]);
   const [selectedStation, setSelectedStation] = useState(null);
+  const [sessionState, setSessionState] = useState("first_time");
 
   const noumiPulse = useRef(new Animated.Value(1)).current;
   const activeStationPulse = useRef(new Animated.Value(1)).current;
@@ -727,11 +733,49 @@ export default function ChildHome() {
       const progressMap = await getChildProgress(childId);
       setProgress(progressMap);
 
-      const stationStates = computeStationStates(
+      const baseStates = computeStationStates(
         childPlan.activityIds,
         progressMap,
       );
-      setStations(stationStates);
+
+      const state = await getSessionState(childId);
+      setSessionState(state);
+      console.log("📍 Session state:", state);
+
+      let finalStates;
+      if (state === "free_play") {
+        finalStates = baseStates.map((s) => ({
+          ...s,
+          status: s.status === "completed" ? "completed" : "active",
+        }));
+      } else if (state === "fresh_round") {
+        const session = await getChildSession(childId);
+        const lastCompletedAtMs = session?.lastCompletedAt?.toMillis?.() || 0;
+        let roundStartMs =
+          session?.currentRoundStartedAt?.toMillis?.() || 0;
+
+        if (!roundStartMs || roundStartMs <= lastCompletedAtMs) {
+          roundStartMs = Date.now();
+          await resetForFreshRound(childId, childPlan.activityIds);
+        }
+
+        const filteredProgress = {};
+        Object.entries(progressMap).forEach(([id, prog]) => {
+          const completedAtMs = prog.completedAt?.toMillis?.() || 0;
+          if (completedAtMs >= roundStartMs) {
+            filteredProgress[id] = prog;
+          }
+        });
+
+        finalStates = computeStationStates(
+          childPlan.activityIds,
+          filteredProgress,
+        );
+      } else {
+        finalStates = baseStates;
+      }
+
+      setStations(finalStates);
     } catch (error) {
       console.error("Error loading child home:", error);
     } finally {

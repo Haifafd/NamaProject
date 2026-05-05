@@ -24,6 +24,7 @@ import {
   View,
 } from "react-native";
 import { db } from "../../FirebaseConfig";
+import { getTodayActivityResults } from "../../Services/ActivityService";
 
 // ─── 🎨 الثيم الموحد ───
 import {
@@ -68,13 +69,22 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   const calculateCategoryScore = (categoryId) => {
-    const categoryResults = results.filter((r) => r.categoryId === categoryId);
+    const categoryResults = results.filter(
+      (r) => r.categoryId === categoryId || r.category === categoryId,
+    );
     if (categoryResults.length === 0) return null;
 
-    const sum = categoryResults.reduce((acc, r) => acc + (r.score || 0), 0);
-    const avg = sum / categoryResults.length;
+    const totalAccuracy = categoryResults.reduce(
+      (acc, r) => acc + (r.accuracy || 0),
+      0,
+    );
+    const avgAccuracy = totalAccuracy / categoryResults.length;
 
-    return Math.round(avg);
+    if (avgAccuracy >= 80) return 1;
+    if (avgAccuracy >= 65) return 2;
+    if (avgAccuracy >= 50) return 3;
+    if (avgAccuracy >= 35) return 4;
+    return 5;
   };
 
   const loadData = async () => {
@@ -89,16 +99,9 @@ export default function Dashboard() {
         setChild({ id: childDoc.id, ...childDoc.data() });
       }
 
-      const resultsQuery = query(
-        collection(db, "ActivityResults"),
-        where("childId", "==", childId),
-      );
-      const resultsSnapshot = await getDocs(resultsQuery);
-      const resultsData = resultsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setResults(resultsData);
+      const todayResults = await getTodayActivityResults(childId);
+      setResults(todayResults);
+      console.log("📊 Specialist dashboard - today results:", todayResults.length);
     } catch (error) {
       console.error("Error loading dashboard:", error);
     } finally {
@@ -381,6 +384,15 @@ export default function Dashboard() {
             />
           }
         >
+          <View style={styles.todayBadgeContainer}>
+            <View style={styles.todayBadge}>
+              <Ionicons name="calendar" size={14} color="#27AE60" />
+              <Text style={styles.todayBadgeText}>
+                نتائج اليوم • {results.length} محاولة
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.quickStatsRow}>
             <View style={styles.quickStatCard}>
               <View
@@ -617,6 +629,24 @@ const styles = StyleSheet.create({
 
   scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
 
+  todayBadgeContainer: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  todayBadge: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 6,
+  },
+  todayBadgeText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#27AE60",
+  },
   quickStatsRow: { flexDirection: "row-reverse", gap: 10, marginBottom: 20 },
   quickStatCard: {
     flex: 1,

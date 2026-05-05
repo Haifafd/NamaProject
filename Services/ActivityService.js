@@ -187,11 +187,19 @@ export const saveActivityResult = async ({
     if (accuracy >= 80) stars = 3;
     else if (accuracy >= 50) stars = 2;
 
+    // 1-5 REVERSE rating (1 = excellent, 5 = weak) used by the reports
+    let rating = 5;
+    if (accuracy >= 80) rating = 1;
+    else if (accuracy >= 65) rating = 2;
+    else if (accuracy >= 50) rating = 3;
+    else if (accuracy >= 35) rating = 4;
+
     await addDoc(collection(db, "ActivityResults"), {
       childId,
       activityId,
       activityTitle: activityTitle || "",
       category: category || "",
+      categoryId: category || "",
       level,
       correctAnswers,
       wrongAnswers,
@@ -200,6 +208,8 @@ export const saveActivityResult = async ({
       durationSec,
       accuracy,
       stars,
+      rating,
+      score: rating,
       completedAt: serverTimestamp(),
     });
 
@@ -210,9 +220,70 @@ export const saveActivityResult = async ({
       score: accuracy,
     });
 
-    return { stars, accuracy };
+    return { stars, accuracy, rating };
   } catch (error) {
     console.error("Error saving activity result:", error);
     return null;
+  }
+};
+
+// ─────────────────────────────────────────────
+// 📥 Get TODAY's results for a child
+// ─────────────────────────────────────────────
+export const getTodayActivityResults = async (childId) => {
+  try {
+    if (!childId) return [];
+
+    const q = query(
+      collection(db, "ActivityResults"),
+      where("childId", "==", childId)
+    );
+    const snapshot = await getDocs(q);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+
+    return snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((r) => {
+        if (!r.completedAt) return false;
+        const ms = r.completedAt.toMillis?.() || 0;
+        return ms >= todayMs;
+      });
+  } catch (error) {
+    console.error("Error fetching today's results:", error);
+    return [];
+  }
+};
+
+// ─────────────────────────────────────────────
+// 📥 Fetch Activity Results for a child (all results, newest first)
+// ─────────────────────────────────────────────
+export const getActivityResults = async (childId) => {
+  try {
+    if (!childId) return [];
+
+    const q = query(
+      collection(db, "ActivityResults"),
+      where("childId", "==", childId)
+    );
+    const snapshot = await getDocs(q);
+
+    const results = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    results.sort((a, b) => {
+      const aTime = a.completedAt?.toMillis?.() || 0;
+      const bTime = b.completedAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+
+    return results;
+  } catch (error) {
+    console.error("Error fetching activity results:", error);
+    return [];
   }
 };
