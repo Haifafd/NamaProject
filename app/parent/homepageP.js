@@ -21,6 +21,7 @@ import { getChildPlan } from "../../Services/ActivityService";
 import { getCurrentUser } from "../../Services/UserService";
 import { hasParentAssessedChild } from "../../Services/AssessmentService";
 import { stopBackgroundMusic } from "../../Services/MusicService";
+import { subscribeToUnreadCount } from "../../Services/NotificationService";
 import BottomNavBar from "../../components/BottomNavBar";
 import { COLORS } from "../../constants/theme";
 
@@ -133,6 +134,12 @@ export default function HomepageP() {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToUnreadCount(setUnreadCount);
+    return () => unsubscribe();
+  }, []);
 
   // Children who haven't been assessed yet by parent
   const [pendingAssessments, setPendingAssessments] = useState([]);
@@ -363,9 +370,12 @@ export default function HomepageP() {
             <View style={styles.decorCircle2} />
 
             <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.notificationBubble}>
+              <TouchableOpacity
+                style={styles.notificationBubble}
+                onPress={() => router.push("/notifications")}
+              >
                 <Ionicons name="notifications" size={20} color="#fff" />
-                <View style={styles.notificationDot} />
+                {unreadCount > 0 && <View style={styles.notificationDot} />}
               </TouchableOpacity>
 
               <View style={styles.headerCenter}>

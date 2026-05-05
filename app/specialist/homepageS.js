@@ -20,6 +20,7 @@ import {
   getMyChildrenWithProgress,
 } from "../../Services/ChildrenService";
 import { getCurrentUser } from "../../Services/UserService";
+import { subscribeToUnreadCount } from "../../Services/NotificationService";
 import BottomNavBar from "../../components/BottomNavBar";
 
 // ─── 🎨 استيراد الثيم الموحد من constants/theme.js ───
@@ -62,6 +63,12 @@ export default function HomepageS() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToUnreadCount(setUnreadCount);
+    return () => unsubscribe();
+  }, []);
 
   const loadData = async () => {
     try {
@@ -144,9 +151,12 @@ export default function HomepageS() {
             <View style={styles.decorCircle2} />
 
             <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.notificationBubble}>
+              <TouchableOpacity
+                style={styles.notificationBubble}
+                onPress={() => router.push("/notifications")}
+              >
                 <Ionicons name="notifications" size={20} color="#fff" />
-                <View style={styles.notificationDot} />
+                {unreadCount > 0 && <View style={styles.notificationDot} />}
               </TouchableOpacity>
 
               <View style={styles.headerCenter}>

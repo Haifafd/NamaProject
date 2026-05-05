@@ -12,6 +12,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db, auth } from "../FirebaseConfig";
+import { createNotification, NOTIFICATION_TYPES } from "./NotificationService";
 
 // ─────────────────────────────────────────────
 // 🔑 Find or create chat for a child
@@ -168,20 +169,49 @@ export const sendMessage = async (chatId, text, senderRole) => {
     const currentUser = auth.currentUser;
     if (!currentUser || !text.trim() || !chatId) return;
 
-    // Add message to subcollection
+    const trimmedText = text.trim();
+
     await addDoc(collection(db, "Chats", chatId, "Messages"), {
-      text: text.trim(),
+      text: trimmedText,
       senderId: currentUser.uid,
-      senderRole: senderRole, // "parent" or "specialist"
+      senderRole: senderRole,
       createdAt: serverTimestamp(),
     });
 
-    // Update chat's lastMessage and updatedAt
     await updateDoc(doc(db, "Chats", chatId), {
-      lastMessage: text.trim(),
+      lastMessage: trimmedText,
       lastMessageSender: senderRole,
       updatedAt: serverTimestamp(),
     });
+
+    // 🔔 إشعار للطرف المستقبل
+    try {
+      const chatSnap = await getDoc(doc(db, "Chats", chatId));
+      if (chatSnap.exists()) {
+        const chat = chatSnap.data();
+        const recipientId =
+          senderRole === "parent" ? chat.specialistId : chat.parentId;
+        const senderName =
+          senderRole === "parent"
+            ? chat.parentName || "ولي الأمر"
+            : chat.specialistName || "الأخصائي";
+
+        if (recipientId) {
+          await createNotification({
+            userId: recipientId,
+            type: NOTIFICATION_TYPES.CHAT_MESSAGE,
+            title: `رسالة جديدة من ${senderName}`,
+            body:
+              trimmedText.length > 60
+                ? trimmedText.slice(0, 60) + "…"
+                : trimmedText,
+            data: { chatId, childName: chat.childName || "", senderRole },
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification error:", notifErr);
+    }
   } catch (error) {
     console.error("Error sending message:", error);
     throw error;

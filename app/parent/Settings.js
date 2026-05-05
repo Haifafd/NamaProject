@@ -4,7 +4,6 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,8 +17,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth, db } from "../../FirebaseConfig";
-import { getCurrentUser } from "../../Services/UserService";
+import { auth } from "../../FirebaseConfig";
+import {
+  getCurrentUser,
+  getNotificationPreferences,
+  updateNotificationPreference,
+} from "../../Services/UserService";
+import { scheduleTestReminder } from "../../Services/NotificationService";
 import BottomNavBar from "../../components/BottomNavBar";
 
 // --- الثيم السماوي ---
@@ -53,12 +57,12 @@ export default function Settings() {
     try {
       const userData = await getCurrentUser();
       setUser(userData);
-      
-      // جلب القيم من كائن preferences الموجود في الصورة
-      if (userData?.preferences) {
-        setPushNotifications(userData.preferences.pushNotifications || false);
-        setEmailNotifications(userData.preferences.emailNotifications || false);
-        setReportAlerts(userData.preferences.reportAlerts || false);
+
+      const prefs = await getNotificationPreferences();
+      if (prefs) {
+        setPushNotifications(prefs.pushNotifications ?? false);
+        setEmailNotifications(prefs.emailNotifications ?? false);
+        setReportAlerts(prefs.reportAlerts ?? false);
       }
     } catch (error) {
       console.error("Error loading user:", error);
@@ -67,24 +71,10 @@ export default function Settings() {
     }
   };
 
-  // دالة تحديث الإعدادات في Firestore (تحديث كائن preferences)
-  const updatePreferenceInDb = async (field, value, extraData = {}) => {
-    if (!auth.currentUser) return;
-    try {
-      const userRef = doc(db, "Users", auth.currentUser.uid); // اسم المجموعة Users كما في الصورة
-      await updateDoc(userRef, {
-        [`preferences.${field}`]: value,
-        ...extraData
-      });
-    } catch (error) {
-      console.error("Firebase Update Error:", error);
-      Alert.alert("خطأ", "فشل تحديث الإعدادات في قاعدة البيانات");
-    }
-  };
-
   // تفعيل إشعارات التطبيق والـ Token
   const handlePushToggle = async (value) => {
     setPushNotifications(value);
+
     if (value) {
       if (!Device.isDevice) {
         Alert.alert("تنبيه", "يجب استخدام جهاز حقيقي لتفعيل الإشعارات");
@@ -92,23 +82,39 @@ export default function Settings() {
         return;
       }
 
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status === 'granted') {
-        const tokenData = await Notifications.getExpoPushTokenAsync({
-          projectId: Constants.expoConfig?.extra?.eas?.projectId,
-        });
-        // حفظ التوكن والحالة في preferences
-        await updatePreferenceInDb("pushNotifications", true, {
-          "preferences.pushToken": tokenData.data
-        });
-      } else {
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== "granted") {
+          setPushNotifications(false);
+          Alert.alert("خطأ", "لم يتم منح إذن الإشعارات");
+          return;
+        }
+
+        await updateNotificationPreference("pushNotifications", true);
+
+        // محاولة جلب الـ Push Token (يفشل بهدوء في Expo Go - عادي)
+        try {
+          const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+          if (projectId) {
+            const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+            await updateNotificationPreference("pushToken", tokenData.data);
+          }
+        } catch (e) {
+          console.log("ℹ️ Push token غير متاح في Expo Go (طبيعي)");
+        }
+      } catch (error) {
+        console.error("Push toggle error:", error);
         setPushNotifications(false);
-        Alert.alert("خطأ", "لم يتم منح إذن الإشعارات");
+        Alert.alert("خطأ", "لم نتمكن من تفعيل الإشعارات");
       }
     } else {
-      await updatePreferenceInDb("pushNotifications", false, {
-        "preferences.pushToken": null
-      });
+      try {
+        await updateNotificationPreference("pushNotifications", false);
+        await updateNotificationPreference("pushToken", null);
+      } catch (error) {
+        setPushNotifications(true);
+        Alert.alert("خطأ", "لم نتمكن من حفظ التفضيلات");
+      }
     }
   };
 
@@ -121,7 +127,7 @@ export default function Settings() {
         onPress: async () => {
           try {
             await signOut(auth);
-            router.replace("/Login");
+            router.replace("/auth/Login");
           } catch (error) {
             Alert.alert("خطأ", "لم نتمكن من تسجيل الخروج");
           }
@@ -179,12 +185,12 @@ export default function Settings() {
               <Ionicons name="person" size={28} color={PRIMARY_DARK} />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName} numberOfLines={1}>{user?.name || "أخصائي"}</Text>
+              <Text style={styles.profileName} numberOfLines={1}>{user?.name || "الوالد"}</Text>
               <Text style={styles.profileEmail} numberOfLines={1}>{user?.email || "—"}</Text>
             </View>
             <View style={styles.profileBadge}>
               <Text style={styles.profileBadgeText}>
-                {user?.preferences?.role === "specialist" ? "أخصائي" : "مستخدم"}
+                {user?.role === "parent" ? "ولي أمر" : "مستخدم"}
               </Text>
             </View>
           </View>
@@ -192,28 +198,92 @@ export default function Settings() {
           {/* قسم: الحساب */}
           <Text style={styles.sectionTitle}>الحساب</Text>
           <View style={styles.sectionCard}>
-            <SettingItem icon="person-outline" title="تعديل الملف الشخصي" subtitle="الاسم والصورة والبريد" onPress={() => router.push("./EditProfile")} />
-            <SettingItem icon="lock-closed-outline" title="تغيير كلمة المرور" subtitle="حماية حسابك" onPress={() => router.push("./ChangePassword")} isLast={true} />
+            <SettingItem icon="person-outline" title="تعديل الملف الشخصي" subtitle="الاسم والصورة والبريد" onPress={() => router.push("/settings/EditProfile")} />
+            <SettingItem icon="lock-closed-outline" title="تغيير كلمة المرور" subtitle="حماية حسابك" onPress={() => router.push("/settings/ChangePassword")} isLast={true} />
           </View>
 
           {/* قسم: الإشعارات - مربوط بـ preferences */}
           <Text style={styles.sectionTitle}>الإشعارات</Text>
           <View style={styles.sectionCard}>
-            <SettingItem 
-               icon="notifications-outline" iconColor={AMBER} iconBg="#FFF6E8" title="إشعارات التطبيق" 
-               isSwitch={true} switchValue={pushNotifications} 
-               onSwitchChange={handlePushToggle} 
+            <SettingItem
+               icon="notifications-outline" iconColor={AMBER} iconBg="#FFF6E8" title="إشعارات التطبيق"
+               isSwitch={true} switchValue={pushNotifications}
+               onSwitchChange={handlePushToggle}
             />
-            <SettingItem 
-               icon="mail-outline" iconColor={AMBER} iconBg="#FFF6E8" title="إشعارات البريد" 
-               isSwitch={true} switchValue={emailNotifications} 
-               onSwitchChange={(v) => { setEmailNotifications(v); updatePreferenceInDb("emailNotifications", v); }} 
+            <SettingItem
+               icon="mail-outline" iconColor={AMBER} iconBg="#FFF6E8" title="إشعارات البريد"
+               isSwitch={true} switchValue={emailNotifications}
+               onSwitchChange={(v) => { setEmailNotifications(v); updateNotificationPreference("emailNotifications", v); }}
             />
-            <SettingItem 
-               icon="document-text-outline" iconColor={AMBER} iconBg="#FFF6E8" title="تنبيهات التقارير" 
-               isSwitch={true} switchValue={reportAlerts} 
-               onSwitchChange={(v) => { setReportAlerts(v); updatePreferenceInDb("reportAlerts", v); }} 
-               isLast={true} 
+            <SettingItem
+               icon="document-text-outline" iconColor={AMBER} iconBg="#FFF6E8" title="تنبيهات التقارير"
+               isSwitch={true} switchValue={reportAlerts}
+               onSwitchChange={(v) => { setReportAlerts(v); updateNotificationPreference("reportAlerts", v); }}
+            />
+            <SettingItem
+              icon="flash-outline"
+              iconColor="#FF9800"
+              iconBg="#FFF3E0"
+              title="🧪 إشعار تجريبي بعد 10 ثواني"
+              subtitle="اضغطي وأقفلي التطبيق للاختبار"
+              onPress={async () => {
+                const id = await scheduleTestReminder();
+                if (id) {
+                  Alert.alert(
+                    "تم ✅",
+                    "إشعار تجريبي راح يطلع بعد 10 ثوانٍ، أقفلي التطبيق الآن!"
+                  );
+                } else {
+                  Alert.alert(
+                    "تنبيه",
+                    "لم نتمكن من جدولة الإشعار. تأكدي من إذن الإشعارات."
+                  );
+                }
+              }}
+              isLast={true}
+            />
+          </View>
+
+          {/* ─── قسم: الخصوصية والأمان ─── */}
+          <Text style={styles.sectionTitle}>الخصوصية والأمان</Text>
+          <View style={styles.sectionCard}>
+            <SettingItem
+              icon="shield-outline"
+              iconColor={GREEN}
+              iconBg="#E8F5E9"
+              title="سياسة الخصوصية"
+              onPress={() => router.push("/settings/Privacy")}
+            />
+            <SettingItem
+              icon="document-outline"
+              iconColor={GREEN}
+              iconBg="#E8F5E9"
+              title="الشروط والأحكام"
+              onPress={() => router.push("/settings/Terms")}
+              isLast={true}
+            />
+          </View>
+
+          {/* ─── قسم: الدعم والمساعدة ─── */}
+          <Text style={styles.sectionTitle}>الدعم والمساعدة</Text>
+          <View style={styles.sectionCard}>
+            <SettingItem
+              icon="chatbubbles-outline"
+              title="تواصل معنا"
+              subtitle="نسعد بمساعدتك"
+              onPress={() => router.push("/settings/Contact")}
+            />
+            <SettingItem
+              icon="help-circle-outline"
+              title="الأسئلة الشائعة"
+              onPress={() => router.push("/settings/FAQ")}
+            />
+            <SettingItem
+              icon="information-circle-outline"
+              title="عن تطبيق نماء"
+              subtitle="الإصدار 1.0.0"
+              onPress={() => router.push("/settings/About")}
+              isLast={true}
             />
           </View>
 

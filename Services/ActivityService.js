@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
 import { saveActivityProgress } from "./ProgressService";
+import { createNotification, NOTIFICATION_TYPES } from "./NotificationService";
 
 // ─────────────────────────────────────────────
 // أنواع الأنشطة (نفس IDs الموجودة في Firebase)
@@ -117,6 +118,29 @@ export const saveTherapeuticPlan = async (planData) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    // 🔔 إشعار لولي الأمر
+    try {
+      if (planData.childId) {
+        const childSnap = await getDoc(doc(db, "Children", planData.childId));
+        if (childSnap.exists()) {
+          const parentId = childSnap.data().parentId;
+          const childName = childSnap.data().name || "";
+          if (parentId) {
+            await createNotification({
+              userId: parentId,
+              type: NOTIFICATION_TYPES.TREATMENT_PLAN,
+              title: "🌱 خطة علاجية جديدة",
+              body: `تم إعداد خطة علاجية للطفل ${childName}`,
+              data: { childId: planData.childId, childName },
+            });
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification error:", notifErr);
+    }
+
     return docRef.id;
   } catch (error) {
     console.error("Error saving plan:", error);
@@ -133,6 +157,33 @@ export const updateTherapeuticPlan = async (planId, updates) => {
       ...updates,
       updatedAt: serverTimestamp(),
     });
+
+    // 🔔 إشعار لولي الأمر
+    try {
+      let childId = updates.childId;
+      if (!childId) {
+        const planSnap = await getDoc(doc(db, "TherapeuticPlan", planId));
+        if (planSnap.exists()) childId = planSnap.data().childId;
+      }
+      if (childId) {
+        const childSnap = await getDoc(doc(db, "Children", childId));
+        if (childSnap.exists()) {
+          const parentId = childSnap.data().parentId;
+          const childName = childSnap.data().name || "";
+          if (parentId) {
+            await createNotification({
+              userId: parentId,
+              type: NOTIFICATION_TYPES.TREATMENT_PLAN,
+              title: "🔄 تحديث الخطة العلاجية",
+              body: `تم تحديث خطة الطفل ${childName}`,
+              data: { childId, childName },
+            });
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification error:", notifErr);
+    }
   } catch (error) {
     console.error("Error updating plan:", error);
     throw error;

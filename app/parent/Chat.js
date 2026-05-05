@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -19,6 +19,7 @@ import {
   subscribeToParentChats,
 } from "../../Services/ChatService";
 import { getCurrentUser } from "../../Services/UserService";
+import { subscribeToUnreadCount } from "../../Services/NotificationService";
 import BottomNavBar from "../../components/BottomNavBar";
 import { COLORS } from "../../constants/theme";
 
@@ -61,6 +62,12 @@ export default function ParentChat() {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToUnreadCount(setUnreadCount);
+    return () => unsubscribe();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -158,8 +165,12 @@ export default function ParentChat() {
             <View style={styles.decorCircle2} />
 
             <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.notificationBubble}>
+              <TouchableOpacity
+                style={styles.notificationBubble}
+                onPress={() => router.push("/notifications")}
+              >
                 <Ionicons name="notifications" size={20} color="#fff" />
+                {unreadCount > 0 && <View style={styles.notificationDot} />}
               </TouchableOpacity>
 
               <View style={styles.headerCenter}>
@@ -286,6 +297,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.DANGER,
+    borderWidth: 2,
+    borderColor: COLORS.PRIMARY,
   },
   headerCenter: { alignItems: "center" },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#fff" },

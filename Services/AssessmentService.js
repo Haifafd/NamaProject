@@ -11,6 +11,7 @@ import {
   limit,
 } from "firebase/firestore";
 import { auth, db } from "../FirebaseConfig";
+import { createNotification, NOTIFICATION_TYPES } from "./NotificationService";
 
 // ─────────────────────────────────────────────
 // PARENT ASSESSMENT — 5 categories + notes
@@ -124,6 +125,25 @@ export const saveParentAssessment = async ({
 
     await addDoc(collection(db, "ParentAssessments"), docData);
 
+    // 🔔 إشعار للأخصائي
+    try {
+      const childSnap = await getDoc(doc(db, "Children", childId));
+      if (childSnap.exists()) {
+        const specialistId = childSnap.data().specialistId;
+        if (specialistId) {
+          await createNotification({
+            userId: specialistId,
+            type: NOTIFICATION_TYPES.ASSESSMENT_SUBMITTED,
+            title: "📋 استشارة جديدة من ولي الأمر",
+            body: `تم تعبئة استشارة الطفل ${childName || ""}`,
+            data: { childId, childName: childName || "" },
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification error:", notifErr);
+    }
+
     return result;
   } catch (error) {
     console.error("Error saving parent assessment:", error);
@@ -214,6 +234,25 @@ export const saveSpecialistAssessment = async ({
     };
 
     await addDoc(collection(db, "SpecialistAssessments"), docData);
+
+    // 🔔 إشعار لولي الأمر
+    try {
+      const childSnap = await getDoc(doc(db, "Children", childId));
+      if (childSnap.exists()) {
+        const parentId = childSnap.data().parentId;
+        if (parentId) {
+          await createNotification({
+            userId: parentId,
+            type: NOTIFICATION_TYPES.REPORT_ISSUED,
+            title: "📊 تقييم جديد من الأخصائي",
+            body: `صدر تقييم جديد للطفل ${childName || ""}`,
+            data: { childId, childName: childName || "" },
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification error:", notifErr);
+    }
 
     return result;
   } catch (error) {
