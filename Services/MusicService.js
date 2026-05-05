@@ -1,102 +1,150 @@
 // ────────────────────────────────────────────
-// 🎵 Centralized Music Manager for Child Mode
+// 🎵 مدير موسيقى Child Mode (expo-audio - SDK 54+)
 // ────────────────────────────────────────────
-// Manages a single background music instance that persists
-// across child mode screens. Imports expo-av lazily to avoid
-// crashes if package isn't installed.
+// يدير نسخة وحيدة من الموسيقى الخلفية تستمر عبر شاشات Child Mode
+// يستخدم createAudioPlayer (من useAudioPlayer hook) لأن الموسيقى
+// يجب أن تعيش خارج عمر أي مكوّن
 
-let Audio = null;
+let createAudioPlayer = null;
+let setAudioModeAsync = null;
+
 try {
-  Audio = require("expo-av").Audio;
+  const expoAudio = require("expo-audio");
+  createAudioPlayer = expoAudio.createAudioPlayer;
+  setAudioModeAsync = expoAudio.setAudioModeAsync;
 } catch (e) {
-  console.log("expo-av not installed, music disabled");
+  console.log("⚠️ expo-audio not installed, music disabled");
 }
 
-// Singleton state
-let soundInstance = null;
-let isPlaying = false;
+// ── حالة Singleton ──
+let player = null;
+let isStarted = false;
 let isLoading = false;
 
 // ────────────────────────────────────────────
-// 🎵 Start playing background music
-// Safe to call multiple times — won't restart if already playing
+// 🎵 بدء تشغيل الموسيقى الخلفية
+// آمنة للاستدعاء عدة مرات — لا تعيد التشغيل لو شغالة
 // ────────────────────────────────────────────
 export const startBackgroundMusic = async () => {
-  if (!Audio) return;
-  if (isPlaying || isLoading) return;
+  if (!createAudioPlayer) {
+    console.log("⚠️ Audio module not available");
+    return;
+  }
+  if (isStarted || isLoading) {
+    console.log("ℹ️ Music already playing or loading");
+    return;
+  }
 
   try {
     isLoading = true;
 
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-      interruptionModeIOS: 1,
-      interruptionModeAndroid: 1,
-    });
+    // إعداد وضع الصوت — يشتغل حتى مع الجوال صامت (فقط في iOS)
+    if (setAudioModeAsync) {
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: "duckOthers",
+          interruptionModeAndroid: "duckOthers",
+          shouldRouteThroughEarpiece: false,
+        });
+      } catch (modeErr) {
+        console.log("⚠️ Audio mode set warning:", modeErr.message);
+      }
+    }
 
-    const { sound } = await Audio.Sound.createAsync(
-      // ⚠️ IMPORTANT: Update this path if the file has a different name
+    // إنشاء المشغّل
+    player = createAudioPlayer(
       require("../assets/sounds/nama-music.mp3"),
-      {
-        isLooping: true,
-        volume: 0.4,
-        shouldPlay: true,
-      },
+      { updateInterval: 1000 }
     );
 
-    soundInstance = sound;
-    isPlaying = true;
+    // الإعدادات
+    player.loop = true;
+    player.volume = 0.4;
+
+    // التشغيل
+    player.play();
+
+    isStarted = true;
     isLoading = false;
+    console.log("🎵 Background music started");
   } catch (error) {
-    console.log("Music load error:", error.message);
+    console.log("❌ Music start error:", error.message);
     isLoading = false;
+    isStarted = false;
+    if (player) {
+      try {
+        player.release();
+      } catch (e) {}
+      player = null;
+    }
   }
 };
 
 // ────────────────────────────────────────────
-// 🛑 Stop and unload music
+// 🛑 إيقاف الموسيقى وتفريغ الذاكرة
 // ────────────────────────────────────────────
 export const stopBackgroundMusic = async () => {
-  if (!soundInstance) return;
+  if (!player) {
+    isStarted = false;
+    return;
+  }
 
   try {
-    await soundInstance.stopAsync();
-    await soundInstance.unloadAsync();
+    try {
+      player.pause();
+    } catch (e) {}
+    try {
+      player.release();
+    } catch (e) {}
+    console.log("🛑 Background music stopped");
   } catch (error) {
-    console.log("Music stop error:", error.message);
+    console.log("⚠️ Music stop error:", error.message);
   } finally {
-    soundInstance = null;
-    isPlaying = false;
+    player = null;
+    isStarted = false;
+    isLoading = false;
   }
 };
 
 // ────────────────────────────────────────────
-// 🔉 Lower volume (for inside games)
+// 🔉 خفض الصوت (داخل الألعاب)
 // ────────────────────────────────────────────
 export const duckMusic = async () => {
-  if (!soundInstance || !isPlaying) return;
+  if (!player || !isStarted) return;
   try {
-    await soundInstance.setVolumeAsync(0.15);
-  } catch (e) {
+    player.volume = 0.15;
+  } catch (_e) {
     // ignore
   }
 };
 
 // ────────────────────────────────────────────
-// 🔊 Restore normal volume
+// 🔊 استعادة الصوت الطبيعي
 // ────────────────────────────────────────────
 export const unduckMusic = async () => {
-  if (!soundInstance || !isPlaying) return;
+  if (!player || !isStarted) return;
   try {
-    await soundInstance.setVolumeAsync(0.4);
-  } catch (e) {
+    player.volume = 0.4;
+  } catch (_e) {
     // ignore
   }
 };
 
 // ────────────────────────────────────────────
-// ℹ️ Is music currently playing?
+// 🔇 كتم/تشغيل صريح (للأيقونة المستقبلية)
 // ────────────────────────────────────────────
-export const isMusicPlaying = () => isPlaying;
+export const setMusicMuted = async (muted) => {
+  if (!player || !isStarted) return;
+  try {
+    player.muted = !!muted;
+  } catch (_e) {
+    // ignore
+  }
+};
+
+// ────────────────────────────────────────────
+// ℹ️ هل الموسيقى تشتغل حالياً؟
+// ────────────────────────────────────────────
+export const isMusicPlaying = () => isStarted;

@@ -19,8 +19,6 @@ import Svg, {
   RadialGradient,
   Stop,
 } from "react-native-svg";
-import { startBackgroundMusic } from "../../Services/MusicService";
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const GARDEN = {
@@ -386,8 +384,7 @@ export default function ChildModeSplash() {
 
   // Animation orchestration
   useEffect(() => {
-    // Start background music when entering child mode (idempotent — safe to call)
-    startBackgroundMusic();
+    // الموسيقى تبدأ تلقائياً من child/_layout — لا حاجة لاستدعائها هنا
 
     Animated.loop(
       Animated.timing(sunRotate, {
