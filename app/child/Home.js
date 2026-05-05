@@ -852,6 +852,16 @@ export default function ChildHome() {
       shape_finding: "/activities/ShapeFindingActivity",
       shapefinding: "/activities/ShapeFindingActivity",
       shapefindingactivity: "/activities/ShapeFindingActivity",
+      puzzle: "/activities/PuzzleGame",
+      puzzlegame: "/activities/PuzzleGame",
+      tracing: "/activities/LetterTracing",
+      letter_tracing: "/activities/LetterTracing",
+      lettertracing: "/activities/LetterTracing",
+      maze: "/activities/MazeGame",
+      mazegame: "/activities/MazeGame",
+      shadow: "/activities/ShadowMatching",
+      shadow_matching: "/activities/ShadowMatching",
+      shadowmatching: "/activities/ShadowMatching",
     };
 
     const idLower = (activity.id || "").toLowerCase();
@@ -898,6 +908,20 @@ export default function ChildHome() {
         t.includes("count")
       ) {
         route = "/activities/ShapeFindingActivity";
+      } else if (t.includes("بازل") || t.includes("تركيب") || t.includes("puzzle")) {
+        route = "/activities/PuzzleGame";
+      } else if (
+        t.includes("توصيل الحروف") ||
+        t.includes("تتبع") ||
+        t.includes("حروف") ||
+        t.includes("نقاط") ||
+        t.includes("tracing")
+      ) {
+        route = "/activities/LetterTracing";
+      } else if (t.includes("متاهة") || t.includes("متاهي") || t.includes("maze")) {
+        route = "/activities/MazeGame";
+      } else if (t.includes("ظل") || t.includes("shadow")) {
+        route = "/activities/ShadowMatching";
       } else if (t.includes("ذكاء") || t.includes("تحدي")) {
         route = "/activities/XO-Activity";
       }
