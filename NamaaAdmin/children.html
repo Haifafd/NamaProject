@@ -6,6 +6,162 @@
   <title>الأطفال - نماء</title>
   <link rel="stylesheet" href="assets/admin.css" />
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .privacy-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--sky-light);
+      color: var(--sky-dark);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      border: 1px solid rgba(2, 136, 209, 0.15);
+    }
+    .privacy-notice i {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .documents-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .document-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid #ECEFF1;
+    }
+
+    .document-row.exists {
+      background: linear-gradient(135deg, #fff 0%, #f0f9ff 100%);
+      border-color: rgba(2, 136, 209, 0.18);
+    }
+
+    .document-row.empty {
+      background: #FAFAFA;
+      border-style: dashed;
+      border-color: #E0E0E0;
+      opacity: 0.85;
+    }
+
+    .document-icon-box {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .document-icon-box.exists {
+      background: var(--sky-light);
+      color: var(--sky-dark);
+    }
+
+    .document-icon-box.empty {
+      background: #F0F0F0;
+      color: var(--muted);
+    }
+
+    .document-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .document-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .document-meta {
+      font-size: 11.5px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .document-meta .badge-count {
+      background: var(--sky-light);
+      color: var(--sky-dark);
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 10.5px;
+    }
+
+    .document-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .document-status-badge.exists {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    .document-status-badge.empty {
+      background: #F5F5F5;
+      color: var(--muted);
+    }
+
+    .document-delete-btn {
+      background: #FFEBEE;
+      color: var(--danger);
+      border: 1px solid rgba(255, 77, 79, 0.25);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .document-delete-btn:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .document-delete-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .document-delete-btn i {
+      width: 14px;
+      height: 14px;
+    }
+
+    .loading-state-inline {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 20px;
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -157,6 +313,22 @@
           </div>
           <div class="detail-info-grid" id="detailRelations"></div>
         </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">
+            <i data-lucide="folder-lock"></i>
+            الوثائق المرتبطة
+          </div>
+
+          <div class="privacy-notice">
+            <i data-lucide="shield-check"></i>
+            <span>محتوى الوثائق محمي. كمسؤول، يمكنك فقط معرفة وجودها وحذفها.</span>
+          </div>
+
+          <div id="detailDocuments" class="documents-list">
+            <div class="loading-state-inline">جاري تحميل الوثائق...</div>
+          </div>
+        </div>
       </div>
       <div class="detail-actions">
         <button type="button" class="btn btn-outline" onclick="window.closeDetail()">إغلاق</button>
@@ -203,6 +375,8 @@
       formatDate,
       calculateAge,
       deleteChildCascade,
+      getChildDocumentsSummary,
+      deleteChildDocuments,
       showAlert,
       logoutAdmin,
     } from "./assets/firebase.js";
@@ -387,12 +561,125 @@
 
       document.getElementById("detailModal").classList.add("show");
       refreshIcons();
+
+      // تحميل ملخص الوثائق (بدون محتوى)
+      loadChildDocuments(childId);
     };
 
     window.closeDetail = function () {
       document.getElementById("detailModal").classList.remove("show");
       selectedChild = null;
     };
+
+    // ─────────── Documents Section (Privacy-Safe) ───────────
+    async function loadChildDocuments(childId) {
+      const container = document.getElementById("detailDocuments");
+      container.innerHTML = '<div class="loading-state-inline">جاري تحميل الوثائق...</div>';
+
+      try {
+        const summary = await getChildDocumentsSummary(childId);
+        renderDocuments(summary);
+      } catch (error) {
+        container.innerHTML = '<div class="loading-state-inline">تعذّر تحميل الوثائق</div>';
+        console.error(error);
+      }
+    }
+
+    function renderDocuments(summary) {
+      const container = document.getElementById("detailDocuments");
+
+      const items = [
+        {
+          key: "parent",
+          title: "استشارة ولي الأمر",
+          icon: "clipboard-list",
+          data: summary.parentAssessment,
+          count: summary.parentAssessmentCount || 0,
+        },
+        {
+          key: "specialist",
+          title: "تقييم الأخصائي",
+          icon: "stethoscope",
+          data: summary.specialistAssessment,
+          count: summary.specialistAssessmentCount || 0,
+        },
+        {
+          key: "plan",
+          title: "الخطة العلاجية",
+          icon: "sprout",
+          data: summary.therapeuticPlan,
+          count: summary.therapeuticPlanCount || 0,
+        },
+      ];
+
+      container.innerHTML = items.map((item) => {
+        const exists = !!item.data;
+        const date = exists ? formatDate(item.data.createdAt) : null;
+        const statusClass = exists ? "exists" : "empty";
+
+        return `
+          <div class="document-row ${statusClass}">
+            <div class="document-icon-box ${statusClass}">
+              <i data-lucide="${item.icon}"></i>
+            </div>
+            <div class="document-info">
+              <div class="document-title">${item.title}</div>
+              <div class="document-meta">
+                ${exists
+                  ? `
+                    <span class="document-status-badge exists">
+                      <i data-lucide="check-circle-2" style="width: 11px; height: 11px;"></i>
+                      موجودة
+                    </span>
+                    <span>آخر تحديث: ${date}</span>
+                    ${item.count > 1 ? `<span class="badge-count">${item.count} نسخ</span>` : ""}
+                  `
+                  : `
+                    <span class="document-status-badge empty">
+                      <i data-lucide="minus-circle" style="width: 11px; height: 11px;"></i>
+                      غير موجودة
+                    </span>
+                  `
+                }
+              </div>
+            </div>
+            <button
+              type="button"
+              class="document-delete-btn"
+              onclick="window.confirmDeleteDocument('${item.key}', '${escapeHtml(item.title)}', ${item.count})"
+              ${exists ? "" : "disabled"}
+              aria-label="حذف ${item.title}"
+            >
+              <i data-lucide="trash-2"></i>
+              حذف
+            </button>
+          </div>
+        `;
+      }).join("");
+
+      refreshIcons();
+    }
+
+    window.confirmDeleteDocument = function (type, title, count) {
+      if (!selectedChild) return;
+
+      const countText = count > 1 ? ` (${count} نسخ)` : "";
+      const message = `سيتم حذف "${title}"${countText} للطفل ${selectedChild.name} نهائياً.\n\nهذا الإجراء لا يمكن التراجع عنه. هل أنتي متأكدة؟`;
+
+      if (!confirm(message)) return;
+
+      deleteDocumentNow(type, title);
+    };
+
+    async function deleteDocumentNow(type, title) {
+      try {
+        const result = await deleteChildDocuments(selectedChild.id, type);
+        showAlert(`تم حذف ${title} (${result.deleted})`, "success");
+        await loadChildDocuments(selectedChild.id);
+      } catch (error) {
+        showAlert("خطأ في الحذف: " + error.message, "error");
+      }
+    }
 
     // ─────────── Delete Confirm ───────────
     window.openDeleteConfirm = function () {

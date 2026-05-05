@@ -299,3 +299,117 @@ export async function logoutAdmin() {
     console.error("Error signing out:", error);
   }
 }
+
+// ─────────────────────────────────────────────
+// 🔒 جلب ملخصات الاستشارات والخطط (بدون محتوى)
+// الأدمن يشوف فقط أن الوثيقة موجودة + التاريخ
+// ─────────────────────────────────────────────
+export async function getChildDocumentsSummary(childId) {
+  const summary = {
+    parentAssessment: null,
+    specialistAssessment: null,
+    therapeuticPlan: null,
+    parentAssessmentCount: 0,
+    specialistAssessmentCount: 0,
+    therapeuticPlanCount: 0,
+  };
+
+  if (!childId) return summary;
+
+  try {
+    const parentQ = query(
+      collection(db, "ParentAssessments"),
+      where("childId", "==", childId)
+    );
+    const parentSnap = await getDocs(parentQ);
+    if (!parentSnap.empty) {
+      const docs = parentSnap.docs.map((d) => ({
+        id: d.id,
+        createdAt: d.data().createdAt || null,
+      }));
+      docs.sort(
+        (a, b) =>
+          (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)
+      );
+      summary.parentAssessment = docs[0];
+      summary.parentAssessmentCount = docs.length;
+    }
+
+    const specQ = query(
+      collection(db, "SpecialistAssessments"),
+      where("childId", "==", childId)
+    );
+    const specSnap = await getDocs(specQ);
+    if (!specSnap.empty) {
+      const docs = specSnap.docs.map((d) => ({
+        id: d.id,
+        createdAt: d.data().createdAt || null,
+      }));
+      docs.sort(
+        (a, b) =>
+          (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)
+      );
+      summary.specialistAssessment = docs[0];
+      summary.specialistAssessmentCount = docs.length;
+    }
+
+    const planQ = query(
+      collection(db, "TherapeuticPlan"),
+      where("childId", "==", childId)
+    );
+    const planSnap = await getDocs(planQ);
+    if (!planSnap.empty) {
+      const docs = planSnap.docs.map((d) => ({
+        id: d.id,
+        createdAt: d.data().createdAt || null,
+      }));
+      docs.sort(
+        (a, b) =>
+          (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)
+      );
+      summary.therapeuticPlan = docs[0];
+      summary.therapeuticPlanCount = docs.length;
+    }
+  } catch (error) {
+    console.error("Error fetching documents summary:", error);
+  }
+
+  return summary;
+}
+
+// ─────────────────────────────────────────────
+// 🗑️ حذف كل وثائق نوع معين لطفل (parent | specialist | plan)
+// ─────────────────────────────────────────────
+export async function deleteChildDocuments(childId, type) {
+  if (!childId || !type) return { deleted: 0 };
+
+  const collectionMap = {
+    parent: "ParentAssessments",
+    specialist: "SpecialistAssessments",
+    plan: "TherapeuticPlan",
+  };
+
+  const collectionName = collectionMap[type];
+  if (!collectionName) {
+    throw new Error("نوع غير صالح");
+  }
+
+  try {
+    const q = query(
+      collection(db, collectionName),
+      where("childId", "==", childId)
+    );
+    const snap = await getDocs(q);
+
+    let deleted = 0;
+    for (const docSnap of snap.docs) {
+      await deleteDoc(doc(db, collectionName, docSnap.id));
+      deleted++;
+    }
+
+    return { deleted };
+  } catch (error) {
+    console.error("Error deleting documents:", error);
+    throw error;
+  }
+}
