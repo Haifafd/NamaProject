@@ -848,10 +848,6 @@ export default function ChildHome() {
       different: "/activities/DifferentShapeActivity",
       differentshape: "/activities/DifferentShapeActivity",
       differentshapeactivity: "/activities/DifferentShapeActivity",
-      finding: "/activities/ShapeFindingActivity",
-      shape_finding: "/activities/ShapeFindingActivity",
-      shapefinding: "/activities/ShapeFindingActivity",
-      shapefindingactivity: "/activities/ShapeFindingActivity",
       puzzle: "/activities/PuzzleGame",
       puzzlegame: "/activities/PuzzleGame",
       tracing: "/activities/LetterTracing",
@@ -870,66 +866,79 @@ export default function ChildHome() {
     if (!route) {
       const t = (activity.title || "").toLowerCase().trim();
 
-      if (t.includes("هرم") || t.includes("pyramid") || t.includes("بناء")) {
-        route = "/activities/Pyramid";
-      } else if (t.includes("فقاع") || t.includes("bubble")) {
-        route = "/activities/BubbleActivity";
-      } else if (t.includes("xo") || t.includes("x o") || t.includes("إكس") || t.includes("اكس")) {
-        route = "/activities/XO-Activity";
-      } else if (t.includes("ذاكرة") || t.includes("memory") || t.includes("بطاق")) {
-        route = "/activities/MemoryCard";
-      } else if (
-        t.includes("تلوين") ||
-        t.includes("لون") ||
-        t.includes("الوان") ||
-        t.includes("ألوان") ||
-        t.includes("الألوان") ||
-        t.includes("رسم") ||
-        t.includes("color") ||
-        t.includes("paint") ||
-        t.includes("draw")
-      ) {
-        route = "/activities/ColorActivity";
-      } else if (t.includes("مطابق") || t.includes("توصيل") || t.includes("matching")) {
-        route = "/activities/MatchingGame";
-      } else if (t.includes("كرة") || t.includes("ابحث") || t.includes("ball") || t.includes("find")) {
-        route = "/activities/FindBallActivity";
-      } else if (t.includes("قصة") || t.includes("إكمال") || t.includes("اكمال") || t.includes("ترتيب") || t.includes("story")) {
-        route = "/activities/StoryCompletionActivity";
-      } else if (t.includes("مختلف") || t.includes("different")) {
-        route = "/activities/DifferentShapeActivity";
-      } else if (
-        t.includes("إيجاد") ||
-        t.includes("ايجاد") ||
-        t.includes("دوّر") ||
-        t.includes("دور") ||
-        t.includes("finding") ||
-        t.includes("عد") ||
-        t.includes("count")
-      ) {
-        route = "/activities/ShapeFindingActivity";
-      } else if (t.includes("بازل") || t.includes("تركيب") || t.includes("puzzle")) {
-        route = "/activities/PuzzleGame";
-      } else if (
-        t.includes("توصيل الحروف") ||
+      if (t.includes("ظل") || t.includes("والظل") || t.includes("shadow")) {
+        route = "/activities/ShadowMatching";
+      }
+      else if (
         t.includes("تتبع") ||
-        t.includes("حروف") ||
+        t.includes("الخطوط") ||
+        t.includes("خطوط") ||
+        t.includes("توصيل الحروف") ||
+        t.includes("توصيل النقاط") ||
+        t.includes("الحروف") ||
         t.includes("نقاط") ||
         t.includes("tracing")
       ) {
         route = "/activities/LetterTracing";
-      } else if (t.includes("متاهة") || t.includes("متاهي") || t.includes("maze")) {
+      }
+      else if (t.includes("متاهة") || t.includes("متاهي") || t.includes("maze")) {
         route = "/activities/MazeGame";
-      } else if (t.includes("ظل") || t.includes("shadow")) {
-        route = "/activities/ShadowMatching";
-      } else if (t.includes("ذكاء") || t.includes("تحدي")) {
+      }
+      else if (t.includes("بازل") || t.includes("تركيب") || t.includes("puzzle")) {
+        route = "/activities/PuzzleGame";
+      }
+      else if (t.includes("هرم") || t.includes("pyramid") || t.includes("بناء")) {
+        route = "/activities/Pyramid";
+      }
+      else if (t.includes("فقاع") || t.includes("bubble")) {
+        route = "/activities/BubbleActivity";
+      }
+      else if (
+        t.includes("xo") ||
+        t.includes("ذكاء") ||
+        t.includes("إكس") ||
+        t.includes("اكس")
+      ) {
         route = "/activities/XO-Activity";
       }
-    }
-
-    if (!route && activity.categoryId) {
-      if (activity.categoryId === "perceptionCategoryID") {
+      else if (
+        t.includes("ذاكرة") ||
+        t.includes("memory") ||
+        t.includes("بطاق")
+      ) {
+        route = "/activities/MemoryCard";
+      }
+      else if (
+        t.includes("تلوين") ||
+        t.includes("لون") ||
+        t.includes("الوان") ||
+        t.includes("الألوان") ||
+        t.includes("رسم") ||
+        t.includes("color")
+      ) {
         route = "/activities/ColorActivity";
+      }
+      else if (
+        t.includes("كرة") ||
+        t.includes("ابحث") ||
+        t.includes("ball")
+      ) {
+        route = "/activities/FindBallActivity";
+      }
+      else if (
+        t.includes("قصة") ||
+        t.includes("إكمال") ||
+        t.includes("اكمال") ||
+        t.includes("story") ||
+        t.includes("ترتيب")
+      ) {
+        route = "/activities/StoryCompletionActivity";
+      }
+      else if (t.includes("مختلف") || t.includes("different")) {
+        route = "/activities/DifferentShapeActivity";
+      }
+      else if (t.includes("مطابق") || t.includes("توصيل") || t.includes("matching")) {
+        route = "/activities/MatchingGame";
       }
     }
 
