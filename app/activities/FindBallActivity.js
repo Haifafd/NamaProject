@@ -28,6 +28,10 @@ import {
 
 const { width } = Dimensions.get("window");
 
+const SPOT_OFFSETS = [-110, 0, 110];
+const CENTER_X = width / 2;
+const SPOT_X = SPOT_OFFSETS.map((o) => CENTER_X + o);
+
 const LEVEL_CONFIG = {
   1: { shuffleSpeed: 700, shuffleCount: 3 },
   2: { shuffleSpeed: 500, shuffleCount: 5 },
@@ -35,9 +39,8 @@ const LEVEL_CONFIG = {
 };
 
 const ROUNDS_PER_LEVEL = 3;
-const SLOT_POSITIONS = [-130, 0, 130];
 
-function InvertedCup({ size = 110, lifted = false }) {
+function InvertedCup({ size = 110 }) {
   return (
     <Svg width={size} height={size * 1.3} viewBox="0 0 110 140">
       <Defs>
@@ -46,27 +49,20 @@ function InvertedCup({ size = 110, lifted = false }) {
           <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
         </RadialGradient>
       </Defs>
-
-      {!lifted && (
-        <Ellipse cx="55" cy="128" rx="40" ry="6" fill="#000" opacity="0.25" />
-      )}
-
       <Path
-        d="M 25 30 Q 25 15 55 15 Q 85 15 85 30 L 85 30 L 90 120 L 20 120 Z"
+        d="M 25 30 Q 25 15 55 15 Q 85 15 85 30 L 90 120 L 20 120 Z"
         fill="#EF5350"
         stroke="#B71C1C"
         strokeWidth="3"
       />
       <Path
-        d="M 25 30 Q 25 15 55 15 Q 85 15 85 30 L 85 30 L 90 120 L 20 120 Z"
+        d="M 25 30 Q 25 15 55 15 Q 85 15 85 30 L 90 120 L 20 120 Z"
         fill="url(#cupShine)"
       />
       <Ellipse cx="55" cy="22" rx="28" ry="6" fill="#D32F2F" />
       <Ellipse cx="48" cy="20" rx="14" ry="3" fill="#FFCDD2" opacity="0.6" />
-
       <Ellipse cx="55" cy="120" rx="35" ry="7" fill="#B71C1C" />
       <Ellipse cx="55" cy="120" rx="32" ry="5" fill="#3E2723" />
-
       <Path d="M 32 40 L 28 115" stroke="#B71C1C" strokeWidth="1.5" opacity="0.5" />
       <Path d="M 78 40 L 82 115" stroke="#B71C1C" strokeWidth="1.5" opacity="0.5" />
     </Svg>
@@ -95,36 +91,37 @@ export default function FindBallActivity() {
   const [level, setLevel] = useState(1);
   const [round, setRound] = useState(1);
   const [phase, setPhase] = useState("show");
-  const [ballPosition, setBallPosition] = useState(1);
-  const [liftedCups, setLiftedCups] = useState([]);
-
   const [gameState, setGameState] = useState("playing");
   const [finalStars, setFinalStars] = useState(0);
+
+  const [ballSpot, setBallSpot] = useState(1);
+  const [cupSpots, setCupSpots] = useState([0, 1, 2]);
+  const [liftedCups, setLiftedCups] = useState([]);
+
+  const cupTranslateX = useRef([
+    new Animated.Value(SPOT_OFFSETS[0]),
+    new Animated.Value(SPOT_OFFSETS[1]),
+    new Animated.Value(SPOT_OFFSETS[2]),
+  ]).current;
+  const cupTranslateY = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
 
   const [noumiExpression, setNoumiExpression] = useState("idle");
   const [bubbleText, setBubbleText] = useState("");
   const [bubbleColor, setBubbleColor] = useState(GARDEN.bubbleHappy);
   const [bubbleVisible, setBubbleVisible] = useState(false);
-
-  const cupAnims = useRef([
-    new Animated.Value(SLOT_POSITIONS[0]),
-    new Animated.Value(SLOT_POSITIONS[1]),
-    new Animated.Value(SLOT_POSITIONS[2]),
-  ]).current;
-
-  const cupYAnims = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
-
   const noumiBounce = useRef(new Animated.Value(0)).current;
   const noumiShake = useRef(new Animated.Value(0)).current;
+
   const startTime = useRef(Date.now());
   const correctGuesses = useRef(0);
   const wrongGuesses = useRef(0);
   const bubbleTimerRef = useRef(null);
-  const ballPositionRef = useRef(1);
+  const cupSpotsRef = useRef([0, 1, 2]);
+  const ballSpotRef = useRef(1);
 
   const config = LEVEL_CONFIG[level];
 
@@ -159,76 +156,82 @@ export default function FindBallActivity() {
   };
 
   const startRound = () => {
-    cupAnims.forEach((a, i) => a.setValue(SLOT_POSITIONS[i]));
-    cupYAnims.forEach(a => a.setValue(0));
+    cupTranslateX[0].setValue(SPOT_OFFSETS[0]);
+    cupTranslateX[1].setValue(SPOT_OFFSETS[1]);
+    cupTranslateX[2].setValue(SPOT_OFFSETS[2]);
+    cupTranslateY.forEach((y) => y.setValue(0));
+
+    cupSpotsRef.current = [0, 1, 2];
+    setCupSpots([0, 1, 2]);
     setLiftedCups([]);
 
-    const newBallSlot = Math.floor(Math.random() * 3);
-    setBallPosition(newBallSlot);
-    ballPositionRef.current = newBallSlot;
+    const newBallSpot = Math.floor(Math.random() * 3);
+    ballSpotRef.current = newBallSpot;
+    setBallSpot(newBallSpot);
 
     setPhase("show");
-    showSpeechBubble("شوفي وين الكرة!", GARDEN.bubbleHappy, "happy", 1500);
+    showSpeechBubble("شوفي وين الكرة!", GARDEN.bubbleHappy, "happy", 1800);
+
+    const cupCoveringBall = newBallSpot;
 
     setTimeout(() => {
-      setLiftedCups([newBallSlot]);
-      Animated.timing(cupYAnims[newBallSlot], {
+      setLiftedCups([cupCoveringBall]);
+      Animated.timing(cupTranslateY[cupCoveringBall], {
         toValue: -90,
         duration: 600,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }).start(() => {
         setTimeout(() => {
-          Animated.timing(cupYAnims[newBallSlot], {
+          Animated.timing(cupTranslateY[cupCoveringBall], {
             toValue: 0,
             duration: 500,
             easing: Easing.in(Easing.quad),
             useNativeDriver: true,
           }).start(() => {
             setLiftedCups([]);
-            setTimeout(() => startShuffle(newBallSlot), 400);
+            setTimeout(() => startShuffle(), 400);
           });
         }, 1800);
       });
     }, 1200);
   };
 
-  const startShuffle = (currentBallSlot) => {
+  const startShuffle = () => {
     setPhase("shuffle");
     showSpeechBubble("ركّزي!", GARDEN.bubbleHappy, "idle", 1000);
 
-    let ballSlot = currentBallSlot;
     let stepCount = 0;
 
     const shuffleStep = () => {
       if (stepCount >= config.shuffleCount) {
-        ballPositionRef.current = ballSlot;
-        setBallPosition(ballSlot);
+        setCupSpots([...cupSpotsRef.current]);
         setPhase("guess");
         showSpeechBubble("أين الكرة؟", GARDEN.bubbleHappy, "happy", 2000);
         return;
       }
       stepCount++;
 
-      const i = Math.random() > 0.5 ? 0 : 1;
-      const j = i + 1;
+      const spotA = Math.random() > 0.5 ? 0 : 1;
+      const spotB = spotA + 1;
 
-      const tempX = cupAnims[i].__getValue();
-      const targetXi = cupAnims[j].__getValue();
-      const targetXj = tempX;
+      const cupAtA = cupSpotsRef.current.findIndex((s) => s === spotA);
+      const cupAtB = cupSpotsRef.current.findIndex((s) => s === spotB);
 
-      if (ballSlot === i) ballSlot = j;
-      else if (ballSlot === j) ballSlot = i;
+      const newSpots = [...cupSpotsRef.current];
+      newSpots[cupAtA] = spotB;
+      newSpots[cupAtB] = spotA;
+      cupSpotsRef.current = newSpots;
 
       Animated.parallel([
-        Animated.timing(cupAnims[i], {
-          toValue: targetXi,
+        Animated.timing(cupTranslateX[cupAtA], {
+          toValue: SPOT_OFFSETS[spotB],
           duration: config.shuffleSpeed,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(cupAnims[j], {
-          toValue: targetXj,
+        Animated.timing(cupTranslateX[cupAtB], {
+          toValue: SPOT_OFFSETS[spotA],
           duration: config.shuffleSpeed,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
@@ -241,14 +244,15 @@ export default function FindBallActivity() {
     setTimeout(shuffleStep, 500);
   };
 
-  const handleCupTap = (slotIdx) => {
+  const handleCupTap = (cupId) => {
     if (phase !== "guess") return;
     setPhase("reveal");
 
-    const isCorrect = slotIdx === ballPositionRef.current;
+    const thisCupSpot = cupSpotsRef.current[cupId];
+    const isCorrect = thisCupSpot === ballSpotRef.current;
 
-    setLiftedCups([slotIdx]);
-    Animated.timing(cupYAnims[slotIdx], {
+    setLiftedCups([cupId]);
+    Animated.timing(cupTranslateY[cupId], {
       toValue: -90,
       duration: 500,
       useNativeDriver: true,
@@ -260,8 +264,9 @@ export default function FindBallActivity() {
         wrongGuesses.current += 1;
         showSpeechBubble("الكرة كانت هنا!", GARDEN.bubbleSad, "sad", 1800);
         setTimeout(() => {
-          setLiftedCups([slotIdx, ballPositionRef.current]);
-          Animated.timing(cupYAnims[ballPositionRef.current], {
+          const winningCup = cupSpotsRef.current.findIndex((s) => s === ballSpotRef.current);
+          setLiftedCups([cupId, winningCup]);
+          Animated.timing(cupTranslateY[winningCup], {
             toValue: -90,
             duration: 500,
             useNativeDriver: true,
@@ -368,40 +373,46 @@ export default function FindBallActivity() {
       <View style={sharedGameStyles.flowerBottomRight}><MiniFlower size={20} color={GARDEN.flowerPink} /></View>
 
       <View style={styles.stage}>
-        <View style={styles.tableShadow} />
-        <View style={styles.table} />
+        {(() => {
+          const cupOnBall = cupSpotsRef.current.findIndex((s) => s === ballSpotRef.current);
+          const ballVisible = liftedCups.includes(cupOnBall);
+          if (!ballVisible) return null;
 
-        <View style={styles.cupsArea}>
-          {[0, 1, 2].map((slotIdx) => (
-            <View key={slotIdx} style={styles.cupSlot}>
-              {liftedCups.includes(slotIdx) && ballPositionRef.current === slotIdx && (
-                <View style={styles.ballOnTable}>
-                  <GoldBall size={50} />
-                </View>
-              )}
-
-              <Animated.View
-                style={[
-                  styles.cupAnim,
-                  {
-                    transform: [
-                      { translateX: cupAnims[slotIdx] },
-                      { translateY: cupYAnims[slotIdx] },
-                    ],
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={() => handleCupTap(slotIdx)}
-                  disabled={phase !== "guess"}
-                  activeOpacity={0.85}
-                >
-                  <InvertedCup size={110} lifted={liftedCups.includes(slotIdx)} />
-                </TouchableOpacity>
-              </Animated.View>
+          return (
+            <View
+              style={[
+                styles.ballPosition,
+                { left: SPOT_X[ballSpotRef.current] - 25 },
+              ]}
+            >
+              <GoldBall size={50} />
             </View>
-          ))}
-        </View>
+          );
+        })()}
+
+        {[0, 1, 2].map((cupId) => (
+          <Animated.View
+            key={cupId}
+            style={[
+              styles.cupAnim,
+              {
+                left: CENTER_X - 55,
+                transform: [
+                  { translateX: cupTranslateX[cupId] },
+                  { translateY: cupTranslateY[cupId] },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => handleCupTap(cupId)}
+              disabled={phase !== "guess"}
+              activeOpacity={0.85}
+            >
+              <InvertedCup size={110} />
+            </TouchableOpacity>
+          </Animated.View>
+        ))}
       </View>
 
       <View style={sharedGameStyles.noumiCorner} pointerEvents="none">
@@ -425,57 +436,21 @@ export default function FindBallActivity() {
 const styles = StyleSheet.create({
   stage: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 30,
+    position: "relative",
   },
-  tableShadow: {
+  ballPosition: {
     position: "absolute",
-    top: "55%",
-    width: width * 0.85,
-    height: 30,
-    borderRadius: 80,
-    backgroundColor: "#000",
-    opacity: 0.2,
+    top: "50%",
+    marginTop: 20,
+    width: 50,
+    height: 50,
+    zIndex: 1,
   },
-  table: {
-    position: "absolute",
-    top: "53%",
-    width: width * 0.85,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#8D6E63",
-    borderWidth: 2,
-    borderColor: "#5D4037",
-  },
-  cupsArea: {
+  cupAnim: {
     position: "absolute",
     top: "50%",
     marginTop: -100,
-    width: width,
-    height: 200,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "flex-end",
-  },
-  cupSlot: {
-    position: "absolute",
-    left: width / 2 - 55,
-    bottom: 0,
     width: 110,
-    height: 200,
-    alignItems: "center",
-    justifyContent: "flex-end",
-  },
-  cupAnim: {
-    width: 110,
-  },
-  ballOnTable: {
-    position: "absolute",
-    bottom: 30,
-    width: 50,
-    height: 50,
-    zIndex: -1,
+    zIndex: 2,
   },
 });
