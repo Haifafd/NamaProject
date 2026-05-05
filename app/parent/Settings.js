@@ -46,7 +46,6 @@ export default function Settings() {
 
   // إعدادات الإشعارات (مربوطة بـ preferences في الداتابيس)
   const [pushNotifications, setPushNotifications] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(false);
   const [reportAlerts, setReportAlerts] = useState(false);
 
   useEffect(() => {
@@ -61,7 +60,6 @@ export default function Settings() {
       const prefs = await getNotificationPreferences();
       if (prefs) {
         setPushNotifications(prefs.pushNotifications ?? false);
-        setEmailNotifications(prefs.emailNotifications ?? false);
         setReportAlerts(prefs.reportAlerts ?? false);
       }
     } catch (error) {
@@ -209,11 +207,6 @@ export default function Settings() {
                icon="notifications-outline" iconColor={AMBER} iconBg="#FFF6E8" title="إشعارات التطبيق"
                isSwitch={true} switchValue={pushNotifications}
                onSwitchChange={handlePushToggle}
-            />
-            <SettingItem
-               icon="mail-outline" iconColor={AMBER} iconBg="#FFF6E8" title="إشعارات البريد"
-               isSwitch={true} switchValue={emailNotifications}
-               onSwitchChange={(v) => { setEmailNotifications(v); updateNotificationPreference("emailNotifications", v); }}
             />
             <SettingItem
                icon="document-text-outline" iconColor={AMBER} iconBg="#FFF6E8" title="تنبيهات التقارير"

@@ -20,6 +20,7 @@ import {
   MiniFlower,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 const X_COLOR = "#EF5350";
 const O_COLOR = "#42A5F5";
@@ -78,6 +79,7 @@ export default function XOGame() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [phase, setPhase] = useState("pick");
+  const [childGender, setChildGender] = useState("female");
   const [childSymbol, setChildSymbol] = useState(null);
   const [round, setRound] = useState(1);
   const [board, setBoard] = useState(Array(9).fill(""));
@@ -102,8 +104,12 @@ export default function XOGame() {
   const opponentSymbol = childSymbol === "X" ? "O" : "X";
 
   useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
+  useEffect(() => {
     if (phase === "pick") {
-      showSpeechBubble("اختاري ❌ أو ⭕!", GARDEN.bubbleHappy, "happy", 2500);
+      showSpeechBubble(speak("اختاري ❌ أو ⭕!", childGender), GARDEN.bubbleHappy, "happy", 2500);
     }
   }, [phase]);
 
@@ -136,7 +142,7 @@ export default function XOGame() {
   const handlePickSymbol = (symbol) => {
     setChildSymbol(symbol);
     setPhase("playing");
-    showSpeechBubble("هيا نلعب!", GARDEN.bubbleHappy, "happy", 1800);
+    showSpeechBubble(speak("هيا نلعب!", childGender), GARDEN.bubbleHappy, "happy", 1800);
   };
 
   const handleCellPress = (i) => {
@@ -159,13 +165,13 @@ export default function XOGame() {
 
     if (winner === childSymbol) {
       childWins.current += 1;
-      showSpeechBubble("فزتي يا بطلة!", GARDEN.bubbleHappy, "happy", 2200);
+      showSpeechBubble(speak("فزتي يا بطلة!", childGender), GARDEN.bubbleHappy, "happy", 2200);
     } else if (winner === "draw") {
       draws.current += 1;
-      showSpeechBubble("تعادل! حاولي مرة ثانية", GARDEN.bubbleExcited, "idle", 2200);
+      showSpeechBubble(speak("تعادل! حاولي مرة ثانية", childGender), GARDEN.bubbleExcited, "idle", 2200);
     } else {
       opponentWins.current += 1;
-      showSpeechBubble("لا تيأسي، حاولي!", GARDEN.bubbleSad, "sad", 2200);
+      showSpeechBubble(speak("لا تيأسي، حاولي!", childGender), GARDEN.bubbleSad, "sad", 2200);
     }
 
     setTimeout(() => {

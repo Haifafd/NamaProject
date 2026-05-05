@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -12,8 +12,8 @@ import {
   View,
 } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   calculateAverageProgress,
   getChildrenNeedingReview,
@@ -21,6 +21,7 @@ import {
 } from "../../Services/ChildrenService";
 import { getCurrentUser } from "../../Services/UserService";
 import { subscribeToUnreadCount } from "../../Services/NotificationService";
+import { countChildrenWithReports } from "../../Services/ActivityService";
 import BottomNavBar from "../../components/BottomNavBar";
 
 // ─── 🎨 استيراد الثيم الموحد من constants/theme.js ───
@@ -55,6 +56,17 @@ function getProgressLightColor(progress) {
   return AMBER_LIGHT;
 }
 
+function getGenderIcon(gender) {
+  const g = (gender || "").toString().toLowerCase();
+  if (g === "male" || g === "ذكر" || g === "ولد") {
+    return { name: "face-man", color: PRIMARY_DARK, bg: PRIMARY_LIGHT };
+  }
+  if (g === "female" || g === "أنثى" || g === "انثى" || g === "بنت") {
+    return { name: "face-woman", color: "#E91E63", bg: "#FCE4EC" };
+  }
+  return { name: "baby-face-outline", color: MUTED, bg: BG };
+}
+
 export default function HomepageS() {
   const router = useRouter();
 
@@ -63,6 +75,7 @@ export default function HomepageS() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [reportsCount, setReportsCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -79,6 +92,15 @@ export default function HomepageS() {
 
       setUser(userData);
       setChildren(childrenData);
+
+      // عدد الأطفال الذين لديهم تقرير (لعبوا على الأقل نشاط واحد)
+      if (childrenData && childrenData.length > 0) {
+        const childIds = childrenData.map((c) => c.id);
+        const count = await countChildrenWithReports(childIds);
+        setReportsCount(count);
+      } else {
+        setReportsCount(0);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -91,14 +113,29 @@ export default function HomepageS() {
     loadData();
   }, []);
 
+  // تحديث البيانات تلقائياً لما الأخصائية ترجع للصفحة
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  const filteredChildren = children.filter((child) =>
-    child.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const trimmedQuery = searchQuery.trim();
+  const filteredChildren = trimmedQuery
+    ? children.filter((child) => {
+        const name = (child.name || "").trim().toLowerCase();
+        const q = trimmedQuery.toLowerCase();
+        return name.includes(q);
+      })
+    : children;
+
+  // نتائج الـ dropdown (أول 5 نقط)
+  const searchResults = trimmedQuery ? filteredChildren.slice(0, 5) : [];
 
   const averageProgress = calculateAverageProgress(children);
   const childrenNeedingReview = getChildrenNeedingReview(children);
@@ -108,8 +145,9 @@ export default function HomepageS() {
   );
 
   const handleChildPress = (child) => {
+    setSearchQuery("");
     router.push({
-      pathname: "./Dashboard",
+      pathname: "/specialist/Dashboard",
       params: {
         childId: child.id,
         childName: child.name,
@@ -182,7 +220,65 @@ export default function HomepageS() {
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close-circle" size={18} color={MUTED} />
+                </TouchableOpacity>
+              )}
             </View>
+
+            {trimmedQuery.length > 0 && searchResults.length > 0 && (
+              <View style={styles.searchDropdown}>
+                {searchResults.map((child, idx) => (
+                  <TouchableOpacity
+                    key={child.id}
+                    style={[
+                      styles.searchResultItem,
+                      idx !== searchResults.length - 1 && styles.searchResultBorder,
+                    ]}
+                    onPress={() => handleChildPress(child)}
+                    activeOpacity={0.6}
+                  >
+                    <View
+                      style={[
+                        styles.searchResultAvatar,
+                        { backgroundColor: getGenderIcon(child.gender).bg },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={getGenderIcon(child.gender).name}
+                        size={20}
+                        color={getGenderIcon(child.gender).color}
+                      />
+                    </View>
+                    <View style={styles.searchResultInfo}>
+                      <Text style={styles.searchResultName} numberOfLines={1}>
+                        {child.name}
+                      </Text>
+                      <Text style={styles.searchResultMeta} numberOfLines={1}>
+                        {child.age} {child.age === 1 ? "سنة" : "سنوات"}
+                        {child.difficulty ? ` • ${child.difficulty}` : ""}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-back" size={16} color={MUTED} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {trimmedQuery.length > 0 && searchResults.length === 0 && (
+              <View style={styles.searchDropdown}>
+                <View style={styles.searchEmpty}>
+                  <Ionicons name="alert-circle-outline" size={18} color={MUTED} />
+                  <Text style={styles.searchEmptyText}>
+                    لا يوجد طفل بهذا الاسم
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* ─── STATS ─── */}
@@ -213,16 +309,15 @@ export default function HomepageS() {
 
             <View style={[styles.statCard, { borderRightColor: GREEN }]}>
               <View style={[styles.statIcon, { backgroundColor: GREEN_LIGHT }]}>
-                <Ionicons name="trending-up" size={18} color={GREEN} />
+                <Ionicons name="document-text" size={18} color={GREEN} />
               </View>
 
-              {averageProgress !== null ? (
+              {reportsCount > 0 ? (
                 <>
                   <Text style={[styles.statNumber, { color: GREEN }]}>
-                    {averageProgress}
-                    <Text style={{ fontSize: 16 }}>%</Text>
+                    {reportsCount}
                   </Text>
-                  <Text style={styles.statLabel}>متوسط التحسن</Text>
+                  <Text style={styles.statLabel}>عدد التقارير</Text>
                 </>
               ) : (
                 <>
@@ -235,20 +330,71 @@ export default function HomepageS() {
             </View>
           </View>
 
-          {/* ─── معلومات لو ما فيه تقارير ─── */}
-          {children.length > 0 && childrenWithReports.length === 0 && (
-            <View style={styles.infoCard}>
-              <Ionicons
-                name="information-circle"
-                size={18}
-                color={PRIMARY_DARK}
-              />
-              <Text style={styles.infoText}>
-                لم يتم إنشاء تقارير تطور بعد. ستظهر النتائج هنا بعد إكمال
-                الأطفال للأنشطة.
-              </Text>
-            </View>
-          )}
+          {/* ─── بانر الإحصائيات الذكي ─── */}
+          {children.length > 0 && (() => {
+            const total = children.length;
+            const withReports = childrenWithReports.length;
+            const withoutReports = total - withReports;
+
+            // الحالة 1: كل الأطفال عندهم تقارير → بانر إيجابي
+            if (withReports === total && averageProgress !== null) {
+              const topChild = [...childrenWithReports].sort(
+                (a, b) => (b.progress || 0) - (a.progress || 0)
+              )[0];
+
+              return (
+                <View style={[styles.infoCard, styles.infoCardSuccess]}>
+                  <Ionicons name="trending-up" size={18} color={GREEN} />
+                  <Text style={styles.infoText}>
+                    ممتاز! متوسط أداء أطفالك{" "}
+                    <Text style={{ fontWeight: "800", color: GREEN }}>
+                      {averageProgress}%
+                    </Text>
+                    {topChild ? (
+                      <>
+                        {" "}— أعلى نسبة:{" "}
+                        <Text style={{ fontWeight: "800", color: GREEN }}>
+                          {topChild.name} {topChild.progress}%
+                        </Text>
+                      </>
+                    ) : null}
+                  </Text>
+                </View>
+              );
+            }
+
+            // الحالة 2: بعضهم بدون تقارير → بانر تحذيري
+            if (withReports > 0 && withoutReports > 0) {
+              return (
+                <View style={[styles.infoCard, styles.infoCardWarning]}>
+                  <Ionicons name="alert-circle" size={18} color={AMBER} />
+                  <Text style={styles.infoText}>
+                    <Text style={{ fontWeight: "800", color: AMBER }}>
+                      {withoutReports}
+                    </Text>{" "}
+                    من{" "}
+                    <Text style={{ fontWeight: "800" }}>{total}</Text>{" "}
+                    {withoutReports === 1 ? "طفل لم يبدأ" : "أطفال لم يبدأوا"} الأنشطة بعد
+                  </Text>
+                </View>
+              );
+            }
+
+            // الحالة 3: محد عنده تقارير → البانر التشجيعي الأصلي
+            return (
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="information-circle"
+                  size={18}
+                  color={PRIMARY_DARK}
+                />
+                <Text style={styles.infoText}>
+                  لم يتم إنشاء تقارير تطور بعد. ستظهر النتائج هنا بعد إكمال
+                  الأطفال للأنشطة.
+                </Text>
+              </View>
+            );
+          })()}
 
           {/* ─── REVIEW CARD ─── */}
           {childrenNeedingReview.length > 0 && (
@@ -363,8 +509,17 @@ export default function HomepageS() {
                       </View>
                     )}
 
-                    <View style={styles.childAvatar}>
-                      <Ionicons name="person" size={24} color={PRIMARY_DARK} />
+                    <View
+                      style={[
+                        styles.childAvatar,
+                        { backgroundColor: getGenderIcon(child.gender).bg },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={getGenderIcon(child.gender).name}
+                        size={28}
+                        color={getGenderIcon(child.gender).color}
+                      />
                     </View>
 
                     <Text style={styles.childName} numberOfLines={1}>
@@ -502,6 +657,60 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   searchInput: { flex: 1, fontSize: 13, color: TEXT, padding: 0 },
+  searchDropdown: {
+    backgroundColor: CARD,
+    marginTop: 8,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+    overflow: "hidden",
+  },
+  searchResultItem: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  searchResultBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  searchResultAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: PRIMARY_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchResultInfo: { flex: 1 },
+  searchResultName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: TEXT,
+    textAlign: "right",
+  },
+  searchResultMeta: {
+    fontSize: 11,
+    color: MUTED,
+    marginTop: 2,
+    textAlign: "right",
+  },
+  searchEmpty: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    gap: 8,
+  },
+  searchEmptyText: {
+    fontSize: 13,
+    color: MUTED,
+  },
 
   // Stats
   statsRow: {
@@ -557,6 +766,12 @@ const styles = StyleSheet.create({
     color: PRIMARY_DARK,
     textAlign: "right",
     lineHeight: 18,
+  },
+  infoCardSuccess: {
+    backgroundColor: GREEN_LIGHT,
+  },
+  infoCardWarning: {
+    backgroundColor: AMBER_LIGHT,
   },
 
   // Review Card

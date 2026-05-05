@@ -23,6 +23,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 function PictureSVG({ type, size = 200 }) {
   switch (type) {
@@ -100,6 +101,7 @@ export default function PuzzleGame() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [placedPieces, setPlacedPieces] = useState({});
   const [pieceOrder, setPieceOrder] = useState([]);
   const [selectedPiece, setSelectedPiece] = useState(null);
@@ -128,6 +130,10 @@ export default function PuzzleGame() {
     initLevel();
   }, [level]);
 
+  useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
   const initLevel = () => {
     setPlacedPieces({});
     setSelectedPiece(null);
@@ -140,7 +146,7 @@ export default function PuzzleGame() {
     pieces.sort(() => Math.random() - 0.5);
     setPieceOrder(pieces);
     startTime.current = Date.now();
-    showSpeechBubble("ركّبي الصورة!", GARDEN.bubbleHappy, "happy", 2200);
+    showSpeechBubble(speak("ركّبي الصورة!", childGender), GARDEN.bubbleHappy, "happy", 2200);
   };
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -176,7 +182,7 @@ export default function PuzzleGame() {
 
   const handleSlotTap = (row, col) => {
     if (!selectedPiece) {
-      showSpeechBubble("اختاري قطعة أولاً!", GARDEN.bubbleHappy, "idle", 1200);
+      showSpeechBubble(speak("اختاري قطعة أولاً!", childGender), GARDEN.bubbleHappy, "idle", 1200);
       return;
     }
     const slotId = `${row}-${col}`;
@@ -187,12 +193,12 @@ export default function PuzzleGame() {
       const newPlaced = { ...placedPieces, [slotId]: selectedPiece };
       setPlacedPieces(newPlaced);
       setSelectedPiece(null);
-      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1000);
+      showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1000);
 
       if (Object.keys(newPlaced).length === totalPieces) {
         setTimeout(() => {
           if (level < 3) {
-            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
             setTimeout(() => setLevel(level + 1), 1500);
           } else {
             finishGame();
@@ -201,7 +207,7 @@ export default function PuzzleGame() {
       }
     } else {
       wrongPlacements.current += 1;
-      showSpeechBubble("ليس هنا، حاولي مكان آخر!", GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("ليس هنا، حاولي مكان آخر!", childGender), GARDEN.bubbleSad, "sad", 1500);
       setSelectedPiece(null);
     }
   };

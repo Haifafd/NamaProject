@@ -69,32 +69,30 @@ export const calculateAge = (birthDate) => {
 };
 
 // ─────────────────────────────────────────────
-// 📊 جلب نسبة تطور طفل (من ProgressReports)
+// 📊 جلب نسبة تطور طفل (محسوبة من ActivityResults)
 // ─────────────────────────────────────────────
 export const getChildProgress = async (childId) => {
   try {
+    if (!childId) return null;
+
     const q = query(
-      collection(db, "ProgressReports"),
+      collection(db, "ActivityResults"),
       where("childId", "==", childId)
     );
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
 
-    // ناخذ آخر تقرير
-    const reports = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    // متوسط دقة كل النتائج (accuracy 0-100)
+    const results = snapshot.docs.map((d) => d.data());
+    const validResults = results.filter(
+      (r) => typeof r.accuracy === "number"
+    );
 
-    // ترتيب حسب التاريخ (الأحدث أولاً)
-    reports.sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(0);
-      const dateB = b.createdAt?.toDate?.() || new Date(0);
-      return dateB - dateA;
-    });
+    if (validResults.length === 0) return null;
 
-    return reports[0]?.progressPercentage || 0;
+    const sum = validResults.reduce((acc, r) => acc + (r.accuracy || 0), 0);
+    return Math.round(sum / validResults.length);
   } catch (error) {
     console.error("Error fetching progress:", error);
     return null;

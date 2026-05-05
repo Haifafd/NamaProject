@@ -338,3 +338,35 @@ export const getActivityResults = async (childId) => {
     return [];
   }
 };
+
+// ─────────────────────────────────────────────
+// 📊 عد الأطفال الذين لديهم تقرير (نتائج أنشطة)
+// ─────────────────────────────────────────────
+export const countChildrenWithReports = async (childIds) => {
+  try {
+    if (!childIds || childIds.length === 0) return 0;
+
+    const chunks = [];
+    for (let i = 0; i < childIds.length; i += 10) {
+      chunks.push(childIds.slice(i, i + 10));
+    }
+
+    const childrenWithResults = new Set();
+    for (const chunk of chunks) {
+      const q = query(
+        collection(db, "ActivityResults"),
+        where("childId", "in", chunk)
+      );
+      const snap = await getDocs(q);
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        if (data.childId) childrenWithResults.add(data.childId);
+      });
+    }
+
+    return childrenWithResults.size;
+  } catch (error) {
+    console.error("Error counting children with reports:", error);
+    return 0;
+  }
+};

@@ -26,6 +26,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 const { width, height } = Dimensions.get("window");
 
@@ -133,6 +134,7 @@ export default function BubbleActivity() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [bubbles, setBubbles] = useState([]);
   const [poppedThisLevel, setPoppedThisLevel] = useState(0);
   const [gameState, setGameState] = useState("playing");
@@ -156,8 +158,12 @@ export default function BubbleActivity() {
   const config = LEVEL_CONFIG[level];
 
   useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
+  useEffect(() => {
     showSpeechBubble(
-      level === 1 ? "اضغطي الفقاعات!" : "هيا نكمل!",
+      speak(level === 1 ? "اضغطي الفقاعات!" : "هيا نكمل!", childGender),
       GARDEN.bubbleHappy,
       "happy",
       2000
@@ -231,7 +237,7 @@ export default function BubbleActivity() {
     setPoppedThisLevel((c) => {
       const newCount = c + 1;
       if (newCount % 3 === 0 || newCount === config.needed) {
-        showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1000);
+        showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1000);
       }
 
       if (newCount >= config.needed) {
@@ -259,7 +265,7 @@ export default function BubbleActivity() {
     onScreenCountRef.current = 0;
 
     if (level < 3) {
-      showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+      showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
       setTimeout(() => {
         setPoppedThisLevel(0);
         setLevel(level + 1);

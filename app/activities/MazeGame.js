@@ -21,6 +21,7 @@ import {
   MiniFlower,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 const { width } = Dimensions.get("window");
 
@@ -93,6 +94,7 @@ export default function MazeGame() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [noumiPos, setNoumiPos] = useState({ row: 0, col: 0 });
   const [goalPos, setGoalPos] = useState({ row: 0, col: 0 });
   const [moveCount, setMoveCount] = useState(0);
@@ -118,6 +120,10 @@ export default function MazeGame() {
     initMaze();
   }, [level]);
 
+  useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
   const initMaze = () => {
     let startR = 0, startC = 0, goalR = 0, goalC = 0;
     for (let r = 0; r < maze.rows; r++) {
@@ -129,7 +135,7 @@ export default function MazeGame() {
     setNoumiPos({ row: startR, col: startC });
     setGoalPos({ row: goalR, col: goalC });
     setMoveCount(0);
-    showSpeechBubble("وصّلي نومي للجزرة! 🥕", GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak("وصّلي نومي للجزرة! 🥕", childGender), GARDEN.bubbleHappy, "happy", 2500);
   };
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -164,13 +170,13 @@ export default function MazeGame() {
 
     if (newRow < 0 || newRow >= maze.rows || newCol < 0 || newCol >= maze.cols) {
       wrongMoves.current += 1;
-      showSpeechBubble("لا تستطيعين الذهاب هناك!", GARDEN.bubbleSad, "sad", 1200);
+      showSpeechBubble(speak("لا تستطيعين الذهاب هناك!", childGender), GARDEN.bubbleSad, "sad", 1200);
       return;
     }
 
     if (maze.grid[newRow][newCol] === 1) {
       wrongMoves.current += 1;
-      showSpeechBubble("جدار! حاولي طريق آخر", GARDEN.bubbleSad, "sad", 1200);
+      showSpeechBubble(speak("جدار! حاولي طريق آخر", childGender), GARDEN.bubbleSad, "sad", 1200);
       return;
     }
 
@@ -181,7 +187,7 @@ export default function MazeGame() {
     if (newRow === goalPos.row && newCol === goalPos.col) {
       setTimeout(() => {
         if (level < 3) {
-          showSpeechBubble("ممتاز! وصلتي للجزرة! 🥕", GARDEN.bubbleExcited, "excited", 2500);
+          showSpeechBubble(speak("ممتاز! وصلتي للجزرة! 🥕", childGender), GARDEN.bubbleExcited, "excited", 2500);
           setTimeout(() => setLevel(level + 1), 2000);
         } else {
           finishGame();

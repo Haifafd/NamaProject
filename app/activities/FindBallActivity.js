@@ -25,6 +25,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 const { width } = Dimensions.get("window");
 
@@ -89,6 +90,7 @@ export default function FindBallActivity() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [round, setRound] = useState(1);
   const [phase, setPhase] = useState("show");
   const [gameState, setGameState] = useState("playing");
@@ -128,6 +130,10 @@ export default function FindBallActivity() {
   useEffect(() => {
     startRound();
   }, [level, round]);
+
+  useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
     if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
@@ -170,7 +176,7 @@ export default function FindBallActivity() {
     setBallSpot(newBallSpot);
 
     setPhase("show");
-    showSpeechBubble("شوفي وين الكرة!", GARDEN.bubbleHappy, "happy", 1800);
+    showSpeechBubble(speak("شوفي وين الكرة!", childGender), GARDEN.bubbleHappy, "happy", 1800);
 
     const cupCoveringBall = newBallSpot;
 
@@ -199,7 +205,7 @@ export default function FindBallActivity() {
 
   const startShuffle = () => {
     setPhase("shuffle");
-    showSpeechBubble("ركّزي!", GARDEN.bubbleHappy, "idle", 1000);
+    showSpeechBubble(speak("ركّزي!", childGender), GARDEN.bubbleHappy, "idle", 1000);
 
     let stepCount = 0;
 
@@ -207,7 +213,7 @@ export default function FindBallActivity() {
       if (stepCount >= config.shuffleCount) {
         setCupSpots([...cupSpotsRef.current]);
         setPhase("guess");
-        showSpeechBubble("أين الكرة؟", GARDEN.bubbleHappy, "happy", 2000);
+        showSpeechBubble(speak("أين الكرة؟", childGender), GARDEN.bubbleHappy, "happy", 2000);
         return;
       }
       stepCount++;
@@ -259,10 +265,10 @@ export default function FindBallActivity() {
     }).start(() => {
       if (isCorrect) {
         correctGuesses.current += 1;
-        showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1800);
+        showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1800);
       } else {
         wrongGuesses.current += 1;
-        showSpeechBubble("الكرة كانت هنا!", GARDEN.bubbleSad, "sad", 1800);
+        showSpeechBubble(speak("الكرة كانت هنا!", childGender), GARDEN.bubbleSad, "sad", 1800);
         setTimeout(() => {
           const winningCup = cupSpotsRef.current.findIndex((s) => s === ballSpotRef.current);
           setLiftedCups([cupId, winningCup]);
@@ -279,7 +285,7 @@ export default function FindBallActivity() {
           setRound(round + 1);
         } else {
           if (level < 3) {
-            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2200);
+            showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2200);
             setTimeout(() => {
               setLevel(level + 1);
               setRound(1);

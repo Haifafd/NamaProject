@@ -3,7 +3,6 @@ import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../FirebaseConfig";
 
 import {
-  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,10 +14,10 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { COLORS } from "../../constants/theme";
+import { AuthBackground, NamaaBrand } from "../../components/AuthBackground";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -26,8 +25,17 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const { role } = useLocalSearchParams();
+
+  const passwordRules = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*().]/.test(password),
+  };
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -63,8 +71,6 @@ export default function Register() {
       );
       const user = userCredential.user;
 
-      console.log("Firestore saving...");
-
       await setDoc(doc(db, "Users", user.uid), {
         name: name,
         email: email,
@@ -76,65 +82,15 @@ export default function Register() {
     }
   };
 
-  const passwordRules = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[!@#$%^&*().]/.test(password),
-  };
-
-  const [showPassword, setShowPassword] = useState(false);
-
-  const circle1 = useRef(new Animated.Value(0)).current;
-  const circle2 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(circle1, {
-          toValue: 20,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(circle1, {
-          toValue: 0,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(circle2, {
-          toValue: -20,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(circle2, {
-          toValue: 0,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, []);
-
   const roleLabel = role === "specialist" ? "المختص" : "الوالد";
 
   return (
-    <LinearGradient colors={["#79ccf8", "#5BB5E8"]} style={{ flex: 1 }}>
-      <Animated.View
-        style={[styles.decorCircle1, { transform: [{ translateY: circle1 }] }]}
-      />
-      <Animated.View
-        style={[styles.decorCircle2, { transform: [{ translateY: circle2 }] }]}
-      />
-      <View style={styles.decorCircle3} />
-
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.WHITE} />
+    <AuthBackground>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
       </TouchableOpacity>
 
       <KeyboardAvoidingView
@@ -146,11 +102,7 @@ export default function Register() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.brandWrap}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="flower-outline" size={28} color={COLORS.WHITE} />
-            </View>
-          </View>
+          <NamaaBrand size="md" />
 
           <Text style={styles.title}>إنشاء حساب جديد</Text>
           <Text style={styles.subtitleHero}>
@@ -294,16 +246,17 @@ export default function Register() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </AuthBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 90,
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === "ios" ? 100 : 80,
     paddingBottom: 40,
     alignItems: "center",
-    paddingHorizontal: 22,
   },
 
   backButton: {
@@ -313,51 +266,44 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  brandWrap: {
-    alignItems: "center",
-    marginBottom: 12,
-  },
-
-  logoCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.4)",
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: COLORS.WHITE,
-    marginBottom: 6,
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginTop: 10,
+    textShadowColor: "rgba(0,0,0,0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 
   subtitleHero: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    marginBottom: 20,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.92)",
+    marginTop: 4,
+    marginBottom: 16,
   },
 
   card: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: "rgba(255,255,255,0.97)",
     borderRadius: 28,
-    padding: 24,
+    padding: 22,
     width: "100%",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.6)",
+    zIndex: 5,
   },
 
   label: {
@@ -404,7 +350,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: COLORS.WHITE,
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -443,35 +389,5 @@ const styles = StyleSheet.create({
 
   validRule: {
     color: COLORS.SUCCESS,
-  },
-
-  decorCircle1: {
-    position: "absolute",
-    top: -40,
-    right: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.18)",
-  },
-
-  decorCircle2: {
-    position: "absolute",
-    bottom: -50,
-    left: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-
-  decorCircle3: {
-    position: "absolute",
-    top: "40%",
-    left: -40,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });

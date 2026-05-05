@@ -487,10 +487,7 @@ export default function AssessmentSplash() {
   };
 
   const handleLater = () => {
-    router.replace({
-      pathname: "/parent/ChildReport",
-      params: { childId, childName },
-    });
+    router.replace("/parent/homepageP");
   };
 
   const slide = SLIDES[currentSlide];

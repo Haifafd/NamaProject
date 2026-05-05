@@ -2,7 +2,6 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../FirebaseConfig";
 
 import {
-  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,51 +13,16 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { COLORS } from "../../constants/theme";
+import { AuthBackground, NamaaBrand } from "../../components/AuthBackground";
 
 export default function ResetPassword() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
-
-  const circle1 = useRef(new Animated.Value(0)).current;
-  const circle2 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(circle1, {
-          toValue: 20,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(circle1, {
-          toValue: 0,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(circle2, {
-          toValue: -20,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(circle2, {
-          toValue: 0,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, []);
 
   const handleReset = async () => {
     if (!email) {
@@ -78,17 +42,12 @@ export default function ResetPassword() {
   };
 
   return (
-    <LinearGradient colors={["#79ccf8", "#5BB5E8"]} style={{ flex: 1 }}>
-      <Animated.View
-        style={[styles.decorCircle1, { transform: [{ translateY: circle1 }] }]}
-      />
-      <Animated.View
-        style={[styles.decorCircle2, { transform: [{ translateY: circle2 }] }]}
-      />
-      <View style={styles.decorCircle3} />
-
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.WHITE} />
+    <AuthBackground>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
       </TouchableOpacity>
 
       <KeyboardAvoidingView
@@ -100,15 +59,7 @@ export default function ResetPassword() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.brandWrap}>
-            <View style={styles.logoCircle}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={32}
-                color={COLORS.WHITE}
-              />
-            </View>
-          </View>
+          <NamaaBrand size="md" />
 
           <Text style={styles.title}>نسيت كلمة المرور؟</Text>
           <Text style={styles.subtitleHero}>
@@ -169,16 +120,17 @@ export default function ResetPassword() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </AuthBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 110,
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === "ios" ? 110 : 90,
     paddingBottom: 40,
     alignItems: "center",
-    paddingHorizontal: 22,
   },
 
   backButton: {
@@ -188,53 +140,46 @@ const styles = StyleSheet.create({
     zIndex: 999,
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  brandWrap: {
-    alignItems: "center",
-    marginBottom: 14,
-  },
-
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.4)",
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: COLORS.WHITE,
-    marginBottom: 6,
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginTop: 10,
+    textShadowColor: "rgba(0,0,0,0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
     textAlign: "center",
   },
 
   subtitleHero: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    marginBottom: 22,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.92)",
+    marginTop: 4,
+    marginBottom: 18,
     textAlign: "center",
   },
 
   card: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: "rgba(255,255,255,0.97)",
     borderRadius: 28,
     padding: 24,
     width: "100%",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.6)",
+    zIndex: 5,
   },
 
   label: {
@@ -281,7 +226,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: COLORS.WHITE,
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -327,35 +272,5 @@ const styles = StyleSheet.create({
 
   errorText: {
     color: "#C62828",
-  },
-
-  decorCircle1: {
-    position: "absolute",
-    top: -40,
-    right: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.18)",
-  },
-
-  decorCircle2: {
-    position: "absolute",
-    bottom: -50,
-    left: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-
-  decorCircle3: {
-    position: "absolute",
-    top: "40%",
-    left: -40,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });

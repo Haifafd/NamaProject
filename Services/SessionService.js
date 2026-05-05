@@ -5,6 +5,10 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../FirebaseConfig";
+import {
+  createNotification,
+  NOTIFICATION_TYPES,
+} from "./NotificationService";
 
 // ─────────────────────────────────────────────
 // 🔄 SESSION SYSTEM
@@ -54,6 +58,41 @@ export const markSessionComplete = async (childId) => {
       { merge: true }
     );
     console.log("✅ Session marked as complete for child:", childId);
+
+    // 🔔 إشعار "تقرير جديد" لولي الأمر + الأخصائي
+    try {
+      const childSnap = await getDoc(doc(db, "Children", childId));
+      if (childSnap.exists()) {
+        const childData = childSnap.data();
+        const parentId = childData.parentId;
+        const specialistId = childData.specialistId;
+        const childName = childData.name || "";
+
+        // إشعار لولي الأمر
+        if (parentId) {
+          await createNotification({
+            userId: parentId,
+            type: NOTIFICATION_TYPES.REPORT_ISSUED,
+            title: `📊 تقرير ${childName} جاهز!`,
+            body: `أكمل ${childName} جلسة جديدة، شوفي تقريره الآن`,
+            data: { childId, childName },
+          });
+        }
+
+        // إشعار للأخصائي
+        if (specialistId) {
+          await createNotification({
+            userId: specialistId,
+            type: NOTIFICATION_TYPES.REPORT_ISSUED,
+            title: `📊 تقرير جديد للطفل ${childName}`,
+            body: `أكمل ${childName} جلسة جديدة، تابع تطوره من اللوحة`,
+            data: { childId, childName },
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification error in session complete:", notifErr);
+    }
   } catch (error) {
     console.error("Error marking session complete:", error);
   }

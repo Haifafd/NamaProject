@@ -23,6 +23,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 function DiffShape({ type, color = "#42A5F5", size = 80 }) {
   switch (type) {
@@ -85,6 +86,7 @@ export default function DifferentShapeActivity() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [problemIdx, setProblemIdx] = useState(0);
   const [gameState, setGameState] = useState("playing");
   const [finalStars, setFinalStars] = useState(0);
@@ -105,7 +107,11 @@ export default function DifferentShapeActivity() {
   const problem = problems[problemIdx];
 
   useEffect(() => {
-    showSpeechBubble("اختاري الشكل المختلف!", GARDEN.bubbleHappy, "happy", 2200);
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
+  useEffect(() => {
+    showSpeechBubble(speak("اختاري الشكل المختلف!", childGender), GARDEN.bubbleHappy, "happy", 2200);
   }, [level, problemIdx]);
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -137,13 +143,13 @@ export default function DifferentShapeActivity() {
   const handlePick = (idx) => {
     if (idx === problem.correct) {
       correctAnswers.current += 1;
-      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+      showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1200);
       setTimeout(() => {
         if (problemIdx < problems.length - 1) {
           setProblemIdx(problemIdx + 1);
         } else {
           if (level < 3) {
-            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
             setTimeout(() => {
               setLevel(level + 1);
               setProblemIdx(0);
@@ -155,7 +161,7 @@ export default function DifferentShapeActivity() {
       }, 1000);
     } else {
       wrongAnswers.current += 1;
-      showSpeechBubble("شوفي بدقة!", GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("شوفي بدقة!", childGender), GARDEN.bubbleSad, "sad", 1500);
     }
   };
 

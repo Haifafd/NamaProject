@@ -23,6 +23,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 const PALETTE = [
   { id: "red",    color: "#EF5350", hint: "#FFCDD2", name: "أحمر" },
@@ -72,6 +73,7 @@ export default function ColorActivity() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [selectedColorId, setSelectedColorId] = useState("red");
   const [zoneFilled, setZoneFilled] = useState({});
   const [gameState, setGameState] = useState("playing");
@@ -95,8 +97,12 @@ export default function ColorActivity() {
   useEffect(() => {
     setZoneFilled({});
     startTime.current = Date.now();
-    showSpeechBubble(`لوّني ${currentShape.name}!`, GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak(`لوّني ${currentShape.name}!`, childGender), GARDEN.bubbleHappy, "happy", 2500);
   }, [level]);
+
+  useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
     if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
@@ -142,19 +148,19 @@ export default function ColorActivity() {
     if (selectedColorId !== zone.target) {
       totalErrors.current += 1;
       const targetName = getColorById(zone.target).name;
-      showSpeechBubble(`اختاري اللون ${targetName}!`, GARDEN.bubbleSad, "sad", 1800);
+      showSpeechBubble(speak(`اختاري اللون ${targetName}!`, childGender), GARDEN.bubbleSad, "sad", 1800);
       return;
     }
 
     totalCorrect.current += 1;
-    showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+    showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1200);
     const newFilled = { ...zoneFilled, [zoneId]: true };
     setZoneFilled(newFilled);
 
     if (Object.keys(newFilled).length === totalZones) {
       setTimeout(() => {
         if (level < 3) {
-          showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+          showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
           setTimeout(() => setLevel(level + 1), 1500);
         } else {
           finishGame();

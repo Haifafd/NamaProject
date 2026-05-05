@@ -23,6 +23,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 function ShapeRenderer({ type, isShadow, size = 90 }) {
   switch (type) {
@@ -149,6 +150,7 @@ export default function ShadowMatching() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [problemIdx, setProblemIdx] = useState(0);
   const [problem, setProblem] = useState(() => generateProblem(1));
   const [gameState, setGameState] = useState("playing");
@@ -172,7 +174,11 @@ export default function ShadowMatching() {
   }, [level]);
 
   useEffect(() => {
-    showSpeechBubble("أي ظل يطابق الشكل؟", GARDEN.bubbleHappy, "happy", 2000);
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
+  useEffect(() => {
+    showSpeechBubble(speak("أي ظل يطابق الشكل؟", childGender), GARDEN.bubbleHappy, "happy", 2000);
   }, [problem]);
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -204,7 +210,7 @@ export default function ShadowMatching() {
   const handlePick = (choice) => {
     if (choice === problem.target) {
       correctAnswers.current += 1;
-      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1300);
+      showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1300);
 
       setTimeout(() => {
         if (problemIdx < LEVEL_PROBLEMS[level] - 1) {
@@ -212,7 +218,7 @@ export default function ShadowMatching() {
           setProblem(generateProblem(level));
         } else {
           if (level < 3) {
-            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
             setTimeout(() => setLevel(level + 1), 1500);
           } else {
             finishGame();
@@ -221,7 +227,7 @@ export default function ShadowMatching() {
       }, 1100);
     } else {
       wrongAnswers.current += 1;
-      showSpeechBubble("شوفي بدقة!", GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("شوفي بدقة!", childGender), GARDEN.bubbleSad, "sad", 1500);
     }
   };
 

@@ -43,7 +43,6 @@ export default function Settings() {
 
   // إعدادات الإشعارات
   const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
   const [reportAlerts, setReportAlerts] = useState(true);
 
   useEffect(() => {
@@ -58,7 +57,6 @@ export default function Settings() {
       const prefs = await getNotificationPreferences();
       if (prefs) {
         setPushNotifications(prefs.pushNotifications ?? true);
-        setEmailNotifications(prefs.emailNotifications ?? true);
         setReportAlerts(prefs.reportAlerts ?? true);
       }
     } catch (error) {
@@ -222,27 +220,6 @@ export default function Settings() {
                   );
                 } catch (error) {
                   setPushNotifications(!value);
-                  Alert.alert("خطأ", "لم نتمكن من حفظ التفضيلات");
-                }
-              }}
-            />
-            <SettingItem
-              icon="mail-outline"
-              iconColor={AMBER}
-              iconBg="#FFF6E8"
-              title="إشعارات البريد"
-              subtitle="إرسال تنبيهات للبريد"
-              isSwitch={true}
-              switchValue={emailNotifications}
-              onSwitchChange={async (value) => {
-                setEmailNotifications(value);
-                try {
-                  await updateNotificationPreference(
-                    "emailNotifications",
-                    value
-                  );
-                } catch (error) {
-                  setEmailNotifications(!value);
                   Alert.alert("خطأ", "لم نتمكن من حفظ التفضيلات");
                 }
               }}

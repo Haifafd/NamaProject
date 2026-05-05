@@ -23,6 +23,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 function CardIcon({ type, size = 60 }) {
   switch (type) {
@@ -92,6 +93,7 @@ export default function MatchingGame() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [leftColumn, setLeftColumn] = useState([]);
   const [rightColumn, setRightColumn] = useState([]);
   const [selectedLeft, setSelectedLeft] = useState(null);
@@ -115,6 +117,10 @@ export default function MatchingGame() {
     initLevel();
   }, [level]);
 
+  useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
   const initLevel = () => {
     const pairsCount = LEVEL_PAIRS[level];
     const selectedIcons = ALL_ICONS.slice(0, pairsCount);
@@ -123,7 +129,7 @@ export default function MatchingGame() {
     setSelectedLeft(null);
     setMatched([]);
     startTime.current = Date.now();
-    showSpeechBubble("وصلي البطاقات المتشابهة!", GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak("وصلي البطاقات المتشابهة!", childGender), GARDEN.bubbleHappy, "happy", 2500);
   };
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -165,12 +171,12 @@ export default function MatchingGame() {
       const newMatched = [...matched, icon];
       setMatched(newMatched);
       setSelectedLeft(null);
-      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+      showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1200);
 
       if (newMatched.length === LEVEL_PAIRS[level]) {
         setTimeout(() => {
           if (level < 3) {
-            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
             setTimeout(() => setLevel(level + 1), 1500);
           } else {
             finishGame();
@@ -179,7 +185,7 @@ export default function MatchingGame() {
       }
     } else {
       wrongAttempts.current += 1;
-      showSpeechBubble("ليست متشابهة، حاولي ثانية!", GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("ليست متشابهة، حاولي ثانية!", childGender), GARDEN.bubbleSad, "sad", 1500);
       setSelectedLeft(null);
     }
   };

@@ -106,8 +106,13 @@ export default function NotificationsScreen() {
       case NOTIFICATION_TYPES.REPORT_ISSUED:
       case NOTIFICATION_TYPES.TREATMENT_PLAN:
         if (data?.childId) {
+          // الأخصائي يروح للـ Dashboard، ولي الأمر يروح للـ ChildReport
+          const path =
+            userRole === "specialist"
+              ? "/specialist/Dashboard"
+              : "/parent/ChildReport";
           router.push({
-            pathname: "/parent/ChildReport",
+            pathname: path,
             params: { childId: data.childId, childName: data.childName || "" },
           });
         }

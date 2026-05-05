@@ -1059,18 +1059,7 @@ export default function ChildHome() {
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBackToParent}>
-          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M 14 6 L 8 12 L 14 18"
-              stroke="#FFFFFF"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </Svg>
-        </TouchableOpacity>
+        <View style={{ width: 44 }} />
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerName}>{childName || "صديقي"}</Text>
@@ -1080,7 +1069,19 @@ export default function ChildHome() {
           </Text>
         </View>
 
-        <View style={{ width: 44 }} />
+        <TouchableOpacity style={styles.exitToParentBtn} onPress={handleBackToParent}>
+          <Svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M 14 6 L 8 12 L 14 18"
+              stroke="#FFFFFF"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </Svg>
+          <Text style={styles.exitToParentText}>وضع ولي الأمر</Text>
+        </TouchableOpacity>
       </View>
 
       {/* SCROLLABLE PATH WITH GARDEN DECORATIONS */}
@@ -1518,6 +1519,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.25)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  exitToParentBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  exitToParentText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   headerCenter: { flex: 1, alignItems: "center" },
   headerName: {

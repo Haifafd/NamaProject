@@ -23,6 +23,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 function StoryIllustration({ type, size = 80 }) {
   switch (type) {
@@ -141,6 +142,7 @@ export default function StoryCompletionActivity() {
   const { childId, activityId, activityTitle, category } = useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [shuffled, setShuffled] = useState([]);
   const [picks, setPicks] = useState([]);
   const [gameState, setGameState] = useState("playing");
@@ -161,9 +163,13 @@ export default function StoryCompletionActivity() {
   const story = STORIES_BY_LEVEL[level];
 
   useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
+
+  useEffect(() => {
     setShuffled(shuffle(story.correct));
     setPicks([]);
-    showSpeechBubble(`رتّبي قصة ${story.name}!`, GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak(`رتّبي قصة ${story.name}!`, childGender), GARDEN.bubbleHappy, "happy", 2500);
   }, [level]);
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -200,12 +206,12 @@ export default function StoryCompletionActivity() {
       correctAnswers.current += 1;
       const newPicks = [...picks, item];
       setPicks(newPicks);
-      showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+      showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1200);
 
       if (newPicks.length === story.correct.length) {
         setTimeout(() => {
           if (level < 3) {
-            showSpeechBubble(pickRandom(EXCITED_MESSAGES), GARDEN.bubbleExcited, "excited", 2500);
+            showSpeechBubble(speak(pickRandom(EXCITED_MESSAGES), childGender), GARDEN.bubbleExcited, "excited", 2500);
             setTimeout(() => setLevel(level + 1), 1500);
           } else {
             finishGame();
@@ -214,7 +220,7 @@ export default function StoryCompletionActivity() {
       }
     } else {
       wrongAnswers.current += 1;
-      showSpeechBubble("ركّزي في الترتيب!", GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("ركّزي في الترتيب!", childGender), GARDEN.bubbleSad, "sad", 1500);
     }
   };
 

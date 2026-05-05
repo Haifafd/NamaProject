@@ -25,6 +25,7 @@ import {
   pickRandom,
   sharedGameStyles,
 } from "./_GameComponents";
+import { fetchChildGender, speak } from "../../Services/SpeechHelper";
 
 const ICONS = [
   "tree",
@@ -144,6 +145,7 @@ export default function MemoryCardGame() {
     useLocalSearchParams();
 
   const [level, setLevel] = useState(1);
+  const [childGender, setChildGender] = useState("female");
   const [cards, setCards] = useState([]);
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedCards, setMatchedCards] = useState([]);
@@ -203,18 +205,22 @@ export default function MemoryCardGame() {
     setIsMemorizing(true);
     startTime.current = Date.now();
 
-    showSpeechBubble("احفظي البطاقات!", GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak("احفظي البطاقات!", childGender), GARDEN.bubbleHappy, "happy", 2500);
 
     setTimeout(() => {
       setCards((prev) => prev.map((c) => ({ ...c, isFlipped: false })));
       setIsMemorizing(false);
-      showSpeechBubble("ابحثي عن الأزواج!", GARDEN.bubbleHappy, "happy", 2000);
+      showSpeechBubble(speak("ابحثي عن الأزواج!", childGender), GARDEN.bubbleHappy, "happy", 2000);
     }, 3500);
   }, [level]);
 
   useEffect(() => {
     if (level <= 3) initGame();
   }, [level, initGame]);
+
+  useEffect(() => {
+    if (childId) fetchChildGender(childId).then(setChildGender);
+  }, [childId]);
 
   const handleCardPress = (idx) => {
     if (
@@ -235,7 +241,7 @@ export default function MemoryCardGame() {
       const [first, second] = newFlipped;
       if (cards[first].icon === cards[second].icon) {
         correctMatches.current += 1;
-        showSpeechBubble(pickRandom(HAPPY_MESSAGES), GARDEN.bubbleHappy, "happy", 1200);
+        showSpeechBubble(speak(pickRandom(HAPPY_MESSAGES), childGender), GARDEN.bubbleHappy, "happy", 1200);
         const newMatched = [...matchedCards, first, second];
         setMatchedCards(newMatched);
         setFlippedCards([]);
@@ -244,7 +250,7 @@ export default function MemoryCardGame() {
           setTimeout(() => {
             if (level < 3) {
               showSpeechBubble(
-                pickRandom(EXCITED_MESSAGES),
+                speak(pickRandom(EXCITED_MESSAGES), childGender),
                 GARDEN.bubbleExcited,
                 "excited",
                 2500
@@ -257,7 +263,7 @@ export default function MemoryCardGame() {
         }
       } else {
         wrongAttempts.current += 1;
-        showSpeechBubble(pickRandom(SAD_MESSAGES), GARDEN.bubbleSad, "sad", 1500);
+        showSpeechBubble(speak(pickRandom(SAD_MESSAGES), childGender), GARDEN.bubbleSad, "sad", 1500);
         setTimeout(() => {
           newCards[first].isFlipped = false;
           newCards[second].isFlipped = false;

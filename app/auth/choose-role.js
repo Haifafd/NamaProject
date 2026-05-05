@@ -1,166 +1,154 @@
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  Animated,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
 import { COLORS } from "../../constants/theme";
+import { AuthBackground, NamaaBrand } from "../../components/AuthBackground";
 
 export default function ChooseRole() {
   const router = useRouter();
   const [role, setRole] = useState(null);
 
-  const slider = useRef(new Animated.Value(0)).current;
-  const circle1 = useRef(new Animated.Value(0)).current;
-  const circle2 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(circle1, {
-          toValue: 20,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(circle1, {
-          toValue: 0,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(circle2, {
-          toValue: -20,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(circle2, {
-          toValue: 0,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, []);
-
-  const selectRole = (value) => {
-    setRole(value);
-
-    Animated.spring(slider, {
-      toValue: value === "parent" ? 0 : 1,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const translate = slider.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "50%"],
-  });
-
-  const description =
-    role === "parent"
-      ? "اختاري دور الوالد إذا كنتي تتابعين رحلة طفلك مع الأخصائي."
-      : role === "specialist"
-        ? "اختاري دور المختص إذا كنتي تقدمين الجلسات والمتابعة للأطفال."
-        : "اختاري دورك للبدء في رحلة نماء.";
-
   return (
-    <LinearGradient colors={["#79ccf8", "#5BB5E8"]} style={{ flex: 1 }}>
-      <Animated.View
-        style={[styles.decorCircle1, { transform: [{ translateY: circle1 }] }]}
-      />
-      <Animated.View
-        style={[styles.decorCircle2, { transform: [{ translateY: circle2 }] }]}
-      />
-      <View style={styles.decorCircle3} />
-
+    <AuthBackground>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.push("/auth/Login")}
       >
-        <Ionicons name="arrow-back" size={24} color={COLORS.WHITE} />
+        <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
       </TouchableOpacity>
 
       <View style={styles.container}>
-        <View style={styles.brandWrap}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="flower-outline" size={32} color={COLORS.WHITE} />
-          </View>
-          <Text style={styles.brandName}>نماء</Text>
+        <NamaaBrand size="md" />
+
+        <View style={styles.heroBlock}>
+          <Text style={styles.title}>من أنت؟</Text>
+          <Text style={styles.subtitle}>اختر دورك لنبدأ في رحلة نماء</Text>
         </View>
 
-        <Text style={styles.subtitle}>حدد ما دورك في هذه المرحلة!</Text>
-
-        <View style={styles.card}>
-          <View style={styles.switchContainer}>
-            <Animated.View style={[styles.slider, { left: translate }]} />
-
-            <TouchableOpacity
-              style={styles.option}
-              onPress={() => selectRole("parent")}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  role === "parent" && styles.selectedText,
-                ]}
-              >
-                الوالد
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.option}
-              onPress={() => selectRole("specialist")}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  role === "specialist" && styles.selectedText,
-                ]}
-              >
-                المختص
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.description}>{description}</Text>
-
-          <TouchableOpacity
-            style={[styles.nextButton, !role && styles.nextButtonDisabled]}
-            onPress={() => {
-              if (!role) return;
-              router.push({ pathname: "/auth/register", params: { role } });
-            }}
-            activeOpacity={0.9}
+        {/* بطاقة الوالد */}
+        <TouchableOpacity
+          style={[
+            styles.roleCard,
+            role === "parent" && styles.roleCardActive,
+          ]}
+          onPress={() => setRole("parent")}
+          activeOpacity={0.85}
+        >
+          <View
+            style={[
+              styles.roleIconBox,
+              role === "parent" && styles.roleIconBoxActive,
+            ]}
           >
-            <Text style={styles.nextText}>الخطوة التالية</Text>
-          </TouchableOpacity>
-        </View>
+            <MaterialCommunityIcons
+              name="account-heart"
+              size={32}
+              color={role === "parent" ? "#FFFFFF" : COLORS.PRIMARY_DARK}
+            />
+          </View>
+          <View style={styles.roleTextBlock}>
+            <Text
+              style={[
+                styles.roleTitle,
+                role === "parent" && styles.roleTitleActive,
+              ]}
+            >
+              ولي أمر
+            </Text>
+            <Text style={styles.roleDesc}>
+              لمتابعة رحلة طفلي مع الأخصائي
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.checkBox,
+              role === "parent" && styles.checkBoxActive,
+            ]}
+          >
+            {role === "parent" && (
+              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* بطاقة الأخصائي */}
+        <TouchableOpacity
+          style={[
+            styles.roleCard,
+            role === "specialist" && styles.roleCardActive,
+          ]}
+          onPress={() => setRole("specialist")}
+          activeOpacity={0.85}
+        >
+          <View
+            style={[
+              styles.roleIconBox,
+              role === "specialist" && styles.roleIconBoxActive,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="stethoscope"
+              size={32}
+              color={role === "specialist" ? "#FFFFFF" : COLORS.PRIMARY_DARK}
+            />
+          </View>
+          <View style={styles.roleTextBlock}>
+            <Text
+              style={[
+                styles.roleTitle,
+                role === "specialist" && styles.roleTitleActive,
+              ]}
+            >
+              أخصائي
+            </Text>
+            <Text style={styles.roleDesc}>
+              لتقديم الجلسات والمتابعة للأطفال
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.checkBox,
+              role === "specialist" && styles.checkBoxActive,
+            ]}
+          >
+            {role === "specialist" && (
+              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <View style={{ flex: 1 }} />
+
+        <TouchableOpacity
+          style={[styles.continueBtn, !role && styles.continueBtnDisabled]}
+          onPress={() => {
+            if (!role) return;
+            router.push({ pathname: "/auth/register", params: { role } });
+          }}
+          activeOpacity={0.9}
+          disabled={!role}
+        >
+          <Text style={styles.continueBtnText}>متابعة</Text>
+          <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </AuthBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 110,
-    alignItems: "center",
     paddingHorizontal: 22,
+    paddingTop: 100,
+    paddingBottom: 40,
   },
-
   backButton: {
     position: "absolute",
     top: 50,
@@ -168,160 +156,120 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  brandWrap: {
-    alignItems: "center",
-    marginBottom: 18,
-  },
-
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.4)",
-    marginBottom: 10,
   },
-
-  brandName: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: COLORS.WHITE,
-    letterSpacing: 1,
-  },
-
-  subtitle: {
-    fontSize: 22,
-    color: COLORS.WHITE,
-    fontWeight: "700",
-    textAlign: "center",
+  heroBlock: {
+    alignItems: "center",
+    marginTop: 24,
     marginBottom: 28,
   },
-
-  card: {
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 28,
-    padding: 24,
-    width: "100%",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+  title: {
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-
-  switchContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F0F4F8",
-    borderRadius: 28,
-    padding: 5,
-    width: "100%",
-    height: 54,
-    overflow: "hidden",
-    position: "relative",
-  },
-
-  slider: {
-    position: "absolute",
-    width: "50%",
-    height: "100%",
-    top: 0,
-    backgroundColor: COLORS.PRIMARY,
-    borderRadius: 28,
-    shadowColor: COLORS.PRIMARY_DARK,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-
-  option: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1,
-  },
-
-  optionText: {
-    fontSize: 15,
-    color: COLORS.MUTED,
-    textAlign: "center",
-    fontWeight: "600",
-  },
-
-  selectedText: {
-    color: COLORS.WHITE,
-    fontWeight: "700",
-  },
-
-  description: {
+  subtitle: {
     fontSize: 14,
-    color: COLORS.MUTED,
-    textAlign: "center",
-    marginTop: 18,
-    marginBottom: 6,
-    lineHeight: 22,
+    color: "rgba(255,255,255,0.92)",
+    marginTop: 6,
   },
 
-  nextButton: {
-    backgroundColor: COLORS.PRIMARY,
-    marginTop: 18,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
+  roleCard: {
+    flexDirection: "row-reverse",
     alignItems: "center",
-    shadowColor: COLORS.PRIMARY_DARK,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    gap: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  roleCardActive: {
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: "#FFFFFF",
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
+  },
+  roleIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: COLORS.PRIMARY_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roleIconBoxActive: {
+    backgroundColor: COLORS.PRIMARY,
+  },
+  roleTextBlock: {
+    flex: 1,
+  },
+  roleTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: COLORS.TEXT,
+    textAlign: "right",
+  },
+  roleTitleActive: {
+    color: COLORS.PRIMARY_DARK,
+  },
+  roleDesc: {
+    fontSize: 12,
+    color: COLORS.MUTED,
+    marginTop: 4,
+    textAlign: "right",
+    lineHeight: 18,
+  },
+  checkBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: "#CFD8DC",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  checkBoxActive: {
+    backgroundColor: COLORS.PRIMARY,
+    borderColor: COLORS.PRIMARY,
   },
 
-  nextButtonDisabled: {
-    opacity: 0.55,
+  continueBtn: {
+    backgroundColor: COLORS.PRIMARY,
+    height: 56,
+    borderRadius: 18,
+    flexDirection: "row-reverse",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: COLORS.PRIMARY_DARK,
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
+    elevation: 8,
   },
-
-  nextText: {
-    color: COLORS.WHITE,
+  continueBtnDisabled: {
+    opacity: 0.5,
+    shadowOpacity: 0.1,
+  },
+  continueBtnText: {
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
-  },
-
-  decorCircle1: {
-    position: "absolute",
-    top: -40,
-    right: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.18)",
-  },
-
-  decorCircle2: {
-    position: "absolute",
-    bottom: -50,
-    left: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-
-  decorCircle3: {
-    position: "absolute",
-    top: "40%",
-    left: -40,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    fontWeight: "800",
   },
 });
