@@ -44,7 +44,6 @@ export default function AddChild() {
 
   const [name, setName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
-  const [difficulty, setDifficulty] = useState("");
   const [gender, setGender] = useState("");
   const [date, setDate] = useState(new Date(2022, 8, 9));
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -66,10 +65,6 @@ export default function AddChild() {
     }
     if (!parentEmail.trim()) {
       Alert.alert("تنبيه", "الرجاء إدخال إيميل ولي الأمر");
-      return;
-    }
-    if (!difficulty.trim()) {
-      Alert.alert("تنبيه", "الرجاء إدخال نوع الصعوبة");
       return;
     }
     if (!gender) {
@@ -113,7 +108,6 @@ export default function AddChild() {
         parentEmail: parentEmail.trim(),
         parentId: parentId,
         parentName: parentName,
-        difficulty: difficulty.trim(),
         gender: gender,
         birthDate: date.toISOString().split("T")[0],
         specialistId: specialistId,
@@ -228,17 +222,6 @@ export default function AddChild() {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="medkit-outline" size={20} color={PRIMARY_DARK} />
-            <TextInput
-              placeholder="نوع الصعوبة"
-              style={styles.customInput}
-              placeholderTextColor="#888"
-              value={difficulty}
-              onChangeText={setDifficulty}
-              textAlign="right"
-            />
-          </View>
         </View>
 
         <Text style={styles.sectionLabel}>الجنس</Text>

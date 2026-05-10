@@ -446,7 +446,6 @@
                 <span>${gen.label}</span>
                 <span>${age} ${typeof age === "number" ? "سنوات" : ""}</span>
                 <span class="badge badge-specialist">د. ${escapeHtml(specialistName)}</span>
-                ${c.difficulty ? `<span>${escapeHtml(c.difficulty)}</span>` : ""}
               </div>
             </div>
             <div class="item-actions" style="pointer-events: none;">
@@ -533,10 +532,6 @@
         <div class="detail-row">
           <span class="detail-row-label">العمر</span>
           <span class="detail-row-value">${age} ${typeof age === "number" ? "سنوات" : ""}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-row-label">التشخيص / الصعوبة</span>
-          <span class="detail-row-value">${escapeHtml(child.difficulty || "—")}</span>
         </div>
         <div class="detail-row">
           <span class="detail-row-label">تاريخ الإضافة</span>

@@ -139,7 +139,6 @@ export default function Dashboard() {
       const summary = `📊 تقرير الطفل - ${child.name}
 
 👶 العمر: ${calculateAge(child.birthDate)} سنوات
-📝 التشخيص: ${child.difficulty || "—"}
 🎯 الأنشطة المكتملة: ${totalActivities}
 
 ─── تقييم الفئات ───
@@ -358,13 +357,6 @@ export default function Dashboard() {
                   <Ionicons name="calendar-outline" size={11} color={MUTED} />
                   <Text style={styles.metaText}>
                     {age} {age === 1 ? "سنة" : "سنوات"}
-                  </Text>
-                </View>
-                <View style={styles.metaDivider} />
-                <View style={styles.metaItem}>
-                  <Ionicons name="medkit-outline" size={11} color={MUTED} />
-                  <Text style={styles.metaText} numberOfLines={1}>
-                    {child.difficulty || "—"}
                   </Text>
                 </View>
               </View>

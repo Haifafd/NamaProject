@@ -260,7 +260,6 @@ export default function HomepageS() {
                       </Text>
                       <Text style={styles.searchResultMeta} numberOfLines={1}>
                         {child.age} {child.age === 1 ? "سنة" : "سنوات"}
-                        {child.difficulty ? ` • ${child.difficulty}` : ""}
                       </Text>
                     </View>
                     <Ionicons name="chevron-back" size={16} color={MUTED} />
@@ -439,9 +438,9 @@ export default function HomepageS() {
                   color={PRIMARY_DARK}
                 />
               </View>
-              <Text style={styles.emptyTitle}>لم يتم إضافة أطفال بعد</Text>
+              <Text style={styles.emptyTitle}>لم يتم إضافة سجلات أطفال بعد</Text>
               <Text style={styles.emptySubtitle}>
-                ابدأ بإضافة أول طفل في حسابك لتصميم خطته العلاجية ومتابعة
+                ابدأ بإضافة سجل لأول طفل في حسابك لتصميم خطته العلاجية ومتابعة
                 تطوره.
               </Text>
               <TouchableOpacity
@@ -450,7 +449,7 @@ export default function HomepageS() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="add-circle" size={18} color="#fff" />
-                <Text style={styles.emptyActionText}>إضافة أول طفل</Text>
+                <Text style={styles.emptyActionText}>إضافة سجل للطفل</Text>
               </TouchableOpacity>
             </View>
           ) : filteredChildren.length === 0 ? (
@@ -529,12 +528,6 @@ export default function HomepageS() {
                     <Text style={styles.childAge}>
                       العمر: {child.age} {child.age === 1 ? "سنة" : "سنوات"}
                     </Text>
-
-                    <View style={styles.difficultyBox}>
-                      <Text style={styles.difficultyText} numberOfLines={1}>
-                        {child.difficulty || "لم يتم التحديد"}
-                      </Text>
-                    </View>
 
                     {hasProgress ? (
                       <View style={styles.progressBarContainer}>
@@ -930,15 +923,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
   },
-  difficultyBox: {
-    backgroundColor: BG,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginTop: 8,
-    width: "100%",
-  },
-  difficultyText: { fontSize: 10, color: MUTED, textAlign: "center" },
   progressBarContainer: {
     backgroundColor: BG,
     height: 4,

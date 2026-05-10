@@ -308,13 +308,6 @@ export default function ChildReport() {
                     {age} {age === 1 ? "سنة" : "سنوات"}
                   </Text>
                 </View>
-                <View style={styles.metaDivider} />
-                <View style={styles.metaItem}>
-                  <Ionicons name="medkit-outline" size={11} color={MUTED} />
-                  <Text style={styles.metaText} numberOfLines={1}>
-                    {child.difficulty || "—"}
-                  </Text>
-                </View>
               </View>
             </View>
           </View>

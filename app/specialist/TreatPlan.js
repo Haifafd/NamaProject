@@ -104,7 +104,7 @@ export default function TherapyPlanScreen() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingText, setEditingText] = useState("");
 
-  // ── الجرعة العلاجية (تبدأ بـ 1) ──
+  // ── تفاصيل الجلسات (تبدأ بـ 1) ──
   const [sessions, setSessions] = useState(1);
   const [activitiesCount, setActivitiesCount] = useState(1);
   const [duration, setDuration] = useState(20);
@@ -227,7 +227,7 @@ export default function TherapyPlanScreen() {
   };
 
   // ─────────────────────────────────────────────
-  // 💊 حفظ الجرعة (مؤقت في الـ state)
+  // 💾 حفظ تفاصيل الجلسات (مؤقت في الـ state)
   // ─────────────────────────────────────────────
   const handleSaveDose = () => {
     setDoseSaved(true);
@@ -456,7 +456,7 @@ export default function TherapyPlanScreen() {
         </SectionCard>
 
         {/* ── Dose Section ── */}
-        <SectionCard title="الجرعة العلاجية">
+        <SectionCard title="تفاصيل الجلسات">
           <View style={styles.doseRow}>
             <Stepper value={sessions} onChange={setSessions} />
             <Text style={styles.doseLabel}>جلسات في الأسبوع</Text>
@@ -515,7 +515,7 @@ export default function TherapyPlanScreen() {
             </View>
           )}
 
-          {/* زر حفظ الجرعة */}
+          {/* زر حفظ تفاصيل الجلسات */}
           <TouchableOpacity
             style={[
               styles.saveDoseBtn,
@@ -530,7 +530,7 @@ export default function TherapyPlanScreen() {
               color="#fff"
             />
             <Text style={styles.saveDoseBtnText}>
-              {doseSaved ? "تم حفظ الجرعة" : "حفظ الجرعة"}
+              {doseSaved ? "تم حفظ التفاصيل" : "حفظ التفاصيل"}
             </Text>
           </TouchableOpacity>
         </SectionCard>
