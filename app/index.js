@@ -239,6 +239,10 @@ export default function SplashScreen() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        if (!user.emailVerified) {
+          setDestinationPath("/auth/verify-email");
+          return;
+        }
         try {
           const userDoc = await getDoc(doc(db, "Users", user.uid));
           if (userDoc.exists()) {

@@ -1,4 +1,7 @@
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../FirebaseConfig";
 
@@ -76,7 +79,17 @@ export default function Register() {
         email: email,
         role: role,
       });
-      router.push("/auth/Login");
+
+      try {
+        await sendEmailVerification(user);
+      } catch (e) {
+        // إذا فشل الإرسال، نكمل ونخلي شاشة التحقق تعيد المحاولة
+      }
+
+      router.replace({
+        pathname: "/auth/verify-email",
+        params: { email: email },
+      });
     } catch (error) {
       setError("حدث خطأ أثناء إنشاء الحساب: " + error.message);
     }

@@ -1,4 +1,4 @@
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { sendEmailVerification, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -38,6 +38,20 @@ export default function Login() {
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       const user = userCred.user;
+
+      if (!user.emailVerified) {
+        try {
+          await sendEmailVerification(user);
+        } catch (e) {
+          // نتجاهل الخطأ ونوجه المستخدم لشاشة التحقق
+        }
+        router.replace({
+          pathname: "/auth/verify-email",
+          params: { email: user.email },
+        });
+        return;
+      }
+
       const userDoc = await getDoc(doc(db, "Users", user.uid));
       if (userDoc.exists()) {
         const role = userDoc.data().role;
