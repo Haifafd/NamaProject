@@ -146,7 +146,7 @@ export default function PuzzleGame() {
     pieces.sort(() => Math.random() - 0.5);
     setPieceOrder(pieces);
     startTime.current = Date.now();
-    showSpeechBubble(speak("ركّبي الصورة!", childGender), GARDEN.bubbleHappy, "happy", 2200);
+    showSpeechBubble(speak("ركّب الصورة!", childGender), GARDEN.bubbleHappy, "happy", 2200);
   };
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -182,7 +182,7 @@ export default function PuzzleGame() {
 
   const handleSlotTap = (row, col) => {
     if (!selectedPiece) {
-      showSpeechBubble(speak("اختاري قطعة أولاً!", childGender), GARDEN.bubbleHappy, "idle", 1200);
+      showSpeechBubble(speak("اختر قطعة أولاً!", childGender), GARDEN.bubbleHappy, "idle", 1200);
       return;
     }
     const slotId = `${row}-${col}`;
@@ -207,7 +207,7 @@ export default function PuzzleGame() {
       }
     } else {
       wrongPlacements.current += 1;
-      showSpeechBubble(speak("ليس هنا، حاولي مكان آخر!", childGender), GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("ليس هنا، حاول مكان آخر!", childGender), GARDEN.bubbleSad, "sad", 1500);
       setSelectedPiece(null);
     }
   };

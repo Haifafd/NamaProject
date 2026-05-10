@@ -29,7 +29,7 @@
       </div>
 
       <h1 class="login-title">صفحة المسؤول</h1>
-      <p class="login-subtitle">سجّلي الدخول للمتابعة إلى لوحة التحكم</p>
+      <p class="login-subtitle">سجّل الدخول للمتابعة إلى لوحة التحكم</p>
 
       <div class="login-error-message" id="errorBox">
         <i data-lucide="alert-circle"></i>
@@ -182,7 +182,7 @@
         window.location.href = "index.html";
       } catch (error) {
         console.error(error);
-        let message = "حدث خطأ، حاولي مرة أخرى";
+        let message = "حدث خطأ، حاول مرة أخرى";
         if (error.code === "auth/invalid-credential" ||
             error.code === "auth/wrong-password" ||
             error.code === "auth/user-not-found") {
@@ -190,9 +190,9 @@
         } else if (error.code === "auth/invalid-email") {
           message = "البريد الإلكتروني غير صحيح";
         } else if (error.code === "auth/too-many-requests") {
-          message = "محاولات كثيرة. حاولي بعد قليل";
+          message = "محاولات كثيرة. حاول بعد قليل";
         } else if (error.code === "auth/network-request-failed") {
-          message = "تحقّقي من اتصال الإنترنت";
+          message = "تحقّق من اتصال الإنترنت";
         }
         showError(message);
         resetButton();

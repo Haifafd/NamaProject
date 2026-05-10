@@ -171,9 +171,9 @@ export default function SpecialistChatRoom() {
                     color={PRIMARY_DARK}
                   />
                 </View>
-                <Text style={styles.emptyTitle}>ابدئي المحادثة</Text>
+                <Text style={styles.emptyTitle}>ابدأ المحادثة</Text>
                 <Text style={styles.emptySubtitle}>
-                  اكتبي أول رسالة لولي الأمر للبدء.
+                  اكتب أول رسالة لولي الأمر للبدء.
                 </Text>
               </View>
             </TouchableWithoutFeedback>

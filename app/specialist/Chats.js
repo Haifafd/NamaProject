@@ -239,9 +239,9 @@ export default function SpecialistChats() {
                     <Text style={styles.chatPreview} numberOfLines={1}>
                       {chat.lastMessage
                         ? chat.lastMessageSender === "specialist"
-                          ? `أنتِ: ${chat.lastMessage}`
+                          ? `أنت: ${chat.lastMessage}`
                           : chat.lastMessage
-                        : "ابدئي المحادثة الآن"}
+                        : "ابدأ المحادثة الآن"}
                     </Text>
                   </View>
 

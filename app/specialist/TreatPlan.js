@@ -361,7 +361,7 @@ export default function TherapyPlanScreen() {
                 لم يتم إضافة أهداف بعد
               </Text>
               <Text style={styles.emptyGoalsSubText}>
-                اضغطي على "إضافة هدف جديد" للبدء
+                اضغط على "إضافة هدف جديد" للبدء
               </Text>
             </View>
           )}

@@ -84,7 +84,7 @@ export default function Activities() {
           <View style={[styles.headerSection, { borderBottomColor: BORDER }]}>
              <View style={styles.userInfo}>
                <Text style={styles.welcomeText}>مرحباً فاطمة 👋</Text>
-               <Text style={[styles.subWelcome, { color: MUTED }]}>ابدئي نشاط الذاكرة اليوم!</Text>
+               <Text style={[styles.subWelcome, { color: MUTED }]}>ابدأ نشاط الذاكرة اليوم!</Text>
              </View>
              
              <View style={styles.progressBox}>

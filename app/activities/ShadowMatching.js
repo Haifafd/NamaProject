@@ -227,7 +227,7 @@ export default function ShadowMatching() {
       }, 1100);
     } else {
       wrongAnswers.current += 1;
-      showSpeechBubble(speak("شوفي بدقة!", childGender), GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("شوف بدقة!", childGender), GARDEN.bubbleSad, "sad", 1500);
     }
   };
 

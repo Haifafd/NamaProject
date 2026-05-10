@@ -130,7 +130,7 @@ export default function ChangePassword() {
                 <Ionicons name="lock-closed" size={28} color={COLORS.PRIMARY} />
               </View>
               <Text style={styles.heroTitle}>
-                لحماية حسابك، اختاري كلمة مرور قوية جديدة
+                لحماية حسابك، اختر كلمة مرور قوية جديدة
               </Text>
             </View>
 

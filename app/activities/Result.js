@@ -182,9 +182,9 @@ function MiniFlower({ size = 22, color = "#EC407A" }) {
 }
 
 const MESSAGES = {
-  3: ["أحسنتِ يا بطلة!", "أنتِ رائعة!", "ممتاز جداً!", "نجمة لامعة!"],
-  2: ["شغل ممتاز!", "أحسنتِ!", "تستاهلين تحية!"],
-  1: ["محاولة طيبة!", "أحسنتِ على الجهد!", "كل يوم نتعلم!"],
+  3: ["أحسنت يا بطل!", "أنت رائع!", "ممتاز جداً!", "نجم لامع!"],
+  2: ["شغل ممتاز!", "أحسنت!", "تستاهل تحية!"],
+  1: ["محاولة طيبة!", "أحسنت على الجهد!", "كل يوم نتعلم!"],
 };
 
 const getRandomMessage = (stars) => {
@@ -231,7 +231,7 @@ export default function ResultModal({
 
   const message = isWon
     ? getRandomMessage(stars || 1)
-    : "حاولي مرة أخرى يا حلوة!";
+    : "حاول مرة أخرى!";
 
   return (
     <Modal visible={visible} transparent animationType="fade">

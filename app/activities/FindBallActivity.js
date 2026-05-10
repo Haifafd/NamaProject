@@ -176,7 +176,7 @@ export default function FindBallActivity() {
     setBallSpot(newBallSpot);
 
     setPhase("show");
-    showSpeechBubble(speak("شوفي وين الكرة!", childGender), GARDEN.bubbleHappy, "happy", 1800);
+    showSpeechBubble(speak("شوف وين الكرة!", childGender), GARDEN.bubbleHappy, "happy", 1800);
 
     const cupCoveringBall = newBallSpot;
 
@@ -205,7 +205,7 @@ export default function FindBallActivity() {
 
   const startShuffle = () => {
     setPhase("shuffle");
-    showSpeechBubble(speak("ركّزي!", childGender), GARDEN.bubbleHappy, "idle", 1000);
+    showSpeechBubble(speak("ركّز!", childGender), GARDEN.bubbleHappy, "idle", 1000);
 
     let stepCount = 0;
 

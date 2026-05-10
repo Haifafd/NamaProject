@@ -148,7 +148,7 @@ export default function ColorActivity() {
     if (selectedColorId !== zone.target) {
       totalErrors.current += 1;
       const targetName = getColorById(zone.target).name;
-      showSpeechBubble(speak(`اختاري اللون ${targetName}!`, childGender), GARDEN.bubbleSad, "sad", 1800);
+      showSpeechBubble(speak(`اختر اللون ${targetName}!`, childGender), GARDEN.bubbleSad, "sad", 1800);
       return;
     }
 
@@ -410,7 +410,7 @@ export default function ColorActivity() {
       </View>
 
       <View style={styles.paletteWrap}>
-        <Text style={styles.paletteLabel}>اختاري لون:</Text>
+        <Text style={styles.paletteLabel}>اختر لون:</Text>
         <View style={styles.paletteRow}>
           {PALETTE.map((p) => (
             <TouchableOpacity

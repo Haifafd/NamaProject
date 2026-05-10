@@ -109,7 +109,7 @@ export default function XOGame() {
 
   useEffect(() => {
     if (phase === "pick") {
-      showSpeechBubble(speak("اختاري ❌ أو ⭕!", childGender), GARDEN.bubbleHappy, "happy", 2500);
+      showSpeechBubble(speak("اختر ❌ أو ⭕!", childGender), GARDEN.bubbleHappy, "happy", 2500);
     }
   }, [phase]);
 
@@ -165,13 +165,13 @@ export default function XOGame() {
 
     if (winner === childSymbol) {
       childWins.current += 1;
-      showSpeechBubble(speak("فزتي يا بطلة!", childGender), GARDEN.bubbleHappy, "happy", 2200);
+      showSpeechBubble(speak("فزت يا بطل!", childGender), GARDEN.bubbleHappy, "happy", 2200);
     } else if (winner === "draw") {
       draws.current += 1;
-      showSpeechBubble(speak("تعادل! حاولي مرة ثانية", childGender), GARDEN.bubbleExcited, "idle", 2200);
+      showSpeechBubble(speak("تعادل! حاول مرة ثانية", childGender), GARDEN.bubbleExcited, "idle", 2200);
     } else {
       opponentWins.current += 1;
-      showSpeechBubble(speak("لا تيأسي، حاولي!", childGender), GARDEN.bubbleSad, "sad", 2200);
+      showSpeechBubble(speak("لا تيأس، حاول!", childGender), GARDEN.bubbleSad, "sad", 2200);
     }
 
     setTimeout(() => {
@@ -278,7 +278,7 @@ export default function XOGame() {
           </TouchableOpacity>
           <View style={sharedGameStyles.titleBlock}>
             <Text style={sharedGameStyles.title}>تحدي الذكاء</Text>
-            <Text style={sharedGameStyles.subtitle}>اختاري رمزك</Text>
+            <Text style={sharedGameStyles.subtitle}>اختر رمزك</Text>
           </View>
           <View style={{ width: 44 }} />
         </View>
@@ -290,7 +290,7 @@ export default function XOGame() {
 
         <View style={styles.pickArea}>
           <View style={styles.pickTitleBox}>
-            <Text style={styles.pickTitle}>اختاري رمزك!</Text>
+            <Text style={styles.pickTitle}>اختر رمزك!</Text>
           </View>
 
           <View style={styles.pickRow}>

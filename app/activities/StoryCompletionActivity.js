@@ -220,7 +220,7 @@ export default function StoryCompletionActivity() {
       }
     } else {
       wrongAnswers.current += 1;
-      showSpeechBubble(speak("ركّزي في الترتيب!", childGender), GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("ركّز في الترتيب!", childGender), GARDEN.bubbleSad, "sad", 1500);
     }
   };
 
@@ -311,7 +311,7 @@ export default function StoryCompletionActivity() {
           ))}
         </View>
 
-        <Text style={styles.choicesLabel}>اختاري الصورة بالترتيب الصحيح:</Text>
+        <Text style={styles.choicesLabel}>اختر الصورة بالترتيب الصحيح:</Text>
         <View style={styles.choicesRow}>
           {shuffled.map((item, idx) => {
             const isPicked = picks.includes(item);

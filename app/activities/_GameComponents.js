@@ -163,11 +163,11 @@ export function MiniFlower({ size = 22, color = GARDEN.flowerPink }) {
 }
 
 // ─── Helper: random message picker ───
-export const HAPPY_MESSAGES = ["ممتاز!", "أحسنتِ!", "رائع!", "جميل!"];
-export const SAD_MESSAGES = ["حاولي مرة ثانية!", "تقدرين أحسن!", "خذي وقتك!"];
+export const HAPPY_MESSAGES = ["ممتاز!", "أحسنت!", "رائع!", "جميل!"];
+export const SAD_MESSAGES = ["حاول مرة ثانية!", "تقدر أحسن!", "خذ وقتك!"];
 export const EXCITED_MESSAGES = [
-  "وصلتِ للمستوى التالي!",
-  "ممتاز! كملي!",
+  "وصلت للمستوى التالي!",
+  "ممتاز! أكمل!",
   "هيا للمستوى الجديد!",
 ];
 export const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];

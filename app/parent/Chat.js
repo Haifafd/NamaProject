@@ -175,7 +175,7 @@ export default function ParentChat() {
 
               <View style={styles.headerCenter}>
                 <Text style={styles.headerTitle}>المحادثات</Text>
-                <Text style={styles.headerSub}>تواصلي مع الأخصائي</Text>
+                <Text style={styles.headerSub}>تواصل مع الأخصائي</Text>
               </View>
 
               <View style={styles.avatar}>
@@ -231,9 +231,9 @@ export default function ParentChat() {
                     <Text style={styles.chatPreview} numberOfLines={1}>
                       {chat.lastMessage
                         ? chat.lastMessageSender === "parent"
-                          ? `أنتِ: ${chat.lastMessage}`
+                          ? `أنت: ${chat.lastMessage}`
                           : chat.lastMessage
-                        : "ابدئي المحادثة الآن"}
+                        : "ابدأ المحادثة الآن"}
                     </Text>
                   </View>
 

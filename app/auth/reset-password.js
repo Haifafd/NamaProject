@@ -63,7 +63,7 @@ export default function ResetPassword() {
 
           <Text style={styles.title}>نسيت كلمة المرور؟</Text>
           <Text style={styles.subtitleHero}>
-            أدخلي بريدك واستعادة كلمة المرور
+            أدخل بريدك واستعادة كلمة المرور
           </Text>
 
           <View style={styles.card}>

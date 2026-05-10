@@ -171,9 +171,9 @@ export default function ParentChatRoom() {
                     color={PRIMARY_DARK}
                   />
                 </View>
-                <Text style={styles.emptyTitle}>ابدئي المحادثة</Text>
+                <Text style={styles.emptyTitle}>ابدأ المحادثة</Text>
                 <Text style={styles.emptySubtitle}>
-                  اكتبي أول رسالة للأخصائي للبدء.
+                  اكتب أول رسالة للأخصائي للبدء.
                 </Text>
               </View>
             </TouchableWithoutFeedback>

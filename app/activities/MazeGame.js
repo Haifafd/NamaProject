@@ -135,7 +135,7 @@ export default function MazeGame() {
     setNoumiPos({ row: startR, col: startC });
     setGoalPos({ row: goalR, col: goalC });
     setMoveCount(0);
-    showSpeechBubble(speak("وصّلي نومي للجزرة! 🥕", childGender), GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak("وصّل نومي للجزرة! 🥕", childGender), GARDEN.bubbleHappy, "happy", 2500);
   };
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -170,13 +170,13 @@ export default function MazeGame() {
 
     if (newRow < 0 || newRow >= maze.rows || newCol < 0 || newCol >= maze.cols) {
       wrongMoves.current += 1;
-      showSpeechBubble(speak("لا تستطيعين الذهاب هناك!", childGender), GARDEN.bubbleSad, "sad", 1200);
+      showSpeechBubble(speak("لا تستطيع الذهاب هناك!", childGender), GARDEN.bubbleSad, "sad", 1200);
       return;
     }
 
     if (maze.grid[newRow][newCol] === 1) {
       wrongMoves.current += 1;
-      showSpeechBubble(speak("جدار! حاولي طريق آخر", childGender), GARDEN.bubbleSad, "sad", 1200);
+      showSpeechBubble(speak("جدار! حاول طريق آخر", childGender), GARDEN.bubbleSad, "sad", 1200);
       return;
     }
 
@@ -187,7 +187,7 @@ export default function MazeGame() {
     if (newRow === goalPos.row && newCol === goalPos.col) {
       setTimeout(() => {
         if (level < 3) {
-          showSpeechBubble(speak("ممتاز! وصلتي للجزرة! 🥕", childGender), GARDEN.bubbleExcited, "excited", 2500);
+          showSpeechBubble(speak("ممتاز! وصلت للجزرة! 🥕", childGender), GARDEN.bubbleExcited, "excited", 2500);
           setTimeout(() => setLevel(level + 1), 2000);
         } else {
           finishGame();

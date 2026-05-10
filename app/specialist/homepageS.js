@@ -441,7 +441,7 @@ export default function HomepageS() {
               </View>
               <Text style={styles.emptyTitle}>لم يتم إضافة أطفال بعد</Text>
               <Text style={styles.emptySubtitle}>
-                ابدئي بإضافة أول طفل في حسابك لتصميم خطته العلاجية ومتابعة
+                ابدأ بإضافة أول طفل في حسابك لتصميم خطته العلاجية ومتابعة
                 تطوره.
               </Text>
               <TouchableOpacity
@@ -460,7 +460,7 @@ export default function HomepageS() {
               </View>
               <Text style={styles.emptyTitle}>لم يتم العثور على نتائج</Text>
               <Text style={styles.emptySubtitle}>
-                لا يوجد طفل بهذا الاسم. جربي البحث باسم آخر.
+                لا يوجد طفل بهذا الاسم. جرّب البحث باسم آخر.
               </Text>
             </View>
           ) : (

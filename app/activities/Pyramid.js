@@ -332,11 +332,11 @@ function MiniFlower({ size = 22, color = GARDEN.flowerPink }) {
   );
 }
 
-const HAPPY_MESSAGES = ["ممتاز!", "أحسنتِ!", "رائع!", "جميل!"];
-const SAD_MESSAGES = ["حاولي رقم ١ أولاً!", "ليست هذي!", "بالترتيب!"];
+const HAPPY_MESSAGES = ["ممتاز!", "أحسنت!", "رائع!", "جميل!"];
+const SAD_MESSAGES = ["حاول رقم ١ أولاً!", "ليست هذي!", "بالترتيب!"];
 const EXCITED_MESSAGES = [
-  "وصلتِ للمستوى التالي!",
-  "ممتاز! كملي!",
+  "وصلت للمستوى التالي!",
+  "ممتاز! أكمل!",
   "هيا للمستوى الجديد!",
 ];
 

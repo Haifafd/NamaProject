@@ -111,7 +111,7 @@ export default function DifferentShapeActivity() {
   }, [childId]);
 
   useEffect(() => {
-    showSpeechBubble(speak("اختاري الشكل المختلف!", childGender), GARDEN.bubbleHappy, "happy", 2200);
+    showSpeechBubble(speak("اختر الشكل المختلف!", childGender), GARDEN.bubbleHappy, "happy", 2200);
   }, [level, problemIdx]);
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -161,7 +161,7 @@ export default function DifferentShapeActivity() {
       }, 1000);
     } else {
       wrongAnswers.current += 1;
-      showSpeechBubble(speak("شوفي بدقة!", childGender), GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("شوف بدقة!", childGender), GARDEN.bubbleSad, "sad", 1500);
     }
   };
 

@@ -298,8 +298,8 @@ export default function TreasureSplash() {
             { transform: [{ scale: titleScale }] },
           ]}
         >
-          <Text style={styles.title}>أحسنتي يا بطلة!</Text>
-          <Text style={styles.subtitle}>أنجزتي كل المغامرة!</Text>
+          <Text style={styles.title}>أحسنت يا بطل!</Text>
+          <Text style={styles.subtitle}>أنجزت كل المغامرة!</Text>
         </Animated.View>
 
         <Animated.View

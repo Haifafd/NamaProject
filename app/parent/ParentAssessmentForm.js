@@ -383,7 +383,7 @@ export default function AssessmentApp() {
       setShowResult(true);
     } catch (error) {
       console.error(error);
-      Alert.alert("خطأ", "لم نتمكن من حفظ التقييم. حاولي مرة أخرى.");
+      Alert.alert("خطأ", "لم نتمكن من حفظ التقييم. حاول مرة أخرى.");
     }
   };
 
@@ -439,8 +439,8 @@ export default function AssessmentApp() {
 
           <Text style={styles.successSubtitle}>
             {isFirstTime
-              ? "شكراً لكِ، تم إرسال إجاباتكِ للأخصائي المختص للاطلاع عليها"
-              : "تم إرسال إجاباتكِ مسبقاً للأخصائي"}
+              ? "شكراً لك، تم إرسال إجاباتك للأخصائي المختص للاطلاع عليها"
+              : "تم إرسال إجاباتك مسبقاً للأخصائي"}
           </Text>
 
           <View style={styles.successInfoCard}>
@@ -457,7 +457,7 @@ export default function AssessmentApp() {
             <View style={styles.successInfoRow}>
               <Ionicons name="people" size={18} color={COLORS.PRIMARY_DARK} />
               <Text style={styles.successInfoText}>
-                سيتواصل معكِ الأخصائي بشأن خطة طفلكِ
+                سيتواصل معك الأخصائي بشأن خطة طفلك
               </Text>
             </View>
           </View>
@@ -546,12 +546,12 @@ export default function AssessmentApp() {
                     </Text>
                   </View>
                   <Text style={styles.notesLabel}>
-                    أضيفي أي ملاحظة عامة عن طفلكِ، أو معززات تساعد في فهمه أكثر
+                    أضف أي ملاحظة عامة عن طفلك، أو معززات تساعد في فهمه أكثر
                   </Text>
                   <TextInput
                     style={styles.notesInput}
                     multiline
-                    placeholder="اكتبي ملاحظاتكِ هنا..."
+                    placeholder="اكتب ملاحظاتك هنا..."
                     placeholderTextColor={COLORS.MUTED}
                     value={notesText}
                     onChangeText={setNotesText}

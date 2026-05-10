@@ -139,7 +139,7 @@ export default function EditProfile() {
         message = "الرجاء تسجيل الدخول مرة أخرى ثم المحاولة";
       } else if (error.code === "auth/operation-not-allowed") {
         message =
-          "تغيير البريد يتطلب تفعيل البريد الجديد. تحققي من بريدك الإلكتروني.";
+          "تغيير البريد يتطلب تفعيل البريد الجديد. تحقق من بريدك الإلكتروني.";
       }
       Alert.alert("خطأ", message);
     } finally {
@@ -220,7 +220,7 @@ export default function EditProfile() {
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="أدخلي اسمك"
+                placeholder="أدخل اسمك"
                 placeholderTextColor={COLORS.MUTED}
                 textAlign="right"
               />
@@ -298,7 +298,7 @@ export default function EditProfile() {
               </View>
               <Text style={styles.modalTitle}>تأكيد تغيير البريد</Text>
               <Text style={styles.modalSubtitle}>
-                لحماية حسابك، أدخلي كلمة المرور الحالية
+                لحماية حسابك، أدخل كلمة المرور الحالية
               </Text>
               <TextInput
                 style={styles.modalInput}

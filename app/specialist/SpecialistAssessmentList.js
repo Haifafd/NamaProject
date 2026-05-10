@@ -143,7 +143,7 @@ export default function SpecialistAssessmentList() {
           <View style={styles.emptyCard}>
             <Ionicons name="document-outline" size={48} color={COLORS.MUTED} />
             <Text style={styles.emptyTitle}>لا توجد تقييمات سابقة</Text>
-            <Text style={styles.emptySub}>اضغطي "تقييم جديد" لبدء أول تقييم</Text>
+            <Text style={styles.emptySub}>اضغط "تقييم جديد" لبدء أول تقييم</Text>
           </View>
         ) : (
           <View style={styles.sessionsList}>

@@ -353,9 +353,9 @@
         سيتم حذف بيانات الطفل وكل المحادثات المرتبطة به. لن يتم حذف نتائج أنشطته السابقة (تبقى للإحصائيات).
       </div>
       <label class="confirm-input-label" for="confirmInput">
-        لتأكيد الحذف، اكتبي اسم الطفل: <strong id="confirmExpectedName"></strong>
+        لتأكيد الحذف، اكتب اسم الطفل: <strong id="confirmExpectedName"></strong>
       </label>
-      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتبي الاسم هنا..." aria-label="اكتبي اسم الطفل لتأكيد الحذف" />
+      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتب الاسم هنا..." aria-label="اكتب اسم الطفل لتأكيد الحذف" />
       <div class="confirm-actions">
         <button type="button" class="btn btn-outline" onclick="window.closeDeleteConfirm()">إلغاء</button>
         <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="window.confirmDelete()" disabled>
@@ -423,7 +423,7 @@
           <div class="empty-state">
             <span class="empty-icon"><i data-lucide="${isEmpty ? 'baby' : 'search-x'}"></i></span>
             <div class="empty-title">${isEmpty ? "لا يوجد أطفال بعد" : "لا توجد نتائج"}</div>
-            <div class="empty-sub">${isEmpty ? "يضيف الأخصائيون الأطفال من تطبيق نماء" : "جرّبي تغيير البحث أو الفلتر"}</div>
+            <div class="empty-sub">${isEmpty ? "يضيف الأخصائيون الأطفال من تطبيق نماء" : "جرّب تغيير البحث أو الفلتر"}</div>
           </div>
         `;
         refreshIcons();

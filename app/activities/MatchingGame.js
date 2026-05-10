@@ -129,7 +129,7 @@ export default function MatchingGame() {
     setSelectedLeft(null);
     setMatched([]);
     startTime.current = Date.now();
-    showSpeechBubble(speak("وصلي البطاقات المتشابهة!", childGender), GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak("وصل البطاقات المتشابهة!", childGender), GARDEN.bubbleHappy, "happy", 2500);
   };
 
   const showSpeechBubble = (text, color, expression, duration = 1500) => {
@@ -185,7 +185,7 @@ export default function MatchingGame() {
       }
     } else {
       wrongAttempts.current += 1;
-      showSpeechBubble(speak("ليست متشابهة، حاولي ثانية!", childGender), GARDEN.bubbleSad, "sad", 1500);
+      showSpeechBubble(speak("ليست متشابهة، حاول ثانية!", childGender), GARDEN.bubbleSad, "sad", 1500);
       setSelectedLeft(null);
     }
   };

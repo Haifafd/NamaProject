@@ -395,9 +395,9 @@ export default function HomepageP() {
               <Ionicons name="heart" size={22} color={PRIMARY_DARK} />
             </View>
             <View style={styles.welcomeTextBox}>
-              <Text style={styles.welcomeTitle}>تابعي رحلة طفلك</Text>
+              <Text style={styles.welcomeTitle}>تابع رحلة طفلك</Text>
               <Text style={styles.welcomeSub}>
-                اكتشفي تطوره يوماً بعد يوم
+                اكتشف تطوره يوماً بعد يوم
               </Text>
             </View>
           </View>
@@ -434,7 +434,7 @@ export default function HomepageP() {
                         استمارة {child.name} بانتظارك
                       </Text>
                       <Text style={styles.bannerSubtitle}>
-                        تساعد الأخصائي على متابعة طفلكِ
+                        تساعد الأخصائي على متابعة طفلك
                       </Text>
                     </View>
 
@@ -473,7 +473,7 @@ export default function HomepageP() {
                 لا يوجد أطفال مرتبطين بحسابك
               </Text>
               <Text style={styles.emptySubtitle}>
-                تواصلي مع الأخصائي لإضافة طفلك ومتابعة تطوره من هنا.
+                تواصل مع الأخصائي لإضافة طفلك ومتابعة تطوره من هنا.
               </Text>
             </View>
           ) : (
@@ -592,7 +592,7 @@ export default function HomepageP() {
                 </Text>
 
                 <View style={styles.heroCTA}>
-                  <Text style={styles.heroCTAText}>ادخلي الآن</Text>
+                  <Text style={styles.heroCTAText}>ادخل الآن</Text>
                   <Ionicons name="arrow-back" size={16} color="#FFFFFF" />
                 </View>
               </View>
@@ -609,7 +609,7 @@ export default function HomepageP() {
               <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
             </View>
             <View style={styles.chatContent}>
-              <Text style={styles.chatTitle}>تواصلي مع الأخصائي</Text>
+              <Text style={styles.chatTitle}>تواصل مع الأخصائي</Text>
               <Text style={styles.chatSubtitle}>
                 محادثة مباشرة لمتابعة طفلك
               </Text>

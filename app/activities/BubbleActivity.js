@@ -163,7 +163,7 @@ export default function BubbleActivity() {
 
   useEffect(() => {
     showSpeechBubble(
-      speak(level === 1 ? "اضغطي الفقاعات!" : "هيا نكمل!", childGender),
+      speak(level === 1 ? "اضغط الفقاعات!" : "هيا نكمل!", childGender),
       GARDEN.bubbleHappy,
       "happy",
       2000

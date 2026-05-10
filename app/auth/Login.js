@@ -78,7 +78,7 @@ export default function Login() {
 
           <View style={styles.headerSpace}>
             <Text style={styles.welcome}>أهلاً بعودتك</Text>
-            <Text style={styles.welcomeSub}>سجّلي دخولك لمتابعة رحلتك</Text>
+            <Text style={styles.welcomeSub}>سجّل دخولك لمتابعة رحلتك</Text>
           </View>
 
           <View style={styles.glassCard}>

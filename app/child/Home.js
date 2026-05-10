@@ -1357,7 +1357,7 @@ export default function ChildHome() {
         >
           <TreasureChest size={120} unlocked={allDone} />
           {allDone && (
-            <Text style={styles.treasureText}>اضغطي للاحتفال!</Text>
+            <Text style={styles.treasureText}>اضغط للاحتفال!</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -1430,8 +1430,8 @@ export default function ChildHome() {
                 >
                   <Text style={styles.modalPlayText}>
                     {selectedStation.status === "completed"
-                      ? "العبيها مرة ثانية!"
-                      : "ابدئي!"}
+                      ? "العبها مرة ثانية!"
+                      : "ابدأ!"}
                   </Text>
                 </TouchableOpacity>
 

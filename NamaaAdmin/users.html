@@ -190,9 +190,9 @@
         سيتم حذف بيانات المستخدم وكل ما يرتبط به من أطفال ومحادثات.
       </div>
       <label class="confirm-input-label" for="confirmInput">
-        لتأكيد الحذف، اكتبي اسم المستخدم: <strong id="confirmExpectedName"></strong>
+        لتأكيد الحذف، اكتب اسم المستخدم: <strong id="confirmExpectedName"></strong>
       </label>
-      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتبي الاسم هنا..." aria-label="اكتبي اسم المستخدم لتأكيد الحذف" />
+      <input type="text" class="confirm-input" id="confirmInput" placeholder="اكتب الاسم هنا..." aria-label="اكتب اسم المستخدم لتأكيد الحذف" />
       <div class="confirm-actions">
         <button type="button" class="btn btn-outline" onclick="window.closeDeleteConfirm()">إلغاء</button>
         <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="window.confirmDelete()" disabled>
@@ -257,7 +257,7 @@
           <div class="empty-state">
             <span class="empty-icon"><i data-lucide="${isEmpty ? 'user-x' : 'search-x'}"></i></span>
             <div class="empty-title">${isEmpty ? "لا يوجد مستخدمين بعد" : "لا توجد نتائج"}</div>
-            <div class="empty-sub">${isEmpty ? "سيظهر المستخدمين هنا عند تسجيلهم" : "جرّبي تغيير البحث أو الفلتر"}</div>
+            <div class="empty-sub">${isEmpty ? "سيظهر المستخدمين هنا عند تسجيلهم" : "جرّب تغيير البحث أو الفلتر"}</div>
           </div>
         `;
         refreshIcons();

@@ -321,8 +321,8 @@ const SLIDES = [
   {
     treeType: "tree",
     title: "معاً نبني خطة نموه",
-    subtitle: "أنتِ شريكٌ أساسي",
-    description: "إجاباتكِ تساعد الأخصائي على رسم خطة علاجية مخصصة",
+    subtitle: "أنت شريكٌ أساسي",
+    description: "إجاباتك تساعد الأخصائي على رسم خطة علاجية مخصصة",
     showButterflies: true,
     isLast: true,
   },

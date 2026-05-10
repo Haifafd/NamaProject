@@ -74,7 +74,7 @@ export const markSessionComplete = async (childId) => {
             userId: parentId,
             type: NOTIFICATION_TYPES.REPORT_ISSUED,
             title: `📊 تقرير ${childName} جاهز!`,
-            body: `أكمل ${childName} جلسة جديدة، شوفي تقريره الآن`,
+            body: `أكمل ${childName} جلسة جديدة، شوف تقريره الآن`,
             data: { childId, childName },
           });
         }

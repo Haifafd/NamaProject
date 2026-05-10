@@ -205,12 +205,12 @@ export default function MemoryCardGame() {
     setIsMemorizing(true);
     startTime.current = Date.now();
 
-    showSpeechBubble(speak("احفظي البطاقات!", childGender), GARDEN.bubbleHappy, "happy", 2500);
+    showSpeechBubble(speak("احفظ البطاقات!", childGender), GARDEN.bubbleHappy, "happy", 2500);
 
     setTimeout(() => {
       setCards((prev) => prev.map((c) => ({ ...c, isFlipped: false })));
       setIsMemorizing(false);
-      showSpeechBubble(speak("ابحثي عن الأزواج!", childGender), GARDEN.bubbleHappy, "happy", 2000);
+      showSpeechBubble(speak("ابحث عن الأزواج!", childGender), GARDEN.bubbleHappy, "happy", 2000);
     }, 3500);
   }, [level]);
 

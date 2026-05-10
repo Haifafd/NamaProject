@@ -97,7 +97,7 @@ export default function AddChild() {
       if (parentSnapshot.empty) {
         Alert.alert(
           "تنبيه",
-          "لم يتم العثور على ولي أمر مسجل بهذا الإيميل.\n\nيرجى التأكد من أن ولي الأمر قد سجل حسابه أولاً، ثم حاولي مرة أخرى."
+          "لم يتم العثور على ولي أمر مسجل بهذا الإيميل.\n\nيرجى التأكد من أن ولي الأمر قد سجل حسابه أولاً، ثم حاول مرة أخرى."
         );
         setSaving(false);
         return;
@@ -193,12 +193,12 @@ export default function AddChild() {
               ? "طفل"
               : gender === "female"
                 ? "طفلة"
-                : "اختاري الجنس"}
+                : "اختر الجنس"}
           </Text>
         </View>
 
         <Text style={styles.title}>
-          أدخلي معلومات الطفل لنبدأ رحلة{"\n"}المتابعة والنمو
+          أدخل معلومات الطفل لنبدأ رحلة{"\n"}المتابعة والنمو
         </Text>
 
         <View style={styles.inputSection}>

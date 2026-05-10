@@ -53,7 +53,7 @@ export default function VerifyEmail() {
       setMessage({ text: "تم إرسال رابط التحقق مرة أخرى", type: "success" });
     } catch (e) {
       setMessage({
-        text: "تعذّر إرسال الرابط، حاولي بعد قليل",
+        text: "تعذّر إرسال الرابط، حاول بعد قليل",
         type: "error",
       });
     } finally {
@@ -85,12 +85,12 @@ export default function VerifyEmail() {
         }
       } else {
         setMessage({
-          text: "لم يتم التحقق بعد، تأكدي من فتح الرابط في بريدك",
+          text: "لم يتم التحقق بعد، تأكد من فتح الرابط في بريدك",
           type: "error",
         });
       }
     } catch (e) {
-      setMessage({ text: "حدث خطأ، حاولي مرة أخرى", type: "error" });
+      setMessage({ text: "حدث خطأ، حاول مرة أخرى", type: "error" });
     } finally {
       setChecking(false);
     }
@@ -116,7 +116,7 @@ export default function VerifyEmail() {
         >
           <NamaaBrand size="md" />
 
-          <Text style={styles.title}>تحقّقي من بريدك</Text>
+          <Text style={styles.title}>تحقّق من بريدك</Text>
           <Text style={styles.subtitleHero}>
             أرسلنا رابط التحقق إلى بريدك الإلكتروني
           </Text>
@@ -135,8 +135,8 @@ export default function VerifyEmail() {
             ) : null}
 
             <Text style={styles.instructions}>
-              افتحي الرسالة من بريدك واضغطي على رابط التحقق، ثم ارجعي لهذه
-              الشاشة واضغطي على زر "تحقّقت من البريد".
+              افتح الرسالة من بريدك واضغط على رابط التحقق، ثم ارجع لهذه
+              الشاشة واضغط على زر "تحقّقت من البريد".
             </Text>
 
             {message.text ? (
